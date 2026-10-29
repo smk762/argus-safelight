@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens from the suite palette (the dark set lightbox and cull use),
+ * with a light set beside it. Verdicts have to read in both, so the shields
+ * carry a mark and a label as well as a colour.
+ *
+ * The theme is `data-theme` on <html>: "dark" or "light". Without it the
+ * system preference decides. The @theme block is `inline` so every utility
+ * resolves its variable at use time and follows the switch.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --base-900: #0b1020;
+  --base-800: #141a30;
+  --base-700: #1e2742;
+  --base-600: #293256;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --success: #22c55e;
+  --warning: #facc15;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --on-shield: #0b1020;
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --base-900: #f4f5fa;
+  --base-800: #ffffff;
+  --base-700: #e8ebf4;
+  --base-600: #cfd5e6;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --success: #15803d;
+  --warning: #b45309;
+  --error: #b91c1c;
+  --info: #1d4ed8;
+  --on-shield: #ffffff;
+  --shadow-soft: 0 4px 24px rgba(17, 24, 39, 0.12);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --base-900: #f4f5fa;
+    --base-800: #ffffff;
+    --base-700: #e8ebf4;
+    --base-600: #cfd5e6;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --success: #15803d;
+    --warning: #b45309;
+    --error: #b91c1c;
+    --info: #1d4ed8;
+    --on-shield: #ffffff;
+    --shadow-soft: 0 4px 24px rgba(17, 24, 39, 0.12);
+  }
+}
+
+@theme inline {
+  --color-base-900: var(--base-900);
+  --color-base-800: var(--base-800);
+  --color-base-700: var(--base-700);
+  --color-base-600: var(--base-600);
+
+  --color-accent-primary: #6366f1;
+  --color-accent-secondary: #8b5cf6;
+  --color-accent-tertiary: #22d3ee;
+  --color-warm-primary: #f472b6;
+  --color-warm-secondary: #f59e9e;
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-on-shield: var(--on-shield);
+
+  --color-interactive: #6366f1;
+  --color-interactive-hover: #7c83ff;
+
+  --font-sans: var(--font-inter), "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-dm-sans), "DM Sans", var(--font-inter), system-ui, sans-serif;
+
+  --text-display: 32px;
+  --text-display--line-height: 1.3;
+  --text-heading: 24px;
+  --text-heading--line-height: 1.3;
+  --text-subheading: 20px;
+  --text-subheading--line-height: 1.4;
+  --text-body: 16px;
+  --text-body--line-height: 1.6;
+  --text-small: 14px;
+  --text-small--line-height: 1.6;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.5;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.25);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html,
+body {
+  background: var(--base-900);
+  color: var(--text-primary);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, #6366f1 45%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

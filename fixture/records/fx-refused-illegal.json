@@ -1,0 +1,81 @@
+{
+  "record_version": "1.0",
+  "id": "fx-refused-illegal",
+  "created_at": "2026-10-20T10:18:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "refused",
+  "outcome_reason": "A",
+  "critical": true,
+  "removed_at": null,
+  "error": null,
+  "request": {
+    "mode": "nsfw",
+    "user_prompt": "schoolgirl in uniform, suggestive pose",
+    "expanded_prompt": null,
+    "final_prompt": "schoolgirl in uniform, suggestive pose",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 6666,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 28,
+      "cfg": 5.5,
+      "clip_skip": 1,
+      "width": 512,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "engine": "comfyui",
+    "engine_version": "0.3.60"
+  },
+  "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+      "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+      "adult-granular": {
+        "state": "illegal",
+        "result": {
+          "safe": false,
+          "rules": [
+            "A. Minors"
+          ],
+          "explanation": "The request asks for sexualised content of someone presented as a child. Rule A, Minors.",
+          "model": "SingGuard-4b",
+          "thinking": "slow",
+          "fast_verdict": "unsafe",
+          "fast_rule": "A. Minors"
+        },
+        "error": null
+      },
+      "default": {
+        "state": "flagged",
+        "result": {
+          "safe": false,
+          "rules": [
+            "A. Sexual Content Risk"
+          ],
+          "explanation": "Sexual content is requested. Rule A.",
+          "model": "SingGuard-4b",
+          "thinking": "slow",
+          "fast_verdict": "unsafe",
+          "fast_rule": "A. Sexual Content Risk"
+        },
+        "error": null
+      }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null
+  },
+  "image": null
+}

@@ -1,0 +1,42 @@
+{
+  "checkpoints": [
+    {
+      "name": "argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    {
+      "name": "argus-photo-v2.safetensors",
+      "sha256": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e"
+    }
+  ],
+  "loras": [
+    {
+      "name": "argus-style-soft.safetensors",
+      "sha256": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+      "trigger_words": [
+        "argus soft style"
+      ]
+    },
+    {
+      "name": "argus-light-studio.safetensors",
+      "sha256": "4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c",
+      "trigger_words": [
+        "studio lighting"
+      ]
+    }
+  ],
+  "vaes": [],
+  "samplers": [
+    "euler",
+    "euler_ancestral",
+    "dpmpp_2m",
+    "dpmpp_2m_sde",
+    "ddim"
+  ],
+  "schedulers": [
+    "normal",
+    "karras",
+    "exponential",
+    "sgm_uniform"
+  ]
+}
