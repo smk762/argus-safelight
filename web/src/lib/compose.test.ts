@@ -54,7 +54,7 @@ describe("normalise", () => {
     expect(enforceBlock(policies(false).policies.find((policy) => policy.name === "adult")!)).toContain("--allow-nsfw");
   });
   it("drops advisory repeats and unknown models", () => {
-    const base = { ...defaultCompose(health(), policies(), models), advisoryPolicies: ["adult-granular", "nope"], checkpoint: "gone.safetensors", loras: [{ name: "gone", weight: 1 }] };
+    const base = { ...defaultCompose(health(), policies(), models), advisoryPolicies: ["adult-granular", "nope"], checkpoint: "gone.safetensors", loras: [{ name: "gone", weight: 1, trigger_words: [] }] };
     const next = normaliseCompose(base, policies(), models);
     expect(next.advisoryPolicies).toEqual([]);
     expect(next.checkpoint).toBe(models.checkpoints[0].name);
@@ -89,8 +89,15 @@ describe("from a record", () => {
   });
   it("carries LoRA weights and the NudeNet threshold", () => {
     const state = fromRecord(fixtureRecord("fx-review-disagree"), defaultCompose(health(), policies(), models));
-    expect(state.loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5 }]);
+    expect(state.loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: [] }]);
     expect(state.nsfwThreshold).toBe(0.2);
+  });
+  it("refills each LoRA's trigger words from the record, and sends them again", () => {
+    const record = fixtureRecord("fx-review-disagree");
+    record.request.loras = [{ ...record.request.loras[0], trigger_words: ["studio lighting", "soft"] }];
+    const state = fromRecord(record, defaultCompose(health(), policies(), models));
+    expect(state.loras[0].trigger_words).toEqual(["studio lighting", "soft"]);
+    expect(toRequest(state).loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: ["studio lighting", "soft"] }]);
   });
 });
 

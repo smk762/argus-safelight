@@ -72,6 +72,8 @@ export interface ModelRef {
 
 export interface LoRARef extends ModelRef {
   weight: number;
+  /** The words the request supplied for this LoRA, already in the final prompt. Older records have none. */
+  trigger_words?: string[];
 }
 
 export interface SamplingParams {
@@ -169,6 +171,10 @@ export interface Health {
   sfw_available: boolean;
   devmode: boolean;
   generating?: boolean;
+  /** Real darkroom only. Whether Ollama expansion is configured, and why the age check cannot run (null when it can). */
+  expansion_enabled?: boolean;
+  age_unavailable?: string | null;
+  workflow_loaded?: boolean;
 }
 
 export interface IllegalRule {
@@ -192,14 +198,21 @@ export interface Policies {
   policies: PolicyInfo[];
 }
 
-export interface LoRAModel extends ModelRef {
-  trigger_words: string[];
+/**
+ * A model file under darkroom's models root. Darkroom sends the name only: hashing a checkpoint takes too long for
+ * a list, and it cannot know a LoRA's trigger words, which each request supplies. A server that does know either
+ * (the fixture mock) may send them, and the form uses them as suggestions.
+ */
+export interface ModelOption {
+  name: string;
+  sha256?: string;
+  trigger_words?: string[];
 }
 
 export interface Models {
-  checkpoints: ModelRef[];
-  loras: LoRAModel[];
-  vaes: ModelRef[];
+  checkpoints: ModelOption[];
+  loras: ModelOption[];
+  vaes: ModelOption[];
   samplers: string[];
   schedulers: string[];
 }
@@ -214,6 +227,8 @@ export interface RecordPage {
 export interface LoRAChoice {
   name: string;
   weight: number;
+  /** Appended to the final prompt by darkroom, after the expansion. */
+  trigger_words: string[];
 }
 
 /** What `POST /preflight` and `POST /generate/stream` take. */
