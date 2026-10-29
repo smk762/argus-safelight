@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import { ApiError, getRecord } from "@/lib/api";
+import type { GenerationRecord } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
 
 import { useCompose } from "./ComposeProvider";
+import { RecordActions } from "./RecordActions";
 import { ResultView } from "./ResultView";
 import { Notice, Spinner } from "./ui";
 
@@ -15,7 +19,9 @@ export function RecordView({ id }: { id: string }) {
       throw caught instanceof ApiError && caught.status === 404 ? new Error(`No record ${id}.`) : caught;
     }),
   );
-  const record = fetched ?? (live.record?.id === id ? live.record : null);
+  // The record darkroom returned from DELETE /record/{id}, which supersedes the fetched one until the page changes.
+  const [updated, setUpdated] = useState<GenerationRecord | null>(null);
+  const record = (updated?.id === id ? updated : null) ?? fetched ?? (live.record?.id === id ? live.record : null);
   if (error && !record) return <Notice tone="error">{error}</Notice>;
   if (!record) {
     return (
@@ -27,7 +33,7 @@ export function RecordView({ id }: { id: string }) {
   return (
     <>
       {loading && !fetched ? <p className="sr-only">Confirming with darkroom…</p> : null}
-      <ResultView record={record} />
+      <ResultView record={record} actions={<RecordActions record={record} onRemoved={setUpdated} />} />
     </>
   );
 }
