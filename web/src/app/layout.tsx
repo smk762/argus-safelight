@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
 
+import { DarkroomProvider } from "@/components/DarkroomProvider";
+import { HealthCard } from "@/components/HealthCard";
+import { Shell } from "@/components/Shell";
+
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -20,7 +24,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       </head>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <DarkroomProvider>
+          <Shell sidebar={<HealthCard />}>{children}</Shell>
+        </DarkroomProvider>
+      </body>
     </html>
   );
 }
