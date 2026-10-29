@@ -23,7 +23,7 @@ There is no host Node here; the Makefile runs npm in `node:22-bookworm-slim` via
 ```bash
 make install   # npm ci
 make mock      # fixture mock on :8106 (MOCK_PORT)
-make dev       # next dev on :3000 (PORT); SAFELIGHT_DEV_ORIGINS=host allows a LAN origin
+make dev       # next dev on :3097 (PORT); SAFELIGHT_DEV_ORIGINS=host allows a LAN origin
 make test      # vitest
 make lint      # eslint + tsc
 make check     # lint + test + build, what CI runs; run it before every PR

@@ -36,7 +36,7 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
 ## Running it
 
 ```
-browser ──▶ safelight :3000 ──▶ argus-darkroom :8106
+browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             compose, shields,     preflight, generate (SSE),
             history               records, images by id
 ```
@@ -48,7 +48,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open <http://localhost:3000>. The mock serves the committed fixture on :8106 and generates new records on demand, with the verdict chosen by a marker in the prompt:
+Open <http://localhost:3097> (`PORT` in `.env` changes it). The mock serves the committed fixture on :8106 and generates new records on demand, with the verdict chosen by a marker in the prompt:
 
 | Marker | What the mock does | Outcome |
 |---|---|---|
@@ -74,7 +74,7 @@ For development:
 ```bash
 make install   # npm ci (in node:22 via Docker when there is no host Node)
 make mock      # the fixture mock on :8106
-make dev       # next dev on :3000
+make dev       # next dev on :3097 (PORT)
 make check     # lint + typecheck + test + build, what CI runs
 make fixture   # redraw fixture/ (needs uv)
 ```

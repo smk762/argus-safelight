@@ -9,8 +9,10 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_DARKROOM_URL: ${NEXT_PUBLIC_DARKROOM_URL:-http://localhost:8106}
+    environment:
+      - PORT=${PORT:-3097}
     ports:
-      - "3000:3000"
+      - "${PORT:-3097}:${PORT:-3097}"
     depends_on:
       - mock-darkroom
     restart: unless-stopped

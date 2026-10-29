@@ -6,7 +6,7 @@ NPM ?= $(if $(HOST_NPM),npm,$(call DOCKER_NPM,))
 NPM_DEV ?= $(if $(HOST_NPM),npm,$(call DOCKER_NPM,-p $(PORT):$(PORT)))
 NODE ?= $(if $(HOST_NPM),node,$(call DOCKER_RUN,-w /repo -p $(MOCK_PORT):$(MOCK_PORT) -e MOCK_PORT=$(MOCK_PORT)) node)
 UV ?= uv
-PORT ?= 3000
+PORT ?= 3097
 MOCK_PORT ?= 8106
 
 .PHONY: help install dev mock fixture build test lint check clean
