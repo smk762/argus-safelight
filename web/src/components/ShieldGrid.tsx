@@ -17,7 +17,8 @@ export function ShieldGrid({ guard, rows: given }: { guard: GridGuard; rows?: Po
   const rows = given ?? policyRows(guard);
   const contexts: ScanContext[] = ["isolated", "with_prompt"];
   return (
-    <table className="w-full border-separate border-spacing-y-1 text-small">
+    <div className="overflow-x-auto">
+      <table className="w-full border-separate border-spacing-y-1 text-small">
       <thead>
         <tr className="text-caption uppercase tracking-wide text-text-muted">
           <th scope="col" className="pb-1 text-left font-medium">
@@ -36,15 +37,17 @@ export function ShieldGrid({ guard, rows: given }: { guard: GridGuard; rows?: Po
       <tbody>
         {rows.map((row) => (
           <tr key={row.policy} className="align-middle">
-            <th scope="row" className="whitespace-nowrap pr-3 text-left font-normal">
-              <span className="font-mono text-small text-text-primary">{row.policy}</span>
-              {row.enforcing ? (
-                <Badge className="ml-2 border-accent-primary/60 text-accent-tertiary" title="Its verdict decides pre-flight and sets the mode">
-                  enforcing
-                </Badge>
-              ) : (
-                <span className="ml-2 text-caption text-text-muted">advisory</span>
-              )}
+            <th scope="row" className="pr-3 text-left font-normal">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="font-mono text-small text-text-primary">{row.policy}</span>
+                {row.enforcing ? (
+                  <Badge className="border-accent-primary/60 text-accent-tertiary" title="Its verdict decides pre-flight and sets the mode">
+                    enforcing
+                  </Badge>
+                ) : (
+                  <span className="text-caption text-text-muted">advisory</span>
+                )}
+              </span>
             </th>
             {contexts.map((context) => (
               <td key={context} className="text-center">
@@ -61,7 +64,8 @@ export function ShieldGrid({ guard, rows: given }: { guard: GridGuard; rows?: Po
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 }
 
