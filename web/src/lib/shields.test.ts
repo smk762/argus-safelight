@@ -64,6 +64,8 @@ describe("rows", () => {
     expect(rowDisagrees(other)).toBe(true);
     expect(promptTurned(other)).toBe(false);
     expect(rowDisagrees(pair(cell("safe"), cell("safe")))).toBe(false);
+    expect(rowDisagrees(pair(cell("unchecked"), cell("safe"))), "no verdict cannot disagree").toBe(false);
+    expect(rowDisagrees(pair(cell("safe"), cell("unchecked")))).toBe(false);
     expect(rowDisagrees(null)).toBe(false);
   });
 });
@@ -74,7 +76,8 @@ describe("prompt changed the verdict", () => {
       .filter((record) => promptChangedVerdict(record))
       .map((record) => record.id)
       .sort();
-    expect(changed).toEqual(["fx-deleted-illegal", "fx-deleted-unchecked", "fx-review-agree", "fx-review-disagree"]);
+    // fx-review-agree and fx-deleted-unchecked each have an unchecked cell, which is no verdict to disagree with.
+    expect(changed).toEqual(["fx-deleted-illegal", "fx-review-disagree"]);
   });
 });
 

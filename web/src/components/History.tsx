@@ -1,25 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { getRecords, imageUrl } from "@/lib/api";
+import { historyQuery, parseHistoryFilter, type HistoryFilter } from "@/lib/historyQuery";
 import { OUTCOME_LABEL, OUTCOME_TONE, hasImage } from "@/lib/outcome";
 import { allCells, overallState, promptChangedVerdict, ruleLetters } from "@/lib/shields";
 import { ago, formatWhen } from "@/lib/time";
 import { OUTCOMES, type GenerationRecord, type Mode, type Outcome } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
 
+import { useDarkroom } from "./DarkroomProvider";
+import { PurgeButton } from "./PurgeDialog";
 import { Shield } from "./Shield";
 import { Badge, Notice, Spinner } from "./ui";
 
 const PAGE_SIZE = 200;
 
+/** `GET /records`, filtered by outcome and mode on darkroom's side and by "Prompt changed the verdict" here. The URL holds the filter. */
 export function History() {
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [mode, setMode] = useState<Mode | null>(null);
-  const { data, error } = useLoad(`${outcome ?? ""}|${mode ?? ""}`, () => getRecords({ outcome, mode, pageSize: PAGE_SIZE }));
-  const records = data?.records ?? null;
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const filter = parseHistoryFilter(params);
+  const { health } = useDarkroom();
+  const { data, error, reload } = useLoad(`${filter.outcome ?? ""}|${filter.mode ?? ""}`, () => getRecords({ outcome: filter.outcome, mode: filter.mode, pageSize: PAGE_SIZE }));
+  const fetched = data?.records ?? null;
+  const records = fetched && filter.changed ? fetched.filter(promptChangedVerdict) : fetched;
+
+  const setFilter = (patch: Partial<HistoryFilter>) => {
+    router.replace(`${pathname}${historyQuery({ ...filter, ...patch })}`, { scroll: false });
+  };
 
   return (
     <section className="space-y-4" aria-labelledby="history-title">
@@ -27,20 +39,34 @@ export function History() {
         <h1 id="history-title" className="font-display text-heading font-semibold text-text-primary">
           History
         </h1>
-        <span className="text-small text-text-secondary">{records ? `${records.length} record${records.length === 1 ? "" : "s"}` : ""}</span>
+        <span className="text-small text-text-secondary" aria-live="polite">
+          {records && fetched ? (filter.changed && fetched.length > 0 ? `${records.length} of ${fetched.length} record${fetched.length === 1 ? "" : "s"}` : `${records.length} record${records.length === 1 ? "" : "s"}`) : ""}
+        </span>
+        {health?.devmode ? (
+          <span className="ml-auto">
+            <PurgeButton onPurged={reload} />
+          </span>
+        ) : null}
       </header>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
-        <FilterSelect label="Outcome" value={outcome ?? ""} onChange={(value) => setOutcome((value || null) as Outcome | null)} options={[["", "All outcomes"], ...OUTCOMES.map((value): [string, string] => [value, OUTCOME_LABEL[value]])]} />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2" role="group" aria-label="Filters">
+        <FilterSelect label="Outcome" value={filter.outcome ?? ""} onChange={(value) => setFilter({ outcome: (value || null) as Outcome | null })} options={[["", "All outcomes"], ...OUTCOMES.map((value): [string, string] => [value, OUTCOME_LABEL[value]])]} />
         <FilterSelect
           label="Mode"
-          value={mode ?? ""}
-          onChange={(value) => setMode((value || null) as Mode | null)}
+          value={filter.mode ?? ""}
+          onChange={(value) => setFilter({ mode: (value || null) as Mode | null })}
           options={[
             ["", "Both modes"],
             ["sfw", "SFW"],
             ["nsfw", "NSFW"],
           ]}
         />
+        <label className="flex items-center gap-1.5 text-small text-text-primary" title="Only records where a policy's isolated and with-prompt scans disagree.">
+          <input type="checkbox" checked={filter.changed} onChange={(event) => setFilter({ changed: event.target.checked })} className="accent-accent-primary" />
+          <span>Prompt changed the verdict</span>
+          <span aria-hidden="true" className="rounded-sm border border-warning/60 px-1 text-caption font-bold text-warning">
+            ≠
+          </span>
+        </label>
       </div>
       {error ? <Notice tone="error">{error}</Notice> : null}
       {!records && !error ? (
@@ -48,7 +74,9 @@ export function History() {
           <Spinner /> Loading records…
         </p>
       ) : null}
-      {records && records.length === 0 ? <p className="text-small text-text-secondary">No records match.</p> : null}
+      {records && records.length === 0 ? (
+        <p className="text-small text-text-secondary">{fetched && fetched.length > 0 && filter.changed ? "No record here where the prompt changed the verdict." : "No records match."}</p>
+      ) : null}
       {records && records.length > 0 ? (
         <ul className="space-y-2">
           {records.map((record) => (

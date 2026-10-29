@@ -60,9 +60,14 @@ export function policyRows(guard: Pick<GenerationRecord["guard"], "enforcing_pol
   return names.map((policy) => ({ policy, enforcing: policy === guard.enforcing_policy, pair: guard.scans?.[policy] ?? null }));
 }
 
-/** The two cells of a row disagree: the ≠ badge. Nothing is said until both are in. */
+/**
+ * The two verdicts of a row disagree: the ≠ badge. Nothing is said until both
+ * are in, and an unchecked cell is no verdict, so it cannot disagree with one.
+ */
 export function rowDisagrees(pair: RowPair | null): boolean {
-  return pair?.isolated != null && pair.with_prompt != null && pair.isolated.state !== pair.with_prompt.state;
+  const a = pair?.isolated;
+  const b = pair?.with_prompt;
+  return a != null && b != null && a.state !== "unchecked" && b.state !== "unchecked" && a.state !== b.state;
 }
 
 /** The prompt alone turned a green into amber or red: the dashed outline on the with-prompt cell. */
