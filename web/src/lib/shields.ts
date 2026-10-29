@@ -1,4 +1,4 @@
-import type { Cell, CellState, GenerationRecord, GuardResult, ScanContext, ScanPair } from "./types";
+import type { Cell, CellState, GenerationRecord, GuardResult, ScanContext } from "./types";
 
 /** A cell's state, or `pending` while a generation has not reached that cell yet. */
 export type ShieldState = CellState | "pending";
@@ -41,10 +41,16 @@ export function shieldLabel(state: ShieldState, letters: readonly string[] = [])
   return state;
 }
 
+/** A row's cells; either may still be missing while a generation is in flight. */
+export interface RowPair {
+  isolated: Cell | null;
+  with_prompt: Cell | null;
+}
+
 export interface PolicyRow {
   policy: string;
   enforcing: boolean;
-  pair: ScanPair | null;
+  pair: RowPair | null;
 }
 
 /** The grid's rows: the enforcing policy first and labelled, then the advisory ones in the record's order. */
@@ -54,14 +60,14 @@ export function policyRows(guard: Pick<GenerationRecord["guard"], "enforcing_pol
   return names.map((policy) => ({ policy, enforcing: policy === guard.enforcing_policy, pair: guard.scans?.[policy] ?? null }));
 }
 
-/** The two cells of a row disagree: the ≠ badge. */
-export function rowDisagrees(pair: ScanPair | null): boolean {
-  return pair != null && pair.isolated.state !== pair.with_prompt.state;
+/** The two cells of a row disagree: the ≠ badge. Nothing is said until both are in. */
+export function rowDisagrees(pair: RowPair | null): boolean {
+  return pair?.isolated != null && pair.with_prompt != null && pair.isolated.state !== pair.with_prompt.state;
 }
 
 /** The prompt alone turned a green into amber or red: the dashed outline on the with-prompt cell. */
-export function promptTurned(pair: ScanPair | null): boolean {
-  return pair != null && pair.isolated.state === "safe" && (pair.with_prompt.state === "flagged" || pair.with_prompt.state === "illegal");
+export function promptTurned(pair: RowPair | null): boolean {
+  return pair?.isolated?.state === "safe" && (pair.with_prompt?.state === "flagged" || pair.with_prompt?.state === "illegal");
 }
 
 /** The comparison the package exists to show: any policy whose isolated and with-prompt cells disagree. */
@@ -94,7 +100,10 @@ export function firedCell(record: Pick<GenerationRecord, "outcome_reason" | "gua
   if (reason === "unchecked") {
     for (const row of rows) {
       if (!row.enforcing || !row.pair) continue;
-      for (const context of contexts) if (row.pair[context].state === "unchecked") return { policy: row.policy, context, cell: row.pair[context] };
+      for (const context of contexts) {
+        const cell = row.pair[context];
+        if (cell?.state === "unchecked") return { policy: row.policy, context, cell };
+      }
     }
     return null;
   }
@@ -103,7 +112,7 @@ export function firedCell(record: Pick<GenerationRecord, "outcome_reason" | "gua
       if (!row.pair) continue;
       for (const context of contexts) {
         const cell = row.pair[context];
-        if (cell.state === wanted && ruleLetters(cell.result).includes(reason)) return { policy: row.policy, context, cell };
+        if (cell?.state === wanted && ruleLetters(cell.result).includes(reason)) return { policy: row.policy, context, cell };
       }
     }
   }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, SIZES, randomSeed } from "@/lib/compose";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, SIZES, generateBlock, randomSeed } from "@/lib/compose";
 import { THINKING_MODES, type ThinkingMode } from "@/lib/types";
 
 import { useCompose } from "./ComposeProvider";
@@ -27,12 +27,13 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: st
 }
 
 /** The compose form: prompt, models, sampling, policies, thinking mode and the NudeNet blur threshold. */
-export function ComposeForm({ actions }: { actions?: ReactNode }) {
+export function ComposeForm() {
   const { health, policies, models, error } = useDarkroom();
-  const { compose, ready, update, check, preflight } = useCompose();
+  const { compose, ready, update, check, preflight, start, stop, running } = useCompose();
   const router = useRouter();
   const ollamaDown = health != null && !health.backends.ollama;
   const checking = preflight.state === "checking";
+  const block = generateBlock(health, error, compose, policies);
 
   return (
     <Card as="div" className="space-y-5">
@@ -196,13 +197,22 @@ export function ComposeForm({ actions }: { actions?: ReactNode }) {
             router.push("/");
             await check();
           }}
-          disabled={!ready || checking || !compose.userPrompt.trim()}
+          disabled={!ready || checking || running || !compose.userPrompt.trim()}
           title={!compose.userPrompt.trim() ? "Write a prompt first." : "POST /preflight: the text-only check, before anything is generated"}
         >
           {checking ? <Spinner /> : null}
           Check
         </Button>
-        {actions}
+        {running ? (
+          <Button tone="danger" onClick={stop} title="Close the stream. Darkroom finishes on its own and keeps the record.">
+            Stop
+          </Button>
+        ) : (
+          <Button tone="primary" onClick={start} disabled={!ready || block != null} title={block ?? "POST /generate/stream: pre-flight, then render, then the scans"}>
+            Generate
+          </Button>
+        )}
+        {block && ready && !running ? <p className="basis-full text-caption text-text-muted">{block}</p> : null}
       </div>
     </Card>
   );
