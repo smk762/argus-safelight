@@ -69,7 +69,7 @@ Once release narrows the policies to `default` and one adult policy, the grid is
 ## Shape
 
 ```
-browser ──▶ safelight :3000 ──▶ argus-darkroom :8106
+browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             compose, shields,     preflight, generate (SSE),
             history               records, images by id
 ```
