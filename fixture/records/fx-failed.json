@@ -1,0 +1,62 @@
+{
+  "record_version": "1.0",
+  "id": "fx-failed",
+  "created_at": "2026-10-20T10:25:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "failed",
+  "outcome_reason": "ComfyUI: websocket closed before the image arrived",
+  "critical": false,
+  "removed_at": null,
+  "error": "ComfyUI: websocket closed before the image arrived",
+  "request": {
+    "mode": "nsfw",
+    "user_prompt": "snow-covered pine forest at blue hour",
+    "expanded_prompt": null,
+    "final_prompt": "snow-covered pine forest at blue hour",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 99,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 40,
+      "cfg": 5.5,
+      "clip_skip": 1,
+      "width": 768,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "engine": "comfyui",
+    "engine_version": "0.3.60"
+  },
+  "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+      "adult-granular": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null
+  },
+  "image": null
+}

@@ -1,0 +1,37 @@
+# Safelight beside the fixture mock of darkroom, so the UI runs without a GPU.
+# The real pairing lives in argus-darkroom's compose file, where safelight runs
+# beside the published darkroom image and ComfyUI, Ollama, SingGuard and
+# NudeNet are reached by URL.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DARKROOM_URL: ${NEXT_PUBLIC_DARKROOM_URL:-http://localhost:8106}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mock-darkroom
+    restart: unless-stopped
+
+  mock-darkroom:
+    image: node:22-alpine
+    working_dir: /repo
+    command: ["node", "scripts/mock_darkroom.mjs"]
+    volumes:
+      - ./scripts:/repo/scripts:ro
+      - ./fixture:/repo/fixture:ro
+    environment:
+      - MOCK_PORT=8106
+      # DEVMODE=1 in .env is what darkroom's compose maps to ARGUS_DARKROOM_DEVMODE;
+      # the mock reads the same name so the purge button appears the same way.
+      - MOCK_DEVMODE=${DEVMODE-1}
+      - MOCK_NSFW_ALLOWED=${MOCK_NSFW_ALLOWED-1}
+      - MOCK_OLLAMA=${MOCK_OLLAMA-1}
+      - MOCK_SINGGUARD=${MOCK_SINGGUARD-1}
+      - MOCK_NUDENET=${MOCK_NUDENET-1}
+      - MOCK_AGE=${MOCK_AGE-1}
+    ports:
+      - "${MOCK_PORT:-8106}:8106"
+    restart: unless-stopped

@@ -1,0 +1,137 @@
+{
+  "record_version": "1.0",
+  "id": "fx-deleted-unchecked",
+  "created_at": "2026-10-20T09:48:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "deleted",
+  "outcome_reason": "unchecked",
+  "critical": false,
+  "removed_at": null,
+  "error": null,
+  "request": {
+    "mode": "nsfw",
+    "user_prompt": "market street in the rain, umbrellas, neon reflections",
+    "expanded_prompt": null,
+    "final_prompt": "market street in the rain, umbrellas, neon reflections",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 555,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 32,
+      "cfg": 5.5,
+      "clip_skip": 1,
+      "width": 512,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "engine": "comfyui",
+    "engine_version": "0.3.60"
+  },
+  "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+      "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+      "adult-granular": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      },
+      "default": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      }
+    },
+    "scans": {
+      "adult-granular": {
+        "isolated": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        },
+        "with_prompt": {
+          "state": "unchecked",
+          "result": null,
+          "error": "SingGuard timed out after 90s"
+        }
+      },
+      "default": {
+        "isolated": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        },
+        "with_prompt": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        }
+      }
+    },
+    "nudenet": {
+      "exposed_score": 0.01,
+      "labels": {},
+      "threshold": 0.2,
+      "blur": false
+    },
+    "age": null
+  },
+  "image": {
+    "sha256": "5879410c954e85145983286e25da737ba48880aede2526f258a93a0aea8befcb",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+  }
+}

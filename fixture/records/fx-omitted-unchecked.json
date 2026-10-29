@@ -1,0 +1,111 @@
+{
+  "record_version": "1.0",
+  "id": "fx-omitted-unchecked",
+  "created_at": "2026-10-20T10:03:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "omitted",
+  "outcome_reason": "sfw-unchecked",
+  "critical": false,
+  "removed_at": null,
+  "error": null,
+  "request": {
+    "mode": "sfw",
+    "user_prompt": "a red bicycle leaning on a canal railing",
+    "expanded_prompt": null,
+    "final_prompt": "a red bicycle leaning on a canal railing",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 1234,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 28,
+      "cfg": 5.5,
+      "clip_skip": 1,
+      "width": 512,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "engine": "comfyui",
+    "engine_version": "0.3.60"
+  },
+  "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+      "default": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      }
+    },
+    "scans": {
+      "default": {
+        "isolated": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        },
+        "with_prompt": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        }
+      }
+    },
+    "nudenet": null,
+    "age": {
+      "source": "mivolo",
+      "faces": [
+        {
+          "age_estimate_years": 38,
+          "bbox": [
+            120,
+            90,
+            300,
+            330
+          ]
+        }
+      ],
+      "minor_exposed": false
+    }
+  },
+  "image": {
+    "sha256": "b37e7bc6ec33b43b51194f5a702d7324e422adb07a5a7bf7ed1a2b753a0b918a",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+  }
+}
