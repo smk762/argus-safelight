@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { removeImage } from "@/lib/api";
@@ -15,8 +14,7 @@ type CopyState = "idle" | "copied" | "failed";
 
 /** Every result offers Regenerate and Copy record; a record that still has an image also offers Remove image. */
 export function RecordActions({ record, onRemoved }: { record: GenerationRecord; onRemoved?: (record: GenerationRecord) => void }) {
-  const router = useRouter();
-  const { compose, replace, running } = useCompose();
+  const { compose, replace, running, openComposer } = useCompose();
   const [copy, setCopy] = useState<CopyState>("idle");
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -30,7 +28,7 @@ export function RecordActions({ record, onRemoved }: { record: GenerationRecord;
 
   const regenerate = () => {
     replace(fromRecord(record, compose));
-    router.push("/");
+    openComposer();
   };
 
   const copyRecord = async () => {
@@ -58,7 +56,7 @@ export function RecordActions({ record, onRemoved }: { record: GenerationRecord;
 
   return (
     <>
-      <Button tone="primary" onClick={regenerate} disabled={running} title={running ? "Wait for the current generation to finish." : "Refill the form from this record, seed held, and go to Compose."}>
+      <Button tone="primary" onClick={regenerate} disabled={running} title={running ? "Wait for the current generation to finish." : "Refill the form from this record, seed held, and open it."}>
         Regenerate
       </Button>
       <Button onClick={copyRecord} title="Copy the record as JSON." aria-live="polite">

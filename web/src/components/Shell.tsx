@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ComposeButton } from "./ComposeDialog";
 import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
-  { href: "/", label: "Compose" },
+  { href: "/", label: "Generate" },
   { href: "/history", label: "History" },
 ];
 
@@ -41,10 +42,11 @@ export function Shell({ sidebar, children }: { sidebar: ReactNode; children: Rea
             );
           })}
         </nav>
+        <ComposeButton small />
         <ThemeToggle />
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6 lg:flex-row">
-        <aside className="w-full shrink-0 space-y-4 lg:w-[380px]">{sidebar}</aside>
+        <aside className="w-full shrink-0 space-y-4 lg:w-[300px]">{sidebar}</aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
       <footer className="border-t border-base-600/60 px-4 py-3 text-caption text-text-muted sm:px-6">

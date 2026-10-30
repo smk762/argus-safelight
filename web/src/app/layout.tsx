@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
 
-import { ComposeForm } from "@/components/ComposeForm";
+import { ComposeDialog } from "@/components/ComposeDialog";
 import { ComposeProvider } from "@/components/ComposeProvider";
 import { DarkroomProvider } from "@/components/DarkroomProvider";
 import { HealthCard } from "@/components/HealthCard";
@@ -29,16 +29,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-dvh">
         <DarkroomProvider>
           <ComposeProvider>
-            <Shell
-              sidebar={
-                <>
-                  <ComposeForm />
-                  <HealthCard />
-                </>
-              }
-            >
-              {children}
-            </Shell>
+            <Shell sidebar={<HealthCard />}>{children}</Shell>
+            <ComposeDialog />
           </ComposeProvider>
         </DarkroomProvider>
       </body>

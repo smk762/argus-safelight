@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, SIZES, generateBlock, randomSeed } from "@/lib/compose";
@@ -9,7 +8,7 @@ import { THINKING_MODES, type ThinkingMode } from "@/lib/types";
 import { useCompose } from "./ComposeProvider";
 import { useDarkroom } from "./DarkroomProvider";
 import { PolicyPicker } from "./PolicyPicker";
-import { Button, Card, SectionTitle, Spinner } from "./ui";
+import { Button, SectionTitle, Spinner } from "./ui";
 
 const FIELD = "w-full rounded-md border border-base-600/60 bg-base-900 px-2.5 py-1.5 text-small text-text-primary placeholder:text-text-muted disabled:opacity-60";
 const LABEL = "block text-caption uppercase tracking-wide text-text-muted";
@@ -26,21 +25,21 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: st
   );
 }
 
-/** The compose form: prompt, models, sampling, policies, thinking mode and the NudeNet blur threshold. */
+/** The compose form: prompt, models, sampling, policies, thinking mode and the NudeNet blur threshold. Lives in `ComposeDialog`. */
 export function ComposeForm() {
   const { health, policies, models, error } = useDarkroom();
   const { compose, ready, update, check, preflight, start, stop, running } = useCompose();
-  const router = useRouter();
   const ollamaDown = health != null && !health.backends.ollama;
   const checking = preflight.state === "checking";
   const block = generateBlock(health, error, compose, policies);
 
   return (
-    <Card as="div" className="space-y-5">
-      <div className="flex items-center justify-between gap-2">
-        <SectionTitle>Compose</SectionTitle>
-        {!ready && !error ? <Spinner /> : null}
-      </div>
+    <div className="space-y-5">
+      {!ready && !error ? (
+        <p className="flex items-center gap-2 text-caption text-text-muted">
+          <Spinner /> Loading darkroom&apos;s catalogue…
+        </p>
+      ) : null}
 
       <Field label="Prompt" htmlFor="prompt">
         <textarea id="prompt" rows={4} value={compose.userPrompt} onChange={(event) => update({ userPrompt: event.target.value })} placeholder="What to generate" className={FIELD} />
@@ -201,12 +200,9 @@ export function ComposeForm() {
         </Field>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-base-600/40 pt-4">
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-base-600/40 bg-base-800 py-4">
         <Button
-          onClick={async () => {
-            router.push("/");
-            await check();
-          }}
+          onClick={() => void check()}
           disabled={!ready || checking || running || !compose.userPrompt.trim()}
           title={!compose.userPrompt.trim() ? "Write a prompt first." : "POST /preflight: the text-only check, before anything is generated"}
         >
@@ -224,7 +220,7 @@ export function ComposeForm() {
         )}
         {block && ready && !running ? <p className="basis-full text-caption text-text-muted">{block}</p> : null}
       </div>
-    </Card>
+    </div>
   );
 }
 
