@@ -37,6 +37,10 @@ export interface Compose {
   /** Close the stream. Darkroom finishes on its own; the record still lands in history. */
   stop: () => void;
   clearLive: () => void;
+  /** The compose dialog. The form lives there, so it can be opened from any page. */
+  composerOpen: boolean;
+  openComposer: () => void;
+  closeComposer: () => void;
 }
 
 const ComposeContext = createContext<Compose | null>(null);
@@ -48,6 +52,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [preflight, setPreflight] = useState<PreflightStatus>({ state: "idle", result: null, error: null, forRequest: null });
   const [live, dispatch] = useReducer(liveReducer, IDLE);
+  const [composerOpen, setComposerOpen] = useState(false);
   const touched = useRef(false);
   const controller = useRef<AbortController | null>(null);
 
@@ -94,6 +99,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     controller.current = abort;
     dispatch({ type: "start", request });
     setPreflight({ state: "idle", result: null, error: null, forRequest: null });
+    setComposerOpen(false);
     router.push("/");
     generate(
       request,
@@ -126,11 +132,14 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     if (!controller.current) dispatch({ type: "reset" });
   }, []);
 
+  const openComposer = useCallback(() => setComposerOpen(true), []);
+  const closeComposer = useCallback(() => setComposerOpen(false), []);
+
   const preflightCurrent = preflight.forRequest === JSON.stringify(toRequest(compose));
 
   const value = useMemo<Compose>(
-    () => ({ compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive }),
-    [compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive],
+    () => ({ compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive, composerOpen, openComposer, closeComposer }),
+    [compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive, composerOpen, openComposer, closeComposer],
   );
   return <ComposeContext.Provider value={value}>{children}</ComposeContext.Provider>;
 }

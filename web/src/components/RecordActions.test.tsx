@@ -7,19 +7,18 @@ import { fixtureRecord } from "@/lib/fixture.test-util";
 
 import { RecordActions } from "./RecordActions";
 
-const push = vi.fn();
+const openComposer = vi.fn();
 const replace = vi.fn();
 const removeImage = vi.fn();
 const running = { value: false };
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
 vi.mock("./ComposeProvider", () => ({
-  useCompose: () => ({ compose: defaultCompose(null, null, null), replace, running: running.value }),
+  useCompose: () => ({ compose: defaultCompose(null, null, null), replace, running: running.value, openComposer }),
 }));
 vi.mock("@/lib/api", () => ({ removeImage: (id: string) => removeImage(id) }));
 
 beforeEach(() => {
-  push.mockReset();
+  openComposer.mockReset();
   replace.mockReset();
   removeImage.mockReset();
   running.value = false;
@@ -27,7 +26,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("RecordActions", () => {
-  it("Regenerate from a deleted record refills the form with the same seed and parameters, then goes to Compose", () => {
+  it("Regenerate from a deleted record refills the form with the same seed and parameters, then opens it", () => {
     const record = fixtureRecord("fx-deleted-illegal");
     render(<RecordActions record={record} />);
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
@@ -40,7 +39,7 @@ describe("RecordActions", () => {
     expect(state.checkpoint).toBe(record.request.checkpoint.name);
     expect(state.enforcingPolicy).toBe(record.guard.enforcing_policy);
     expect(state.advisoryPolicies).toEqual(record.guard.advisory_policies);
-    expect(push).toHaveBeenCalledWith("/");
+    expect(openComposer).toHaveBeenCalledTimes(1);
   });
 
   it("does not offer Regenerate while a generation runs", () => {
