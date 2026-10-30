@@ -41,7 +41,7 @@ browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             history               records, images by id
 ```
 
-With Docker, against the fixture mock (no GPU):
+With Docker, against the fixture mock (no GPU). `.env.example` sets `COMPOSE_PROFILES=mock`:
 
 ```bash
 cp .env.example .env
@@ -67,7 +67,7 @@ Open <http://localhost:3097> (`PORT` in `.env` changes it). The mock serves the 
 
 `.env` also switches the mock's backends off one at a time (`MOCK_OLLAMA=0`, `MOCK_SINGGUARD=0`, …) to see how the page behaves without them, and `DEVMODE=0` hides Purge all, the same name darkroom's compose maps to `ARGUS_DARKROOM_DEVMODE`.
 
-Against a real darkroom, set `NEXT_PUBLIC_DARKROOM_URL` before building. It is baked into the web image, so a change needs `docker compose up --build`. With a `localhost` URL the host follows the page: a page opened at this machine's LAN address calls that address on port 8106. In darkroom's own compose file, safelight runs beside the published darkroom image.
+Against a live darkroom, omit `COMPOSE_PROFILES` and set `NEXT_PUBLIC_DARKROOM_URL` to that server before building. It is baked into the web image, so a change needs `docker compose up --build`. With a `localhost` URL the host follows the page: a page opened at this machine's LAN address calls that address on the URL's port. In darkroom's own compose file, safelight runs beside the published darkroom image.
 
 To try the UI against the real darkroom server with no GPU, run darkroom's demo (`make demo` in the argus-darkroom repo). It serves the same wire shapes on :8106 against fake backends, with the same prompt markers as the mock. LoRA trigger words you enter per LoRA are sent in the request, appended to the final prompt by darkroom after any expansion, and kept in the record, so a record refills the form with them. The workflow template fixes how many LoRAs a request needs, and the form does not know that yet: with darkroom's default `sdxl.json`, adding a LoRA is a 400.
 

@@ -1,7 +1,7 @@
-# Safelight beside the fixture mock of darkroom, so the UI runs without a GPU.
-# The real pairing lives in argus-darkroom's compose file, where safelight runs
-# beside the published darkroom image and ComfyUI, Ollama, SingGuard and
-# NudeNet are reached by URL.
+# Safelight. The fixture mock is the `mock` profile (`COMPOSE_PROFILES=mock` in
+# .env), so the UI can run without a GPU. Against a live darkroom, omit that
+# profile and set NEXT_PUBLIC_DARKROOM_URL to the real server. The real pairing
+# also lives in argus-darkroom's compose file.
 services:
   web:
     build:
@@ -14,10 +14,13 @@ services:
     ports:
       - "${PORT:-3097}:${PORT:-3097}"
     depends_on:
-      - mock-darkroom
+      mock-darkroom:
+        condition: service_started
+        required: false
     restart: unless-stopped
 
   mock-darkroom:
+    profiles: [mock]
     image: node:22-alpine
     working_dir: /repo
     command: ["node", "scripts/mock_darkroom.mjs"]
