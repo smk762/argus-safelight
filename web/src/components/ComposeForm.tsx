@@ -61,7 +61,7 @@ export function ComposeForm() {
         <Field label="Checkpoint" htmlFor="checkpoint">
           <select id="checkpoint" value={compose.checkpoint} onChange={(event) => update({ checkpoint: event.target.value })} className={FIELD} disabled={!models}>
             {models?.checkpoints.map((checkpoint) => (
-              <option key={checkpoint.name} value={checkpoint.name} title={checkpoint.sha256}>
+              <option key={checkpoint.name} value={checkpoint.name}>
                 {checkpoint.name}
               </option>
             ))}
@@ -88,6 +88,17 @@ export function ComposeForm() {
                     className={`${FIELD} w-20`}
                   />
                 </label>
+                <label className="flex items-center gap-1 text-caption text-text-muted">
+                  trigger words
+                  <input
+                    type="text"
+                    value={lora.trigger_words.join(", ")}
+                    placeholder="none"
+                    aria-label={`Trigger words for ${lora.name}`}
+                    onChange={(event) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, trigger_words: event.target.value.split(",").map((word) => word.trim()).filter(Boolean) } : entry)) }))}
+                    className={`${FIELD} w-36`}
+                  />
+                </label>
                 <Button small aria-label={`Remove ${lora.name}`} onClick={() => update((current) => ({ ...current, loras: current.loras.filter((_, i) => i !== index) }))}>
                   ×
                 </Button>
@@ -100,7 +111,7 @@ export function ComposeForm() {
               value=""
               onChange={(event) => {
                 const name = event.target.value;
-                if (name) update((current) => ({ ...current, loras: [...current.loras, { name, weight: 1 }] }));
+                if (name) update((current) => ({ ...current, loras: [...current.loras, { name, weight: 1, trigger_words: [...(models.loras.find((known) => known.name === name)?.trigger_words ?? [])] }] }));
               }}
               className={`${FIELD} mt-1.5`}
             >
@@ -110,12 +121,11 @@ export function ComposeForm() {
                 .map((lora) => (
                   <option key={lora.name} value={lora.name}>
                     {lora.name}
-                    {lora.trigger_words.length > 0 ? ` (${lora.trigger_words.join(", ")})` : ""}
                   </option>
                 ))}
             </select>
           ) : null}
-          <p className="mt-1 text-caption text-text-muted">Trigger words are appended to the final prompt by darkroom.</p>
+          <p className="mt-1 text-caption text-text-muted">The trigger words you enter are appended to the final prompt by darkroom, after any expansion. They are checked with it.</p>
         </div>
       </div>
 

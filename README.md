@@ -69,6 +69,8 @@ Open <http://localhost:3097> (`PORT` in `.env` changes it). The mock serves the 
 
 Against a real darkroom, set `NEXT_PUBLIC_DARKROOM_URL` before building. It is baked into the web image, so a change needs `docker compose up --build`. With a `localhost` URL the host follows the page: a page opened at this machine's LAN address calls that address on port 8106. In darkroom's own compose file, safelight runs beside the published darkroom image.
 
+To try the UI against the real darkroom server with no GPU, run darkroom's demo (`make demo` in the argus-darkroom repo). It serves the same wire shapes on :8106 against fake backends, with the same prompt markers as the mock. LoRA trigger words you enter per LoRA are sent in the request, appended to the final prompt by darkroom after any expansion, and kept in the record, so a record refills the form with them. The workflow template fixes how many LoRAs a request needs, and the form does not know that yet: with darkroom's default `sdxl.json`, adding a LoRA is a 400.
+
 For development:
 
 ```bash

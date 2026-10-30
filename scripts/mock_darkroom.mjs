@@ -106,8 +106,7 @@ function assemble(body) {
   const expanded = expand ? `${user}, finely detailed, natural light, 35mm, shallow depth of field` : null;
   const triggers = [];
   for (const lora of body.loras ?? []) {
-    const ref = models.loras.find((l) => l.name === lora.name);
-    for (const word of ref?.trigger_words ?? []) triggers.push(word);
+    for (const word of lora.trigger_words ?? []) triggers.push(word);
   }
   const final = [expanded ?? user, ...triggers].filter(Boolean).join(", ");
   return { user, negative, expanded, final, expansion: expanded ? { model: "qwen2.5:7b", system_prompt_sha256: "ab".repeat(32) } : null };
@@ -236,7 +235,7 @@ function requestBlock(body, pre, seed) {
   const checkpoint = models.checkpoints.find((c) => c.name === body.checkpoint) ?? models.checkpoints[0];
   const loras = (body.loras ?? []).flatMap((l) => {
     const ref = models.loras.find((m) => m.name === l.name);
-    return ref ? [{ name: ref.name, sha256: ref.sha256, weight: Number(l.weight ?? 1) }] : [];
+    return ref ? [{ name: ref.name, sha256: ref.sha256, weight: Number(l.weight ?? 1), trigger_words: l.trigger_words ?? [] }] : [];
   });
   return {
     mode: pre.mode,

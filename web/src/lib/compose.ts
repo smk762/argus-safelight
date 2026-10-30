@@ -115,7 +115,7 @@ export function fromRecord(record: GenerationRecord, base: ComposeState): Compos
     negativePrompt: request.negative_prompt,
     expand: request.expanded_prompt != null,
     checkpoint: request.checkpoint.name,
-    loras: request.loras.map((lora) => ({ name: lora.name, weight: lora.weight })),
+    loras: request.loras.map((lora) => ({ name: lora.name, weight: lora.weight, trigger_words: [...(lora.trigger_words ?? [])] })),
     sampling: { ...request.sampling },
     seed: request.seed,
     seedLocked: true,
