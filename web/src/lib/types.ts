@@ -175,6 +175,8 @@ export interface Health {
   expansion_enabled?: boolean;
   age_unavailable?: string | null;
   workflow_loaded?: boolean;
+  /** Real darkroom only. True when the server refuses every write, pre-flight included, with a 403. */
+  read_only?: boolean;
 }
 
 export interface IllegalRule {
