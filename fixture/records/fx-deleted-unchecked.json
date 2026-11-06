@@ -7,7 +7,6 @@
   "outcome_reason": "unchecked",
   "critical": false,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "nsfw",
     "user_prompt": "market street in the rain, umbrellas, neon reflections",

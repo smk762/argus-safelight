@@ -7,7 +7,6 @@
   "outcome_reason": null,
   "critical": false,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "nsfw",
     "user_prompt": "portrait of a lighthouse keeper at dusk",

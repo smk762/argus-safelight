@@ -159,7 +159,6 @@ export interface GenerationRecord {
   outcome_reason: string | null;
   critical: boolean;
   removed_at: string | null;
-  error: string | null;
   request: RecordRequest;
   guard: GuardBlock;
   /** Null for refused and failed records: nothing was rendered. */

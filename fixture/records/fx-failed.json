@@ -7,7 +7,6 @@
   "outcome_reason": "ComfyUI: websocket closed before the image arrived",
   "critical": false,
   "removed_at": null,
-  "error": "ComfyUI: websocket closed before the image arrived",
   "request": {
     "mode": "nsfw",
     "user_prompt": "snow-covered pine forest at blue hour",

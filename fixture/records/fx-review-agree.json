@@ -7,7 +7,6 @@
   "outcome_reason": "default:A",
   "critical": false,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "sfw",
     "user_prompt": "lingerie catalogue page, studio backdrop",

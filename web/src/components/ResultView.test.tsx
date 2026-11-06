@@ -86,6 +86,11 @@ describe("ResultView", () => {
     expect(screen.getByText("not resolved")).toBeTruthy();
   });
 
+  it("says why a generation failed, from the record's reason", () => {
+    render(<ResultView record={fixtureRecord("fx-failed")} />);
+    expect(screen.getByRole("group", { name: "Failed generation" }).textContent).toContain("ComfyUI: websocket closed before the image arrived");
+  });
+
   it("marks a row whose scans disagree and outlines the with-prompt cell that turned", () => {
     render(<ResultView record={fixtureRecord("fx-review-disagree")} />);
     expect(screen.getAllByLabelText("scans disagree").length).toBe(1);
