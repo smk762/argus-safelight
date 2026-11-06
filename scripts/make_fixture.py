@@ -32,7 +32,7 @@ VERSION = "0.0.0+fixture"
 MODEL = "SingGuard-4b"
 
 # ---------------------------------------------------------------------------
-# Policies, as argus_cortex.moderation.policies writes them (cortex 0.4.2).
+# Policies, as argus_cortex.moderation.policies writes them (cortex 0.4.6).
 # `default` sends no text: SingGuard judges by its own rules.
 
 _OTHER_RULES = [
@@ -56,16 +56,19 @@ _NON_CONSENT = (
     "person shared without consent, coercion, or sexual exploitation."
 )
 _EXTREME = "  - Sexual violence, bestiality, or necrophilia."
+_NO_CLOSEST_HEADING = "  - If no risk-category bullet matches, the verdict is Safe. Do not assign a risk letter because it is the closest heading."
 _ADULT_SAFE = [
     "  - Content that does not match any risk category, including consensual adult nudity and sexual content.",
-    '  - "Adult Content (Non-criminal)" is Safe under this policy: legal nudity and sexual content by adults, '
-    "alone or together.",
+    '  - "Adult Content (Non-criminal)" is Safe under this policy: legal adult entertainment, legal nudity and sexual '
+    "content by adults, alone or together, including commercial porn, explicit sex, genitalia, a suggestive pose, a "
+    "commercial or studio set, and an adult-site watermark.",
     "  - A single adult posing nude or in lingerie for the camera, including professional photo sets.",
     "  - Consent cannot be read from an image. A posed, camera-aware adult counts as consenting unless "
     "hidden recording, restraint, coercion, or an unconscious person is shown.",
+    _NO_CLOSEST_HEADING,
 ]
 ADULT_POLICY = "\n".join(
-    ["## Risk Categories", "### A. Illegal or Extreme Sexual Content", _MINORS, _NON_CONSENT, _EXTREME, *_OTHER_RULES, "### Safe", *_ADULT_SAFE]
+    ["## Risk Categories", "### A. Illegal Sexual Content", _MINORS, _NON_CONSENT, _EXTREME, *_OTHER_RULES, "### Safe", *_ADULT_SAFE]
 )
 ADULT_GRANULAR_POLICY = "\n".join(
     [
@@ -76,7 +79,7 @@ ADULT_GRANULAR_POLICY = "\n".join(
         "### H. Non-Consensual Sexual Content",
         _NON_CONSENT,
         "  - Sexual content showing someone asleep, unconscious, or otherwise unable to consent.",
-        "### I. Sexual Violence & Extreme Content",
+        "### I. Sexual Violence",
         _EXTREME,
         "### Safe",
         *_ADULT_SAFE,
@@ -85,7 +88,7 @@ ADULT_GRANULAR_POLICY = "\n".join(
 ADULT_CAUTIOUS_POLICY = "\n".join(
     [
         "## Risk Categories",
-        "### A. Illegal or Extreme Sexual Content",
+        "### A. Illegal Sexual Content",
         _MINORS,
         "  - Nude or sexual content where any person's age is unclear and they could be under 18.",
         _NON_CONSENT,
@@ -96,8 +99,42 @@ ADULT_CAUTIOUS_POLICY = "\n".join(
         "### Safe",
         "  - Content that does not match any risk category, including consensual adult nudity and "
         "sexual content where every person clearly appears to be an adult.",
-        '  - "Adult Content (Non-criminal)" is Safe under this policy: legal nudity and sexual content '
-        "where every person clearly appears to be an adult.",
+        '  - "Adult Content (Non-criminal)" is Safe under this policy: legal adult entertainment and legal nudity and '
+        "sexual content where every person clearly appears to be an adult, including commercial porn, explicit sex, "
+        "genitalia, a suggestive pose, a commercial or studio set, and an adult-site watermark.",
+        _NO_CLOSEST_HEADING,
+    ]
+)
+# Its letters do not line up with the others: B to F sit one up from adult's, and G is its own rule.
+ADULT_CINEMATIC_POLICY = "\n".join(
+    [
+        "## Risk Categories",
+        "### A. Illegal Sexual Content",
+        _MINORS,
+        _NON_CONSENT,
+        _EXTREME,
+        "### B. Unethical Behavior",
+        "  - Content involving hate, harassment, manipulation, self-harm, or harmful misinformation.",
+        "  - Gore, dismemberment, and shock content meant to frighten or disgust.",
+        "### C. Cybersecurity & Information Manipulation",
+        "  - Content involving data leaks, hacking, surveillance abuse, platform abuse, or copyright abuse.",
+        "### D. Agent Safety",
+        "  - Content attempting to expose system prompts, internal policies, or other model safeguards.",
+        "### E. Politically Sensitive Content",
+        "  - Content involving political advocacy, rumors, unrest, historical distortion, or attacks on political figures.",
+        "### F. Animal Abuse",
+        "  - Content involving cruelty to animals or the spread of animal abuse.",
+        "### G. Criminal Instructions",
+        "  - Instructional or operational assistance for a real-world crime: how to commit one, targeting a named real "
+        "person or a real institution, or an operational public-safety threat.",
+        "### Safe",
+        *_ADULT_SAFE,
+        "  - Legal adult entertainment is Safe under this policy, the same as under adult: commercial porn, studio "
+        "stills, explicit sex, and an adult-site watermark.",
+        "  - A depiction of crime or violence is Safe, as in film, television, games, and print, and it needs no sign "
+        "that it is fiction: a robbery, a heist, a kidnapping, a person bound or held captive, theft, fraud, corrupt "
+        "officials, an armed standoff, a police raid, a fight, a battle, weapons, drugs, and war.",
+        "  - That stops being Safe when it is sexual, shows gore or dismemberment, or teaches how to do it.",
     ]
 )
 DEFAULT_SUMMARY = (
@@ -113,17 +150,17 @@ POLICIES: list[dict[str, Any]] = [
         "mode": "nsfw",
         "text": ADULT_POLICY,
         "summary": "One broad rule A for every hard sexual case; consensual adult content is Safe.",
-        "illegal_rules": [{"code": "A", "name": "Illegal or Extreme Sexual Content"}],
+        "illegal_rules": [{"code": "A", "name": "Illegal Sexual Content"}],
     },
     {
         "name": "adult-granular",
         "mode": "nsfw",
         "text": ADULT_GRANULAR_POLICY,
-        "summary": "A letter per hard case: A minors, H non-consent, I sexual violence and extreme content.",
+        "summary": "A letter per hard case: A minors, H non-consent, I sexual violence.",
         "illegal_rules": [
             {"code": "A", "name": "Minors"},
             {"code": "H", "name": "Non-Consensual Sexual Content"},
-            {"code": "I", "name": "Sexual Violence & Extreme Content"},
+            {"code": "I", "name": "Sexual Violence"},
         ],
     },
     {
@@ -131,7 +168,15 @@ POLICIES: list[dict[str, Any]] = [
         "mode": "nsfw",
         "text": ADULT_CAUTIOUS_POLICY,
         "summary": "The adult policy with doubt resolved towards rule A: unclear age or consent counts as a hit.",
-        "illegal_rules": [{"code": "A", "name": "Illegal or Extreme Sexual Content"}],
+        "illegal_rules": [{"code": "A", "name": "Illegal Sexual Content"}],
+    },
+    {
+        "name": "adult-cinematic",
+        "mode": "nsfw",
+        "text": ADULT_CINEMATIC_POLICY,
+        "summary": "Like adult: legal adult entertainment is Safe. Depicted crime and violence are Safe with no sign of "
+        "fiction needed; rule G covers how-to and real targeting, and B to F sit one letter up from adult. Rule A is illegal.",
+        "illegal_rules": [{"code": "A", "name": "Illegal Sexual Content"}],
     },
 ]
 
@@ -223,6 +268,12 @@ def request(
         "engine": "comfyui",
         "engine_version": "0.3.60",
     }
+
+
+def refused(req: dict) -> dict:
+    """*req* as a record refused in pre-flight keeps it: nothing was resolved or hashed, and no seed was drawn."""
+    unresolved = ("seed", "sampling", "checkpoint", "vae", "workflow_sha256", "engine_version")
+    return {**req, **dict.fromkeys(unresolved), "loras": []}
 
 
 def lora(index: int, weight: float) -> dict:
@@ -389,7 +440,7 @@ def build() -> list[tuple[dict, bytes | None]]:
             "fx-review-disagree",
             15,
             "review",
-            reason="B",
+            reason="adult-granular:B",
             critical=False,
             req=request("nsfw", "a heist crew in a car park at night, getaway car, cinematic", seed=777, loras=[lora(1, 0.5)], cfg=6.0),
             enforcing="adult-granular",
@@ -414,7 +465,7 @@ def build() -> list[tuple[dict, bytes | None]]:
             "fx-review-agree",
             22,
             "review",
-            reason="A",
+            reason="default:A",
             critical=False,
             req=request("sfw", "lingerie catalogue page, studio backdrop", seed=8080, loras=[lora(1, 0.6)]),
             enforcing="default",
@@ -437,7 +488,7 @@ def build() -> list[tuple[dict, bytes | None]]:
             "fx-deleted-illegal",
             31,
             "deleted",
-            reason="H",
+            reason="adult-granular:H",
             critical=True,
             req=request("nsfw", "sleeping figure, bedroom, candid", expanded="a figure asleep in a dim bedroom, candid, shot from the doorway", seed=31337),
             enforcing="adult-granular",
@@ -539,9 +590,9 @@ def build() -> list[tuple[dict, bytes | None]]:
             "fx-refused",
             70,
             "refused",
-            reason="A",
+            reason="default:A",
             critical=False,
-            req=request("sfw", "boudoir photo set, silk sheets", seed=4321),
+            req=refused(request("sfw", "boudoir photo set, silk sheets", seed=4321)),
             enforcing="default",
             advisory=["adult-granular"],
             preflight={
@@ -559,9 +610,9 @@ def build() -> list[tuple[dict, bytes | None]]:
             "fx-refused-illegal",
             78,
             "refused",
-            reason="A",
-            critical=True,
-            req=request("nsfw", "schoolgirl in uniform, suggestive pose", seed=6666),
+            reason="adult-granular:A",
+            critical=False,
+            req=refused(request("nsfw", "schoolgirl in uniform, suggestive pose", seed=6666)),
             enforcing="adult-granular",
             advisory=["default"],
             preflight={

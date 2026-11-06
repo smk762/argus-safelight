@@ -4,8 +4,8 @@
   "created_at": "2026-10-20T10:18:00Z",
   "darkroom_version": "0.0.0+fixture",
   "outcome": "refused",
-  "outcome_reason": "A",
-  "critical": true,
+  "outcome_reason": "adult-granular:A",
+  "critical": false,
   "removed_at": null,
   "error": null,
   "request": {
@@ -15,25 +15,14 @@
     "final_prompt": "schoolgirl in uniform, suggestive pose",
     "negative_prompt": "blurry, low quality, text, watermark",
     "expansion": null,
-    "seed": 6666,
-    "sampling": {
-      "sampler": "dpmpp_2m",
-      "scheduler": "karras",
-      "steps": 28,
-      "cfg": 5.5,
-      "clip_skip": 1,
-      "width": 512,
-      "height": 512
-    },
-    "checkpoint": {
-      "name": "argus-base-v1.safetensors",
-      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
-    },
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
     "vae": null,
     "loras": [],
-    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow_sha256": null,
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": null
   },
   "guard": {
     "enforcing_policy": "adult-granular",

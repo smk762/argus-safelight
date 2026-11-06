@@ -31,6 +31,29 @@ describe("deleted and omitted wording", () => {
     expect(summary.lines[0]).toContain("with prompt scan under adult-granular");
     expect(summary.lines[0]).toContain("fails closed");
   });
+  it("adds a line per reason, in darkroom's order", () => {
+    const record = structuredClone(fixtureRecord("fx-deleted-illegal"));
+    record.guard.scans["adult-granular"].isolated = { state: "unchecked", result: null, error: "SingGuard timed out after 90s" };
+    record.outcome_reason = "adult-granular:H, minor-exposed, unchecked";
+    const { lines } = deletedSummary(record);
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toBe("Rule H. Non-Consensual Sexual Content fired under adult-granular, in the with prompt scan.");
+    expect(lines[1]).toContain("MiVOLO age estimate under 18");
+    expect(lines[2]).toContain("isolated scan under adult-granular did not complete (SingGuard timed out after 90s)");
+  });
+  it("names every rule when several policies fired", () => {
+    const record = structuredClone(fixtureRecord("fx-deleted-illegal"));
+    record.guard.scans.default.with_prompt = { ...record.guard.scans.default.with_prompt, state: "illegal" };
+    record.outcome_reason = "adult-granular:H, default:A";
+    expect(deletedSummary(record).lines).toEqual([
+      "Rule H. Non-Consensual Sexual Content fired under adult-granular, in the with prompt scan.",
+      "Rule A. Sexual Content Risk fired under default, in the with prompt scan.",
+    ]);
+  });
+  it("keeps a reason it cannot place rather than dropping it", () => {
+    const record = { ...fixtureRecord("fx-deleted-illegal"), outcome_reason: "adult-granular:H, illegal" };
+    expect(deletedSummary(record).lines[1]).toBe("Reason: illegal.");
+  });
   it("gives omitted its own words, with the score or the missing answer", () => {
     expect(omittedSummary(fixtureRecord("fx-omitted-exposed")).lines[0]).toBe("NudeNet reported exposure (score 0.41), so the image was not kept.");
     expect(omittedSummary(fixtureRecord("fx-omitted-unchecked")).lines[0]).toBe("NudeNet did not respond, so the image was not kept.");

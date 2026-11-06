@@ -65,26 +65,32 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
     <Card>
       <SectionTitle>Parameters</SectionTitle>
       <dl className="mt-1 divide-y divide-base-600/40">
-        <Kv label="Seed">
-          <span className="font-mono">{request.seed}</span>
-        </Kv>
-        <Kv label="Sampler">
-          <span className="font-mono">
-            {s.sampler} / {s.scheduler}
-          </span>
-        </Kv>
-        <Kv label="Steps · CFG · clip skip">
-          <span className="font-mono">
-            {s.steps} · {s.cfg} · {s.clip_skip}
-          </span>
-        </Kv>
-        <Kv label="Size">
-          <span className="font-mono">
-            {s.width} × {s.height}
-          </span>
-        </Kv>
-        <Kv label="Checkpoint" title={request.checkpoint.sha256}>
-          <span className="font-mono">{request.checkpoint.name}</span>
+        {request.seed != null ? (
+          <Kv label="Seed">
+            <span className="font-mono">{request.seed}</span>
+          </Kv>
+        ) : null}
+        {s ? (
+          <>
+            <Kv label="Sampler">
+              <span className="font-mono">
+                {s.sampler} / {s.scheduler}
+              </span>
+            </Kv>
+            <Kv label="Steps · CFG · clip skip">
+              <span className="font-mono">
+                {s.steps} · {s.cfg} · {s.clip_skip}
+              </span>
+            </Kv>
+            <Kv label="Size">
+              <span className="font-mono">
+                {s.width} × {s.height}
+              </span>
+            </Kv>
+          </>
+        ) : null}
+        <Kv label="Checkpoint" title={request.checkpoint?.sha256}>
+          {request.checkpoint ? <span className="font-mono">{request.checkpoint.name}</span> : <span className="text-text-muted">not resolved</span>}
         </Kv>
         {request.vae ? (
           <Kv label="VAE" title={request.vae.sha256}>
@@ -104,14 +110,18 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
             </ul>
           )}
         </Kv>
-        <Kv label="Engine">
-          <span className="font-mono">
-            {request.engine} {request.engine_version}
-          </span>
-        </Kv>
-        <Kv label="Workflow" title={request.workflow_sha256}>
-          <span className="font-mono">{short(request.workflow_sha256)}</span>
-        </Kv>
+        {request.engine_version != null ? (
+          <Kv label="Engine">
+            <span className="font-mono">
+              {request.engine} {request.engine_version}
+            </span>
+          </Kv>
+        ) : null}
+        {request.workflow_sha256 != null ? (
+          <Kv label="Workflow" title={request.workflow_sha256}>
+            <span className="font-mono">{short(request.workflow_sha256)}</span>
+          </Kv>
+        ) : null}
         <Kv label="Thinking">
           <span className="font-mono">{record.guard.thinking}</span>
         </Kv>

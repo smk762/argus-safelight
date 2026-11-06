@@ -93,14 +93,16 @@ export interface RecordRequest {
   final_prompt: string;
   negative_prompt: string;
   expansion: { model: string; system_prompt_sha256: string } | null;
-  seed: number;
-  sampling: SamplingParams;
-  checkpoint: ModelRef;
+  /** Null on a record refused in pre-flight unless the request held a seed: none was drawn. */
+  seed: number | null;
+  /** This and the fields below are null on a record refused in pre-flight: nothing was resolved or hashed. `loras` is empty. */
+  sampling: SamplingParams | null;
+  checkpoint: ModelRef | null;
   vae: ModelRef | null;
   loras: LoRARef[];
-  workflow_sha256: string;
+  workflow_sha256: string | null;
   engine: string;
-  engine_version: string;
+  engine_version: string | null;
 }
 
 export interface NudeNetBlock {
@@ -149,7 +151,11 @@ export interface GenerationRecord {
   created_at: string;
   darkroom_version: string;
   outcome: Outcome;
-  /** A rule letter, "minor-exposed", "unchecked", "sfw-exposed", "sfw-unchecked", the generation error, or null. */
+  /**
+   * Refused, deleted and review records join every reason with ", ": `policy:letter` codes, and for a deletion
+   * "minor-exposed" and "unchecked" ("adult-granular:A, minor-exposed"). Read those with `reasonParts`. Otherwise
+   * "unchecked", "sfw-exposed", "sfw-unchecked", the generation error, or null.
+   */
   outcome_reason: string | null;
   critical: boolean;
   removed_at: string | null;

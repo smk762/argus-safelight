@@ -1,5 +1,5 @@
 import { minorExposedText } from "./age";
-import { CONTEXT_LABEL, firedCell } from "./shields";
+import { CONTEXT_LABEL, firedCell, reasonParts, uncheckedCell } from "./shields";
 import type { GenerationRecord, Outcome } from "./types";
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
@@ -26,30 +26,22 @@ export interface DeletedSummary {
   lines: string[];
 }
 
-/** What a deleted tile says: the rule, the policy and the scan context that fired, or the age rule, or the failed check. */
+function reasonLine(record: GenerationRecord, part: string): string {
+  if (part === "minor-exposed") return minorExposedText(record.guard.age);
+  if (part === "unchecked") {
+    const unchecked = uncheckedCell(record);
+    const where = unchecked ? `${CONTEXT_LABEL[unchecked.context].toLowerCase()} scan under ${unchecked.policy}` : "a scan under the enforcing policy";
+    const error = unchecked?.cell.error ? ` (${unchecked.cell.error})` : "";
+    return `The ${where} did not complete${error}. Darkroom fails closed: an unchecked enforcing cell deletes the image.`;
+  }
+  const fired = firedCell(record, part);
+  if (fired) return `Rule ${fired.rule} fired under ${fired.policy}, in the ${CONTEXT_LABEL[fired.context].toLowerCase()} scan.`;
+  return `Reason: ${part}.`;
+}
+
+/** What a deleted tile says: a line per reason, since rules, the age rule and a failed check can land together. */
 export function deletedSummary(record: GenerationRecord): DeletedSummary {
-  const reason = record.outcome_reason;
-  if (reason === "minor-exposed") {
-    return { headline: "This image was destroyed.", lines: [minorExposedText(record.guard.age)] };
-  }
-  if (reason === "unchecked") {
-    const fired = firedCell(record);
-    const where = fired ? `${CONTEXT_LABEL[fired.context].toLowerCase()} scan under ${fired.policy}` : "a scan under the enforcing policy";
-    const error = fired?.cell.error ? ` (${fired.cell.error})` : "";
-    return {
-      headline: "This image was destroyed.",
-      lines: [`The ${where} did not complete${error}. Darkroom fails closed: an unchecked enforcing cell deletes the image.`],
-    };
-  }
-  const fired = firedCell(record);
-  if (fired?.cell.result) {
-    const rule = fired.cell.result.rules[0] ?? reason ?? "a rule";
-    return {
-      headline: "This image was destroyed.",
-      lines: [`Rule ${rule} fired under ${fired.policy}, in the ${CONTEXT_LABEL[fired.context].toLowerCase()} scan.`],
-    };
-  }
-  return { headline: "This image was destroyed.", lines: reason ? [`Reason: ${reason}.`] : [] };
+  return { headline: "This image was destroyed.", lines: reasonParts(record.outcome_reason).map((part) => reasonLine(record, part)) };
 }
 
 /** What an omitted tile says. It must not read like a deletion. */

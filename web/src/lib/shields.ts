@@ -96,29 +96,50 @@ export interface FiredCell {
   cell: Cell;
 }
 
-/** The scan cell that carried an outcome: the first illegal one for a rule letter, the first enforcing unchecked one for `unchecked`. */
-export function firedCell(record: Pick<GenerationRecord, "outcome_reason" | "guard">): FiredCell | null {
-  const reason = record.outcome_reason;
-  if (!reason) return null;
-  const rows = policyRows(record.guard);
-  const contexts: ScanContext[] = ["isolated", "with_prompt"];
-  if (reason === "unchecked") {
-    for (const row of rows) {
-      if (!row.enforcing || !row.pair) continue;
-      for (const context of contexts) {
-        const cell = row.pair[context];
-        if (cell?.state === "unchecked") return { policy: row.policy, context, cell };
-      }
+export interface FiredRule extends FiredCell {
+  /** The rule as the policy names it: "H. Non-Consensual Sexual Content". */
+  rule: string;
+}
+
+const CONTEXTS: readonly ScanContext[] = ["isolated", "with_prompt"];
+
+/** A record's `outcome_reason`, which joins every reason that applied ("default:A, minor-exposed"). */
+export function reasonParts(reason: string | null | undefined): string[] {
+  return (reason ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** The first enforcing scan cell that could not be read, which is what the `unchecked` reason means. */
+export function uncheckedCell(record: Pick<GenerationRecord, "guard">): FiredCell | null {
+  for (const row of policyRows(record.guard)) {
+    if (!row.enforcing || !row.pair) continue;
+    for (const context of CONTEXTS) {
+      const cell = row.pair[context];
+      if (cell?.state === "unchecked") return { policy: row.policy, context, cell };
     }
-    return null;
   }
+  return null;
+}
+
+/**
+ * The scan cell behind one `policy:letter` code from `reasonParts`: an illegal cell before a flagged one. Only that
+ * policy's row is read, because a letter means something different under each policy. Null for a word such as
+ * "minor-exposed", and for a code no cell carries.
+ */
+export function firedCell(record: Pick<GenerationRecord, "guard">, code: string): FiredRule | null {
+  const split = code.indexOf(":");
+  if (split <= 0) return null;
+  const policy = code.slice(0, split);
+  const letter = ruleLetter(code.slice(split + 1));
+  const pair = policyRows(record.guard).find((row) => row.policy === policy)?.pair;
+  if (!pair) return null;
   for (const wanted of ["illegal", "flagged"] as const) {
-    for (const row of rows) {
-      if (!row.pair) continue;
-      for (const context of contexts) {
-        const cell = row.pair[context];
-        if (cell?.state === wanted && ruleLetters(cell.result).includes(reason)) return { policy: row.policy, context, cell };
-      }
+    for (const context of CONTEXTS) {
+      const cell = pair[context];
+      const rule = cell?.state === wanted ? cell.result?.rules.find((name) => ruleLetter(name) === letter) : undefined;
+      if (cell && rule) return { policy, context, cell, rule };
     }
   }
   return null;

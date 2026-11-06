@@ -4,7 +4,7 @@
   "created_at": "2026-10-20T10:10:00Z",
   "darkroom_version": "0.0.0+fixture",
   "outcome": "refused",
-  "outcome_reason": "A",
+  "outcome_reason": "default:A",
   "critical": false,
   "removed_at": null,
   "error": null,
@@ -15,25 +15,14 @@
     "final_prompt": "boudoir photo set, silk sheets",
     "negative_prompt": "blurry, low quality, text, watermark",
     "expansion": null,
-    "seed": 4321,
-    "sampling": {
-      "sampler": "dpmpp_2m",
-      "scheduler": "karras",
-      "steps": 28,
-      "cfg": 5.5,
-      "clip_skip": 1,
-      "width": 512,
-      "height": 512
-    },
-    "checkpoint": {
-      "name": "argus-base-v1.safetensors",
-      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
-    },
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
     "vae": null,
     "loras": [],
-    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow_sha256": null,
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": null
   },
   "guard": {
     "enforcing_policy": "default",

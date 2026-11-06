@@ -87,6 +87,25 @@ describe("from a record", () => {
     expect(state.advisoryPolicies).toEqual(["default"]);
     expect(toRequest(state).seed).toBe(31337);
   });
+  it("keeps the form's own checkpoint, LoRAs and sampling for a record refused in pre-flight", () => {
+    const base = { ...defaultCompose(health(), policies(), models), loras: [{ name: "argus-style-soft.safetensors", weight: 0.7, trigger_words: ["argus soft style"] }] };
+    const state = fromRecord(fixtureRecord("fx-refused"), base);
+    expect(state.userPrompt).toBe("boudoir photo set, silk sheets");
+    expect(state.checkpoint).toBe(base.checkpoint);
+    expect(state.loras).toEqual(base.loras);
+    expect(state.sampling).toEqual(base.sampling);
+    expect(state.seed).toBeNull();
+    expect(state.seedLocked).toBe(false);
+    expect(toRequest(state).seed).toBeNull();
+  });
+  it("takes what a refused record does hold: the seed and sampling the request sent", () => {
+    const sampling = { ...defaultCompose(health(), policies(), models).sampling, steps: 12 };
+    const record = fixtureRecord("fx-refused");
+    const state = fromRecord({ ...record, request: { ...record.request, seed: 7, sampling } }, defaultCompose(health(), policies(), models));
+    expect(state.seed).toBe(7);
+    expect(state.seedLocked).toBe(true);
+    expect(state.sampling).toEqual(sampling);
+  });
   it("carries LoRA weights and the NudeNet threshold", () => {
     const state = fromRecord(fixtureRecord("fx-review-disagree"), defaultCompose(health(), policies(), models));
     expect(state.loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: [] }]);

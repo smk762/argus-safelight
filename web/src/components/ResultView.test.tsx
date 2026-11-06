@@ -71,6 +71,21 @@ describe("ResultView", () => {
     expect(panel.textContent).toContain("boudoir photo set, silk sheets");
   });
 
+  it("shows the checkpoint as not resolved and leaves out the rows a refused record has no value for", () => {
+    const { container } = render(<ResultView record={fixtureRecord("fx-refused")} />);
+    const text = container.textContent ?? "";
+    expect(text).toContain("not resolved");
+    for (const label of ["Seed", "Sampler", "Size", "Engine", "Workflow"]) expect(screen.queryByText(label), label).toBeNull();
+  });
+
+  it("shows the sampling a refused record kept", () => {
+    const record = fixtureRecord("fx-refused");
+    const sampling = fixtureRecord("fx-passed").request.sampling;
+    render(<ResultView record={{ ...record, request: { ...record.request, sampling } }} />);
+    expect(screen.getByText("Sampler")).toBeTruthy();
+    expect(screen.getByText("not resolved")).toBeTruthy();
+  });
+
   it("marks a row whose scans disagree and outlines the with-prompt cell that turned", () => {
     render(<ResultView record={fixtureRecord("fx-review-disagree")} />);
     expect(screen.getAllByLabelText("scans disagree").length).toBe(1);
