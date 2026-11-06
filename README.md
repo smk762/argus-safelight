@@ -65,6 +65,8 @@ Open <http://localhost:3097> (`PORT` in `.env` changes it). The mock serves the 
 | `[preflight-unchecked]` | the pre-flight check fails | refused, unchecked |
 | `[fail]` | ComfyUI fails mid-way | failed |
 
+Markers combine: `[illegal] [minor]` under an adult policy is deleted with both reasons on the tile.
+
 `.env` also switches the mock's backends off one at a time (`MOCK_OLLAMA=0`, `MOCK_SINGGUARD=0`, …) to see how the page behaves without them, and `DEVMODE=0` hides Purge all, the same name darkroom's compose maps to `ARGUS_DARKROOM_DEVMODE`.
 
 Against a live darkroom, omit `COMPOSE_PROFILES` and set `NEXT_PUBLIC_DARKROOM_URL` to that server before building. It is baked into the web image, so a change needs `docker compose up --build`. With a `localhost` URL the host follows the page: a page opened at this machine's LAN address calls that address on the URL's port. In darkroom's own compose file, safelight runs beside the published darkroom image.

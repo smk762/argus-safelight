@@ -106,7 +106,10 @@ export function toRequest(state: ComposeState): GenerateRequest {
   };
 }
 
-/** The form refilled from a record, seed held, so Regenerate repeats the run exactly. */
+/**
+ * The form refilled from a record, seed held, so Regenerate repeats the run exactly. A record refused in pre-flight
+ * resolved no models and may hold no seed or sampling, so for those the form keeps what it has and the seed stays free.
+ */
 export function fromRecord(record: GenerationRecord, base: ComposeState): ComposeState {
   const { request, guard } = record;
   return {
@@ -114,11 +117,11 @@ export function fromRecord(record: GenerationRecord, base: ComposeState): Compos
     userPrompt: request.user_prompt,
     negativePrompt: request.negative_prompt,
     expand: request.expanded_prompt != null,
-    checkpoint: request.checkpoint.name,
-    loras: request.loras.map((lora) => ({ name: lora.name, weight: lora.weight, trigger_words: [...(lora.trigger_words ?? [])] })),
-    sampling: { ...request.sampling },
+    checkpoint: request.checkpoint?.name ?? base.checkpoint,
+    loras: request.checkpoint ? request.loras.map((lora) => ({ name: lora.name, weight: lora.weight, trigger_words: [...(lora.trigger_words ?? [])] })) : base.loras,
+    sampling: request.sampling ? { ...request.sampling } : base.sampling,
     seed: request.seed,
-    seedLocked: true,
+    seedLocked: request.seed != null,
     enforcingPolicy: guard.enforcing_policy,
     advisoryPolicies: [...guard.advisory_policies],
     thinking: (THINKING.includes(guard.thinking as ThinkingMode) ? guard.thinking : base.thinking) as ThinkingMode,

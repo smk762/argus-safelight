@@ -36,7 +36,7 @@ describe("RecordActions", () => {
     expect(state.seedLocked).toBe(true);
     expect(state.userPrompt).toBe(record.request.user_prompt);
     expect(state.sampling).toEqual(record.request.sampling);
-    expect(state.checkpoint).toBe(record.request.checkpoint.name);
+    expect(state.checkpoint).toBe(record.request.checkpoint?.name);
     expect(state.enforcingPolicy).toBe(record.guard.enforcing_policy);
     expect(state.advisoryPolicies).toEqual(record.guard.advisory_policies);
     expect(openComposer).toHaveBeenCalledTimes(1);

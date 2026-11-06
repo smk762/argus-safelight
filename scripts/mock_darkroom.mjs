@@ -21,6 +21,8 @@
  *   [preflight-unchecked]  the pre-flight check fails                          -> refused, unchecked
  *   [fail]       ComfyUI fails mid-way                                         -> failed
  *
+ * Markers combine. `[illegal] [minor]` under an adult policy is deleted with both reasons in `outcome_reason`.
+ *
  * Environment: MOCK_PORT (8106), MOCK_NSFW_ALLOWED (1), MOCK_DEVMODE (1),
  * MOCK_OLLAMA (1), MOCK_SINGGUARD (1), MOCK_NUDENET (1), MOCK_AGE (1),
  * MOCK_STEP_MS (60), MOCK_SCAN_MS (350).
@@ -81,7 +83,10 @@ const modeOf = (name) => POLICIES.get(name)?.mode ?? (name === "default" || name
 const illegalRules = (name) => POLICIES.get(name)?.illegal_rules ?? [];
 const ruleName = (rule) => `${rule.code}. ${rule.name}`;
 const firstIllegal = (name) => (illegalRules(name)[0] ? ruleName(illegalRules(name)[0]) : null);
-const nonIllegalRule = (name) => (name === "default" ? "A. Sexual Content Risk" : "B. Real-World Crimes & Public Safety");
+// adult-cinematic's letters do not line up with the others: its B is another rule.
+const nonIllegalRule = (name) => (name === "default" ? "A. Sexual Content Risk" : name === "adult-cinematic" ? "B. Unethical Behavior" : "B. Real-World Crimes & Public Safety");
+/** `policy:letter`, as darkroom writes a rule into `outcome_reason`. */
+const ruleCode = (policy, rule) => `${policy}:${rule.slice(0, 1)}`;
 
 function guard(safe, rules, explanation, thinking, fast) {
   const out = { safe, rules, explanation, model: MODEL, thinking };
@@ -263,6 +268,13 @@ function requestBlock(body, pre, seed) {
   };
 }
 
+/** `outcome_reason` for a refusal: every illegal rule under any policy, else the enforcing cell. */
+function refusalReason(pre) {
+  const illegal = Object.entries(pre.results).filter(([, cell]) => cell.state === "illegal");
+  if (illegal.length > 0) return illegal.map(([name, cell]) => ruleCode(name, cell.result.rules[0])).join(", ");
+  return pre.refusal.rule ? ruleCode(pre.refusal.policy, pre.refusal.rule) : pre.refusal.reason;
+}
+
 function baseRecord(id, outcome, reason, critical, request, guardBlock, image, error = null) {
   return {
     record_version: "1.0",
@@ -294,8 +306,9 @@ async function generate(body, send) {
 
   send("preflight", pre);
   if (pre.outcome === "refused") {
-    const critical = pre.results[pre.refusal.policy]?.state === "illegal";
-    const record = baseRecord(id, "refused", pre.refusal.reason, critical, request, guardBase, null);
+    // Nothing was resolved or hashed, and the seed and sampling are only what the request sent.
+    const unresolved = { ...request, seed: Number.isInteger(body.seed) ? body.seed : null, sampling: body.sampling ? request.sampling : null, checkpoint: null, vae: null, loras: [], workflow_sha256: null, engine_version: null };
+    const record = baseRecord(id, "refused", refusalReason(pre), false, unresolved, guardBase, null);
     records.set(id, record);
     send("complete", { record });
     return;
@@ -367,18 +380,14 @@ async function generate(body, send) {
   let outcome = "passed";
   let reason = null;
   let critical = false;
-  const illegal = Object.entries(scans).flatMap(([name, pair]) => [["isolated", pair.isolated], ["with_prompt", pair.with_prompt]].filter(([, c]) => c.state === "illegal").map(([ctx, c]) => ({ name, ctx, c })));
-  if (illegal.length > 0) {
+  const codesFor = (state) => [...new Set(Object.entries(scans).flatMap(([name, pair]) => [pair.isolated, pair.with_prompt].filter((c) => c.state === state).map((c) => ruleCode(name, c.result.rules[0]))))];
+  const illegal = codesFor("illegal");
+  const minor = Boolean(ageBlock?.minor_exposed) && exposed >= 0.2;
+  const enforcingUnchecked = scans[enforcing].isolated.state === "unchecked" || scans[enforcing].with_prompt.state === "unchecked";
+  if (illegal.length > 0 || minor || enforcingUnchecked) {
     outcome = "deleted";
-    reason = illegal[0].c.result.rules[0].slice(0, 1);
-    critical = true;
-  } else if (ageBlock?.minor_exposed && exposed >= 0.2) {
-    outcome = "deleted";
-    reason = "minor-exposed";
-    critical = true;
-  } else if (scans[enforcing].isolated.state === "unchecked" || scans[enforcing].with_prompt.state === "unchecked") {
-    outcome = "deleted";
-    reason = "unchecked";
+    reason = [...illegal, ...(minor ? ["minor-exposed"] : []), ...(enforcingUnchecked ? ["unchecked"] : [])].join(", ");
+    critical = illegal.length > 0 || minor;
   } else if (pre.mode === "sfw" && nudenetDown) {
     outcome = "omitted";
     reason = "sfw-unchecked";
@@ -387,7 +396,7 @@ async function generate(body, send) {
     reason = "sfw-exposed";
   } else if (cells.some((c) => c.state === "flagged")) {
     outcome = "review";
-    reason = cells.find((c) => c.state === "flagged").result.rules[0].slice(0, 1);
+    reason = codesFor("flagged").join(", ");
   }
   const served = outcome === "passed" || outcome === "review";
   if (served) {
