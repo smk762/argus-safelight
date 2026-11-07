@@ -90,6 +90,21 @@ export function overallState(guard: Pick<GenerationRecord["guard"], "scans">): C
   return worst === "pending" ? null : worst;
 }
 
+export interface RowVerdict {
+  state: CellState;
+  letters: string[];
+  title: string;
+}
+
+/** The shield on a history row: the worst scan cell, or for a refusal, which has no scans, the worst pre-flight cell. */
+export function rowVerdict(record: Pick<GenerationRecord, "outcome" | "guard">): RowVerdict | null {
+  const refused = record.outcome === "refused";
+  const cells = refused ? Object.values(record.guard.preflight ?? {}) : allCells(record.guard);
+  const state = worstState(cells.map((cell) => cell.state));
+  if (state == null || state === "pending") return null;
+  return { state, letters: ruleLetters(cells.find((cell) => cell.state === state)?.result), title: `${refused ? "Pre-flight" : "Overall"}: ${state}` };
+}
+
 export interface FiredCell {
   policy: string;
   context: ScanContext;
@@ -143,6 +158,43 @@ export function firedCell(record: Pick<GenerationRecord, "guard">, code: string)
     }
   }
   return null;
+}
+
+export interface RuleHit {
+  /** `policy:letter`, as darkroom writes a rule into `outcome_reason`. */
+  code: string;
+  policy: string;
+  /** The rule as the policy names it. */
+  rule: string;
+}
+
+/** The reasons a record can carry that are not a policy's rule. */
+export const REASON_WORDS: readonly string[] = ["minor-exposed", "unchecked", "sfw-exposed", "sfw-unchecked"];
+
+/** Every rule that fired on a record, in any cell: pre-flight or scan, enforcing or advisory. */
+export function recordRules(record: Pick<GenerationRecord, "guard">): RuleHit[] {
+  const { preflight, scans } = record.guard;
+  const cells: [string, Cell | null][] = [
+    ...Object.entries(preflight ?? {}),
+    ...Object.entries(scans ?? {}).flatMap(([policy, pair]): [string, Cell | null][] => [
+      [policy, pair.isolated],
+      [policy, pair.with_prompt],
+    ]),
+  ];
+  const hits = new Map<string, RuleHit>();
+  for (const [policy, cell] of cells) {
+    for (const rule of cell?.result?.rules ?? []) {
+      const code = `${policy}:${ruleLetter(rule)}`;
+      if (!hits.has(code)) hits.set(code, { code, policy, rule });
+    }
+  }
+  return [...hits.values()];
+}
+
+/** Whether a record matches the history's rule filter: a rule that fired on it, or a word in its reason. */
+export function matchesRule(record: Pick<GenerationRecord, "outcome_reason" | "guard">, wanted: string): boolean {
+  if (REASON_WORDS.includes(wanted)) return reasonParts(record.outcome_reason).includes(wanted);
+  return recordRules(record).some((hit) => hit.code === wanted);
 }
 
 export const CONTEXT_LABEL: Record<ScanContext, string> = { isolated: "Isolated", with_prompt: "With prompt" };

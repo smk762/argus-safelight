@@ -9,6 +9,7 @@
       "sha256": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e"
     }
   ],
+  "default_checkpoint": "argus-photo-v2.safetensors",
   "loras": [
     {
       "name": "argus-style-soft.safetensors",

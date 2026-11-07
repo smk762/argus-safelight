@@ -8,9 +8,11 @@ import { ruleLetters } from "@/lib/shields";
 import type { Cell, GenerationRecord } from "@/lib/types";
 
 import { PreflightColumn } from "./ShieldGrid";
-import { Badge, Button, Notice } from "./ui";
+import { Badge, Button, Notice, Reasoning } from "./ui";
 
-const TILE = "aspect-square w-full max-w-[512px] rounded-lg";
+const TILE = "min-h-[320px] w-full rounded-lg";
+/** Square, but never taller than the window leaves room for: the image letterboxes in a wide column. */
+const IMAGE_TILE = "aspect-square max-h-[calc(100dvh-21rem)] min-h-[320px] w-full rounded-lg";
 
 /** A served image. Blurred when darkroom set `blur`, until the user reveals it; the img stays in the DOM. */
 export function ImageTile({ record }: { record: GenerationRecord }) {
@@ -18,7 +20,7 @@ export function ImageTile({ record }: { record: GenerationRecord }) {
   const [revealed, setRevealed] = useState(false);
   const hidden = blur && !revealed;
   return (
-    <figure className={`relative overflow-hidden border border-base-600/60 bg-base-700 ${TILE}`}>
+    <figure className={`relative overflow-hidden border border-base-600/60 bg-base-700 ${IMAGE_TILE}`}>
       {/* eslint-disable-next-line @next/next/no-img-element -- loaded by record id from darkroom, not a static asset */}
       <img
         src={imageUrl(record.id)}
@@ -127,7 +129,7 @@ export function RefusedPanel({ record }: { record: GenerationRecord }) {
           )}
         </Notice>
       ) : null}
-      {result?.explanation ? <blockquote className="whitespace-pre-wrap border-l-2 border-base-600 pl-3 text-small text-text-secondary">{result.explanation}</blockquote> : null}
+      {result?.explanation ? <Reasoning text={result.explanation} /> : null}
       <PreflightColumn results={record.guard.preflight} enforcing={record.guard.enforcing_policy} />
       <div>
         <p className="text-caption uppercase tracking-wide text-text-muted">Final prompt that was judged</p>

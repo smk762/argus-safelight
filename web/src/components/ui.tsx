@@ -13,6 +13,38 @@ export function Button({ tone = "neutral", small = false, className = "", ...pro
   return <button type="button" {...props} className={`inline-flex items-center gap-1.5 rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${size} ${BUTTON_TONE[tone]} ${className}`} />;
 }
 
+/** A square icon control. Its name goes in `aria-label`; `Tip` shows it to the pointer. */
+export const ICON_BUTTON = "inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const ICON_TONE: Record<Tone, string> = {
+  primary: "bg-interactive text-white hover:bg-interactive-hover disabled:hover:bg-interactive",
+  neutral: "text-text-secondary hover:bg-base-700 hover:text-text-primary disabled:hover:bg-transparent",
+  danger: "text-error hover:bg-error/15 disabled:hover:bg-transparent",
+};
+export const ICON_NEUTRAL = `${ICON_BUTTON} ${ICON_TONE.neutral}`;
+
+/** A tooltip under one icon control, on hover and keyboard focus. The control has its own `aria-label`, so this is hidden from screen readers. */
+export function Tip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="group relative inline-flex">
+      {children}
+      <span aria-hidden="true" className="pointer-events-none absolute right-0 top-full z-30 mt-2 hidden whitespace-nowrap rounded-md border border-base-600 bg-base-700 px-2 py-1 text-caption text-text-primary shadow-soft group-focus-within:block group-hover:block">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+/** An icon button with its tooltip. `label` is its accessible name; `tip` is the longer wording, when it has one. */
+export function IconButton({ label, tip, tone = "neutral", className = "", children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; tip?: string; tone?: Tone }) {
+  return (
+    <Tip label={tip ?? label}>
+      <button type="button" {...props} aria-label={label} className={`${ICON_BUTTON} ${ICON_TONE[tone]} ${className}`}>
+        {children}
+      </button>
+    </Tip>
+  );
+}
+
 export function Badge({ children, className = "", title }: { children: ReactNode; className?: string; title?: string }) {
   return (
     <span title={title} className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-caption font-medium uppercase tracking-wide ${className}`}>
@@ -23,6 +55,31 @@ export function Badge({ children, className = "", title }: { children: ReactNode
 
 export function Card({ children, className = "", as: Tag = "section" }: { children: ReactNode; className?: string; as?: "section" | "div" | "article" | "aside" }) {
   return <Tag className={`rounded-lg border border-base-600/60 bg-base-800 p-4 ${className}`}>{children}</Tag>;
+}
+
+/** SingGuard's own words on a verdict, which can run to pages. Closed until asked for; the rule's name stays in the line above it. */
+export function Reasoning({ text }: { text: string }) {
+  return (
+    <details className="text-small">
+      <summary className="cursor-pointer text-text-secondary hover:text-text-primary">SingGuard&apos;s reasoning</summary>
+      <blockquote className="mt-2 whitespace-pre-wrap border-l-2 border-base-600 pl-3 text-text-secondary">{text}</blockquote>
+    </details>
+  );
+}
+
+/** A card that opens on its summary. Closed by default; its content stays in the DOM. */
+export function Collapsible({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <details className="group rounded-lg border border-base-600/60 bg-base-800">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 [&::-webkit-details-marker]:hidden">
+        <SectionTitle>{title}</SectionTitle>
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </summary>
+      <div className="px-4 pb-4">{children}</div>
+    </details>
+  );
 }
 
 export function SectionTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -40,9 +97,9 @@ export function Notice({ tone = "info", children, className = "" }: { tone?: "in
   );
 }
 
-export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+export function Spinner({ className = "h-4 w-4 text-text-muted" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={`${className} animate-spin text-text-muted`} fill="none" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={`${className} animate-spin`} fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.25" />
       <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>

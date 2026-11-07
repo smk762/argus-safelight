@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { fixtureRecord, fixtureRecords } from "@/lib/fixture.test-util";
@@ -89,6 +89,46 @@ describe("ResultView", () => {
   it("says why a generation failed, from the record's reason", () => {
     render(<ResultView record={fixtureRecord("fx-failed")} />);
     expect(screen.getByRole("group", { name: "Failed generation" }).textContent).toContain("ComfyUI: websocket closed before the image arrived");
+  });
+
+  it("keeps the shields open and the record's details collapsed", () => {
+    const { container } = render(<ResultView record={fixtureRecord("fx-review-disagree")} />);
+    expect(screen.getByText("Output scans").closest("details")).toBeNull();
+    for (const title of ["NudeNet and age estimate", "Prompts", "Parameters"]) {
+      expect(screen.getByText(title).closest("details")?.open, title).toBe(false);
+    }
+    expect(container.textContent).toContain("MiVOLO estimate: 29");
+  });
+
+  it("opens a shield's detail in the top layer, so a scrolling grid cannot clip it", () => {
+    render(<ResultView record={fixtureRecord("fx-review-disagree")} />);
+    fireEvent.mouseEnter(screen.getByRole("button", { name: /adult-granular · With prompt/ }).parentElement!);
+    const tip = screen.getByRole("tooltip");
+    expect(tip.getAttribute("popover")).toBe("manual");
+    expect(tip.textContent).toContain("B. Real-World Crimes & Public Safety");
+  });
+
+  it("keeps a refusal's rule in view and its reasoning folded", () => {
+    render(<ResultView record={fixtureRecord("fx-refused")} />);
+    const panel = screen.getByRole("group", { name: "Refused at pre-flight" });
+    const reasoning = screen.getByText("SingGuard's reasoning").closest("details");
+    expect(reasoning?.open).toBe(false);
+    expect(reasoning?.textContent).toContain("boudoir photography");
+    expect(reasoning?.textContent).not.toContain("fired under");
+    expect(panel.textContent).toContain("A. Sexual Content Risk fired under");
+  });
+
+  it("says what the overall shield means, and credits SingGuard rather than the outcome", () => {
+    render(<ResultView record={fixtureRecord("fx-passed")} />);
+    expect(screen.getByText("SingGuard found no rule violations.")).toBeTruthy();
+    cleanup();
+    render(<ResultView record={fixtureRecord("fx-deleted-illegal")} />);
+    expect(screen.getByText("SingGuard found an illegal rule. The scans show where.")).toBeTruthy();
+    cleanup();
+    // Deleted by the age rule with every cell safe: the note must not read as a clean bill of health.
+    render(<ResultView record={fixtureRecord("fx-deleted-minor")} />);
+    expect(screen.getByText("SingGuard found no rule violations.")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Deleted image" }).textContent).toContain("destroyed");
   });
 
   it("marks a row whose scans disagree and outlines the with-prompt cell that turned", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { ruleLetters, shieldLabel, type ShieldState } from "@/lib/shields";
 import type { Cell } from "@/lib/types";
@@ -35,9 +35,33 @@ export function ShieldCell({
   const letters = ruleLetters(cell?.result);
   const label = shieldLabel(state, letters);
   const show = open || pinned;
+  const button = useRef<HTMLButtonElement>(null);
+  const tip = useRef<HTMLDivElement>(null);
+
+  // The detail sits in the browser's top layer, so a scrolling grid or the compose dialog cannot clip it.
+  useLayoutEffect(() => {
+    const node = tip.current;
+    if (show && node && typeof node.showPopover === "function") node.showPopover();
+  }, [show]);
+
+  useEffect(() => {
+    if (!show) return;
+    const place = () => {
+      if (button.current && tip.current) placeBeside(button.current, tip.current);
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [show]);
+
   return (
     <div className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button
+        ref={button}
         type="button"
         aria-expanded={show}
         aria-controls={id}
@@ -53,12 +77,25 @@ export function ShieldCell({
         <Shield state={state} letters={letters} size={size} withLabel={withLabel} labelBelow={labelBelow} />
       </button>
       {show ? (
-        <div id={id} role="tooltip" className="absolute left-1/2 top-full z-20 mt-1 w-72 -translate-x-1/2 rounded-md border border-base-600 bg-base-800 p-3 text-left text-caption shadow-soft">
+        <div ref={tip} id={id} role="tooltip" popover="manual" className="fixed inset-auto z-50 m-0 max-h-[60vh] w-96 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md border border-base-600 bg-base-800 p-3 text-left text-caption text-text-primary shadow-soft">
           <ShieldDetail cell={cell} heading={heading} />
         </div>
       ) : null}
     </div>
   );
+}
+
+const EDGE = 8;
+
+/** Under the shield and touching it, so the pointer can reach a long explanation; above it when there is no room below. */
+function placeBeside(anchor: HTMLElement, node: HTMLElement) {
+  const shield = anchor.getBoundingClientRect();
+  const box = node.getBoundingClientRect();
+  const left = Math.min(Math.max(EDGE, shield.left + shield.width / 2 - box.width / 2), window.innerWidth - box.width - EDGE);
+  const fitsBelow = shield.bottom + box.height <= window.innerHeight - EDGE;
+  const top = fitsBelow ? shield.bottom : Math.max(EDGE, shield.top - box.height);
+  node.style.left = `${left}px`;
+  node.style.top = `${top}px`;
 }
 
 export function ShieldDetail({ cell, heading }: { cell: Cell | null; heading: string }) {

@@ -218,6 +218,8 @@ export interface ModelOption {
 
 export interface Models {
   checkpoints: ModelOption[];
+  /** The one a form starts on, resolved by darkroom. Null when its setting matches nothing. */
+  default_checkpoint: string | null;
   loras: ModelOption[];
   vaes: ModelOption[];
   samplers: string[];
@@ -291,6 +293,12 @@ export interface ScanEvent {
   policy: string;
   context: ScanContext;
   cell: Cell;
+}
+
+/** `POST /purge/{id}`, devmode only. */
+export interface RecordPurgeResult {
+  records: number;
+  images: number;
 }
 
 export interface PurgeResult {

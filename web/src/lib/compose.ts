@@ -41,6 +41,10 @@ export function enforceBlock(policy: PolicyInfo): string | null {
   return "SFW generation needs NudeNet, which this server does not have.";
 }
 
+function startingCheckpoint(models: Models | null): string {
+  return models?.default_checkpoint ?? models?.checkpoints[0]?.name ?? "";
+}
+
 export function defaultCompose(health: Health | null, policies: Policies | null, models: Models | null): ComposeState {
   const enforcing = policies?.default ?? health?.default_policy ?? "default";
   const thinking = (THINKING.includes(health?.thinking as ThinkingMode) ? health?.thinking : "cascade") as ThinkingMode;
@@ -48,7 +52,7 @@ export function defaultCompose(health: Health | null, policies: Policies | null,
     userPrompt: "",
     negativePrompt: DEFAULT_NEGATIVE,
     expand: false,
-    checkpoint: models?.checkpoints[0]?.name ?? "",
+    checkpoint: startingCheckpoint(models),
     loras: [],
     sampling: {
       ...DEFAULT_SAMPLING,
@@ -83,7 +87,7 @@ export function normaliseCompose(state: ComposeState, policies: Policies | null,
     if (advisory.length !== state.advisoryPolicies.length || advisory.some((name, index) => name !== state.advisoryPolicies[index])) next = { ...next, advisoryPolicies: advisory };
   }
   if (models) {
-    if (!models.checkpoints.some((checkpoint) => checkpoint.name === next.checkpoint)) next = { ...next, checkpoint: models.checkpoints[0]?.name ?? "" };
+    if (!models.checkpoints.some((checkpoint) => checkpoint.name === next.checkpoint)) next = { ...next, checkpoint: startingCheckpoint(models) };
     const loras = next.loras.filter((lora) => models.loras.some((known) => known.name === lora.name));
     if (loras.length !== next.loras.length) next = { ...next, loras };
   }

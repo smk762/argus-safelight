@@ -33,9 +33,13 @@ describe("defaults", () => {
     const state = defaultCompose(health(), policies(), models);
     expect(state.enforcingPolicy).toBe("adult-granular");
     expect(state.thinking).toBe("cascade");
-    expect(state.checkpoint).toBe(models.checkpoints[0].name);
+    expect(state.checkpoint).toBe(models.default_checkpoint);
+    expect(state.checkpoint).not.toBe(models.checkpoints[0].name);
     expect(state.seed).toBeNull();
     expect(state.seedLocked).toBe(false);
+  });
+  it("starts on the first checkpoint when darkroom names no default", () => {
+    expect(defaultCompose(health(), policies(), { ...models, default_checkpoint: null }).checkpoint).toBe(models.checkpoints[0].name);
   });
   it("reads the mode from the catalogue, and by name before it loads", () => {
     expect(policyMode(policies(), "adult")).toBe("nsfw");
@@ -57,7 +61,7 @@ describe("normalise", () => {
     const base = { ...defaultCompose(health(), policies(), models), advisoryPolicies: ["adult-granular", "nope"], checkpoint: "gone.safetensors", loras: [{ name: "gone", weight: 1, trigger_words: [] }] };
     const next = normaliseCompose(base, policies(), models);
     expect(next.advisoryPolicies).toEqual([]);
-    expect(next.checkpoint).toBe(models.checkpoints[0].name);
+    expect(next.checkpoint).toBe(models.default_checkpoint);
     expect(next.loras).toEqual([]);
   });
   it("returns the same object when nothing changes", () => {

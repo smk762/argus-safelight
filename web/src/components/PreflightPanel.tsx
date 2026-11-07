@@ -4,7 +4,7 @@ import { ruleLetters } from "@/lib/shields";
 import type { Preflight } from "@/lib/types";
 
 import { PreflightColumn } from "./ShieldGrid";
-import { Badge, Card, Notice, SectionTitle } from "./ui";
+import { Badge, Card, Notice, Reasoning, SectionTitle } from "./ui";
 
 /**
  * The text-only verdict: one shield per policy, the rule and explanation for
@@ -42,12 +42,14 @@ export function PreflightPanel({ preflight, stale = false }: { preflight: Prefli
             )}
           </Notice>
         ) : null}
-        {refusingResult?.explanation ? <blockquote className="whitespace-pre-wrap border-l-2 border-error/50 pl-3 text-small text-text-secondary">{refusingResult.explanation}</blockquote> : null}
+        {refusingResult?.explanation ? <Reasoning text={refusingResult.explanation} /> : null}
         {preflight.warnings.map((warning) => (
-          <Notice key={warning.policy} tone="warning">
-            Rule <strong>{warning.rule}</strong> fired under <span className="font-mono">{warning.policy}</span>, an NSFW policy, so this is a warning and generation can proceed. The output scans decide.
-            {warning.explanation ? <span className="mt-1 block whitespace-pre-wrap text-text-secondary">{warning.explanation}</span> : null}
-          </Notice>
+          <div key={warning.policy} className="space-y-2">
+            <Notice tone="warning">
+              Rule <strong>{warning.rule}</strong> fired under <span className="font-mono">{warning.policy}</span>, an NSFW policy, so this is a warning and generation can proceed. The output scans decide.
+            </Notice>
+            {warning.explanation ? <Reasoning text={warning.explanation} /> : null}
+          </div>
         ))}
         {preflight.outcome === "ok" ? <p className="text-small text-text-secondary">No rule fired under any selected policy.</p> : null}
 
@@ -63,7 +65,7 @@ export function PreflightPanel({ preflight, stale = false }: { preflight: Prefli
                     <span className="font-mono">{name}</span>
                     {name === preflight.enforcing_policy ? "" : " (advisory, shown not acted on)"}: {cell.state === "unchecked" ? (cell.error ?? "the check did not complete") : `rule ${cell.result?.rules.join("; ") || ruleLetters(cell.result).join(", ")}`}
                   </p>
-                  {cell.result?.explanation ? <p className="mt-1 whitespace-pre-wrap text-text-secondary">{cell.result.explanation}</p> : null}
+                  {cell.result?.explanation ? <div className="mt-1"><Reasoning text={cell.result.explanation} /></div> : null}
                 </li>
               ))}
           </ul>

@@ -1,6 +1,6 @@
 import { minorExposedText } from "./age";
 import { CONTEXT_LABEL, firedCell, reasonParts, uncheckedCell } from "./shields";
-import type { GenerationRecord, Outcome } from "./types";
+import type { CellState, GenerationRecord, Outcome } from "./types";
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
   passed: "Passed",
@@ -19,6 +19,17 @@ export const OUTCOME_TONE: Record<Outcome, string> = {
   omitted: "text-text-secondary border-base-600",
   refused: "text-error border-error/50",
   failed: "text-text-secondary border-base-600",
+};
+
+/**
+ * The line under the overall shield, for the worst cell in the grid. It speaks for SingGuard only: a record can be
+ * safe here and still be deleted or omitted, by the age rule or NudeNet.
+ */
+export const OVERALL_NOTE: Record<CellState, string> = {
+  safe: "SingGuard found no rule violations.",
+  unchecked: "SingGuard found no violations, but at least one scan did not complete.",
+  flagged: "SingGuard flagged a rule. The scans show where.",
+  illegal: "SingGuard found an illegal rule. The scans show where.",
 };
 
 export interface DeletedSummary {

@@ -10,7 +10,7 @@ import {
   type Policies,
   type Preflight,
   type ProgressEvent,
-  type PurgeResult,
+  type PurgeResult, RecordPurgeResult,
   type RecordPage,
   type ScanEvent,
 } from "./types";
@@ -79,6 +79,7 @@ export const archiveUrl = (): string => `${darkroomUrl()}/archive`;
 
 export const preflight = (request: GenerateRequest): Promise<Preflight> => send("POST", "/preflight", request);
 export const purge = (): Promise<PurgeResult> => send("POST", "/purge", { confirm: "purge" });
+export const purgeRecord = (id: string): Promise<RecordPurgeResult> => send("POST", `/purge/${encodeURIComponent(id)}`, { confirm: "purge" });
 export const removeImage = (id: string): Promise<GenerationRecord> => send("DELETE", `/record/${encodeURIComponent(id)}`);
 
 export async function readSse(response: Response, onEvent: (event: string, data: unknown) => void): Promise<void> {

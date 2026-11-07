@@ -1,7 +1,7 @@
 import type { GenerationRecord } from "@/lib/types";
 
 import { AgeEstimate } from "./AgeEstimate";
-import { Card, Kv, SectionTitle } from "./ui";
+import { Collapsible, Kv } from "./ui";
 
 const short = (sha: string) => `${sha.slice(0, 12)}…`;
 
@@ -32,9 +32,8 @@ export function NudeNetLine({ record }: { record: GenerationRecord }) {
 export function PromptsCard({ record }: { record: GenerationRecord }) {
   const { request } = record;
   return (
-    <Card>
-      <SectionTitle>Prompts</SectionTitle>
-      <dl className="mt-2 space-y-3 text-small">
+    <Collapsible title="Prompts">
+      <dl className="space-y-3 text-small">
         <div>
           <dt className="text-caption uppercase tracking-wide text-text-muted">User prompt</dt>
           <dd className="mt-0.5 whitespace-pre-wrap text-text-primary">{request.user_prompt || <span className="text-text-muted">(empty)</span>}</dd>
@@ -54,7 +53,7 @@ export function PromptsCard({ record }: { record: GenerationRecord }) {
           <dd className="mt-0.5 whitespace-pre-wrap text-text-primary">{request.negative_prompt || <span className="text-text-muted">(empty)</span>}</dd>
         </div>
       </dl>
-    </Card>
+    </Collapsible>
   );
 }
 
@@ -62,9 +61,8 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
   const { request, image } = record;
   const s = request.sampling;
   return (
-    <Card>
-      <SectionTitle>Parameters</SectionTitle>
-      <dl className="mt-1 divide-y divide-base-600/40">
+    <Collapsible title="Parameters">
+      <dl className="divide-y divide-base-600/40">
         {request.seed != null ? (
           <Kv label="Seed">
             <span className="font-mono">{request.seed}</span>
@@ -141,19 +139,18 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
           </span>
         </Kv>
       </dl>
-    </Card>
+    </Collapsible>
   );
 }
 
 export function ChecksCard({ record }: { record: GenerationRecord }) {
   return (
-    <Card>
-      <SectionTitle>NudeNet and age estimate</SectionTitle>
-      <div className="mt-2 space-y-3">
+    <Collapsible title="NudeNet and age estimate">
+      <div className="space-y-3">
         <NudeNetLine record={record} />
         <AgeEstimate age={record.guard.age} />
       </div>
-    </Card>
+    </Collapsible>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { OUTCOME_LABEL, OUTCOME_TONE, hasImage } from "@/lib/outcome";
+import { OUTCOME_LABEL, OUTCOME_TONE, OVERALL_NOTE, hasImage } from "@/lib/outcome";
 import { allCells, overallState, ruleLetters } from "@/lib/shields";
 import { ago, formatWhen } from "@/lib/time";
 import type { GenerationRecord } from "@/lib/types";
@@ -33,7 +33,7 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
         {actions ? <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div> : null}
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,560px)_minmax(320px,1fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-3">
           {record.outcome === "refused" ? (
             <RefusedPanel record={record} />
@@ -46,20 +46,20 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
           ) : hasImage(record) ? (
             <ImageTile record={record} />
           ) : (
-            <div className="flex aspect-square w-full max-w-[512px] items-center justify-center rounded-lg border border-dashed border-base-600 p-6 text-center text-small text-text-secondary">The user removed this image. The record stays.</div>
+            <div className="flex min-h-[320px] w-full items-center justify-center rounded-lg border border-dashed border-base-600 p-6 text-center text-small text-text-secondary">The user removed this image. The record stays.</div>
           )}
           {worst ? (
             <div className="flex items-center gap-3">
               <Shield state={worst} letters={worstLetters} size="h-10 w-10" title={`Overall: ${worst}`} />
               <div>
                 <p className="text-small font-medium capitalize text-text-primary">Overall: {worst}</p>
-                <p className="text-caption text-text-muted">The worst cell in the grid.</p>
+                <p className="text-caption text-text-muted">{OVERALL_NOTE[worst]}</p>
               </div>
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {scanned ? (
             <Card>
               <SectionTitle>Output scans</SectionTitle>

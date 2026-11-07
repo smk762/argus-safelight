@@ -185,6 +185,7 @@ MODELS = {
         {"name": "argus-base-v1.safetensors", "sha256": "1f" * 32},
         {"name": "argus-photo-v2.safetensors", "sha256": "2e" * 32},
     ],
+    "default_checkpoint": "argus-photo-v2.safetensors",
     "loras": [
         {"name": "argus-style-soft.safetensors", "sha256": "3d" * 32, "trigger_words": ["argus soft style"]},
         {"name": "argus-light-studio.safetensors", "sha256": "4c" * 32, "trigger_words": ["studio lighting"]},

@@ -5,7 +5,8 @@ import { useRef, useState } from "react";
 import { enforceBlock, policyByName } from "@/lib/compose";
 import type { Policies, PolicyInfo } from "@/lib/types";
 
-import { Badge, Button, Notice } from "./ui";
+import { CloseIcon } from "./icons";
+import { Badge, IconButton, Notice } from "./ui";
 
 export function ModeBadge({ mode }: { mode: "sfw" | "nsfw" }) {
   return <Badge className={mode === "nsfw" ? "border-warm-primary/60 text-warm-primary" : "border-base-600 text-text-secondary"}>{mode}</Badge>;
@@ -124,9 +125,9 @@ export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose:
         <h2 className="font-display text-subheading font-semibold">
           <span className="font-mono">{policy.name}</span> <ModeBadge mode={policy.mode} />
         </h2>
-        <Button small onClick={onClose}>
-          Close
-        </Button>
+        <IconButton label="Close" onClick={onClose}>
+          <CloseIcon />
+        </IconButton>
       </div>
       <div className="max-h-[70vh] space-y-4 overflow-auto px-5 py-4 text-small">
         <p className="text-text-secondary">{policy.summary}</p>
