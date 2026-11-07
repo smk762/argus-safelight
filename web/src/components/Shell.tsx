@@ -28,10 +28,10 @@ export function Shell({ children }: { children: ReactNode }) {
           </a>
         </span>
         <nav aria-label="Pages" className="ml-auto flex items-center gap-1">
-          {running && pathname !== "/" ? (
+          {running ? (
             <Tip label="Generation running">
-              <Link href="/" aria-label="Generation running" className={ICON_NEUTRAL}>
-                <Spinner className="h-5 w-5" />
+              <Link href="/" aria-label="Generation running" aria-current={pathname === "/" ? "page" : undefined} className={`${ICON_NEUTRAL} bg-accent-primary/20 hover:bg-accent-primary/30`}>
+                <Spinner className="h-5 w-5 text-accent-primary" />
               </Link>
             </Tip>
           ) : null}

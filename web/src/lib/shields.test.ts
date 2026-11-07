@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { fixtureRecord, fixtureRecords } from "./fixture.test-util";
-import { firedCell, matchesRule, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, recordRules, rowDisagrees, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
+import { firedCell, matchesRule, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, recordRules, rowDisagrees, rowVerdict, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
 import type { Cell, ScanPair } from "./types";
 
 const cell = (state: Cell["state"], rules: string[] = []): Cell => ({
@@ -122,6 +122,19 @@ describe("fired cell", () => {
   });
   it("ignores an unchecked advisory cell", () => {
     expect(uncheckedCell(fixtureRecord("fx-review-agree"))).toBeNull();
+  });
+});
+
+describe("row verdict", () => {
+  it("is the worst scan cell for a record that was scanned", () => {
+    expect(rowVerdict(fixtureRecord("fx-review-disagree"))).toEqual({ state: "flagged", letters: ["B"], title: "Overall: flagged" });
+  });
+  it("falls back to the pre-flight cells for a refusal, which has no scans", () => {
+    expect(rowVerdict(fixtureRecord("fx-refused"))).toEqual({ state: "flagged", letters: ["A"], title: "Pre-flight: flagged" });
+    expect(rowVerdict(fixtureRecord("fx-refused-illegal"))).toEqual({ state: "illegal", letters: ["A"], title: "Pre-flight: illegal" });
+  });
+  it("shows nothing for a failed generation, whose clean pre-flight says nothing about an image", () => {
+    expect(rowVerdict(fixtureRecord("fx-failed"))).toBeNull();
   });
 });
 

@@ -581,6 +581,16 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/zip", "Content-Disposition": 'attachment; filename="darkroom-archive.zip"', "Content-Length": zip.length });
       return res.end(zip);
     }
+    if (req.method === "POST" && path.startsWith("/purge/")) {
+      if (!DEVMODE) return json(res, 404, { detail: "Not Found" });
+      const body = await readBody(req);
+      if (body?.confirm !== "purge") return json(res, 400, { detail: 'the body must be {"confirm": "purge"}' });
+      if (generating) return json(res, 409, { detail: "a generation is running" });
+      const id = decodeURIComponent(path.slice("/purge/".length));
+      if (!records.has(id)) return json(res, 404, { detail: "no such record" });
+      records.delete(id);
+      return json(res, 200, { records: 1, images: images.delete(id) ? 1 : 0 });
+    }
     if (req.method === "POST" && path === "/purge") {
       if (!DEVMODE) return json(res, 404, { detail: "Not Found" });
       if (generating) return json(res, 409, { detail: "a generation is running" });

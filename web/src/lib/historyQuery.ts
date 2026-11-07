@@ -1,16 +1,18 @@
 import { OUTCOMES, type Mode, type Outcome } from "./types";
 
-/** The history view's filter, held in its URL: `?outcome=review&mode=nsfw&changed=1&rule=adult-granular:B`. */
+/** The history view's filter, held in its URL: `?outcome=review&mode=nsfw&changed=1&removed=1&rule=adult-granular:B`. */
 export interface HistoryFilter {
   outcome: Outcome | null;
   mode: Mode | null;
   /** Only records where the prompt changed the verdict: the isolated and with-prompt scans disagree. */
   changed: boolean;
+  /** Only records whose image the user removed: the record stays, marked `removed_at`. */
+  removed: boolean;
   /** A `policy:letter` code or a reason word: see `recordRules` and `REASON_WORDS`. */
   rule: string | null;
 }
 
-export const EMPTY_FILTER: HistoryFilter = { outcome: null, mode: null, changed: false, rule: null };
+export const EMPTY_FILTER: HistoryFilter = { outcome: null, mode: null, changed: false, removed: false, rule: null };
 
 const MODES: readonly Mode[] = ["sfw", "nsfw"];
 
@@ -23,6 +25,7 @@ export function parseHistoryFilter(params: URLSearchParams | Readonly<URLSearchP
     outcome: OUTCOMES.includes(outcome as Outcome) ? (outcome as Outcome) : null,
     mode: MODES.includes(mode as Mode) ? (mode as Mode) : null,
     changed: changed === "1" || changed === "true",
+    removed: params.get("removed") === "1",
     rule: params.get("rule")?.trim() || null,
   };
 }
@@ -33,6 +36,7 @@ export function historyQuery(filter: HistoryFilter): string {
   if (filter.outcome) params.set("outcome", filter.outcome);
   if (filter.mode) params.set("mode", filter.mode);
   if (filter.changed) params.set("changed", "1");
+  if (filter.removed) params.set("removed", "1");
   if (filter.rule) params.set("rule", filter.rule);
   const query = params.toString();
   return query ? `?${query}` : "";

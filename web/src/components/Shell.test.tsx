@@ -43,7 +43,7 @@ describe("Shell", () => {
     expect(document.getElementById("darkroom-status")?.textContent).toContain("Renders the image.");
   });
 
-  it("offers the way back to a running generation from another page, and only then", () => {
+  it("shows a running generation on every page, the live view included, and only while it runs", () => {
     state.pathname = "/history";
     render(<Shell>page</Shell>);
     expect(screen.queryByRole("link", { name: "Generation running" })).toBeNull();
@@ -54,6 +54,6 @@ describe("Shell", () => {
     cleanup();
     state.pathname = "/";
     render(<Shell>page</Shell>);
-    expect(screen.queryByRole("link", { name: "Generation running" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Generation running" }).getAttribute("aria-current")).toBe("page");
   });
 });

@@ -90,6 +90,21 @@ export function overallState(guard: Pick<GenerationRecord["guard"], "scans">): C
   return worst === "pending" ? null : worst;
 }
 
+export interface RowVerdict {
+  state: CellState;
+  letters: string[];
+  title: string;
+}
+
+/** The shield on a history row: the worst scan cell, or for a refusal, which has no scans, the worst pre-flight cell. */
+export function rowVerdict(record: Pick<GenerationRecord, "outcome" | "guard">): RowVerdict | null {
+  const refused = record.outcome === "refused";
+  const cells = refused ? Object.values(record.guard.preflight ?? {}) : allCells(record.guard);
+  const state = worstState(cells.map((cell) => cell.state));
+  if (state == null || state === "pending") return null;
+  return { state, letters: ruleLetters(cells.find((cell) => cell.state === state)?.result), title: `${refused ? "Pre-flight" : "Overall"}: ${state}` };
+}
+
 export interface FiredCell {
   policy: string;
   context: ScanContext;

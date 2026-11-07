@@ -61,6 +61,14 @@ export const CloseIcon = () => (
   </Icon>
 );
 
+export const ImageRemovedIcon = () => (
+  <Icon>
+    <path d="M3 3l18 18" />
+    <path d="M9 3h10a2 2 0 0 1 2 2v10M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5" />
+    <path d="M3 16l5-5 8 8" />
+  </Icon>
+);
+
 export const SunIcon = () => (
   <Icon>
     <circle cx="12" cy="12" r="4" />

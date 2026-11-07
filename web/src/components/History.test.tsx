@@ -14,6 +14,8 @@ const replace = vi.fn((href: string) => {
   search = href.includes("?") ? href.slice(href.indexOf("?")) : "";
 });
 const purge = vi.fn();
+const removeImage = vi.fn();
+const purgeRecord = vi.fn();
 
 function page(records: GenerationRecord[]): RecordPage {
   return { records, total: records.length, page: 1, page_size: 500 };
@@ -34,6 +36,8 @@ vi.mock("@/lib/api", () => ({
   imageUrl: (id: string) => `/image/${id}`,
   archiveUrl: () => "http://darkroom/archive",
   purge: () => purge(),
+  removeImage: (id: string) => removeImage(id),
+  purgeRecord: (id: string) => purgeRecord(id),
 }));
 
 beforeEach(() => {
@@ -42,6 +46,8 @@ beforeEach(() => {
   search = "";
   replace.mockClear();
   purge.mockReset();
+  removeImage.mockReset();
+  purgeRecord.mockReset();
 });
 afterEach(cleanup);
 
@@ -51,6 +57,71 @@ describe("History", () => {
     await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
     fireEvent.change(screen.getByLabelText("Outcome"), { target: { value: "review" } });
     expect(replace).toHaveBeenCalledWith("/history?outcome=review", { scroll: false });
+  });
+
+  it("removes the images of the ticked rows, after asking, and leaves a row with no image alone", async () => {
+    removeImage.mockResolvedValue({});
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    const passed = store.find((record) => record.id === "fx-passed")!;
+    const refused = store.find((record) => record.id === "fx-refused")!;
+    fireEvent.click(screen.getByLabelText(`Select ${passed.request.user_prompt}`));
+    fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
+    expect(screen.getByText("2 selected")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove 1 image" }));
+    expect(removeImage).not.toHaveBeenCalled();
+    expect(screen.getByText("Delete 1 image file? The records stay.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.getByText("Select all")).toBeTruthy());
+    expect(removeImage.mock.calls).toEqual([["fx-passed"]]);
+  });
+
+  it("offers to purge a single record only in devmode, and asks first", async () => {
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    const refused = store.find((record) => record.id === "fx-refused")!;
+    fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
+    expect(screen.queryByRole("button", { name: /^Purge \d/ })).toBeNull();
+    cleanup();
+
+    devmode = true;
+    purgeRecord.mockImplementation((id: string) => {
+      store = store.filter((record) => record.id !== id);
+      return Promise.resolve({ records: 1, images: 0 });
+    });
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
+    fireEvent.click(screen.getByRole("button", { name: "Purge 1 record" }));
+    expect(purgeRecord).not.toHaveBeenCalled();
+    expect(screen.getByText(/Permanently delete 1 record/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByText(refused.request.user_prompt)).toBeNull());
+    expect(purgeRecord.mock.calls).toEqual([["fx-refused"]]);
+  });
+
+  it("will not remove anything when no ticked row has an image, and keeps a failure ticked and said", async () => {
+    removeImage.mockRejectedValue(new Error("darkroom is read-only"));
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    const refused = store.find((record) => record.id === "fx-refused")!;
+    fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
+    expect((screen.getByRole("button", { name: "Remove 0 images" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("checkbox", { name: "1 selected" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove 4 images" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Removed 0 of 4: darkroom is read-only"));
+    expect(await screen.findByText("4 selected")).toBeTruthy();
+  });
+
+  it("marks a record whose image was removed, with no img element, and filters to those", async () => {
+    store = store.map((record) => (record.id === "fx-passed" ? { ...record, removed_at: "2026-10-21T00:00:00Z" } : record));
+    search = "?removed=1";
+    const { container } = render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(1));
+    expect(screen.getByText("image removed")).toBeTruthy();
+    expect(container.querySelector("main li img, li img")).toBeNull();
+    expect((screen.getByLabelText("Image removed") as HTMLInputElement).checked).toBe(true);
   });
 
   it("offers the rules on the records, by policy, and filters by the one in the URL", async () => {

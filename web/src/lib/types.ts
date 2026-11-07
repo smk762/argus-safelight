@@ -293,6 +293,12 @@ export interface ScanEvent {
   cell: Cell;
 }
 
+/** `POST /purge/{id}`, devmode only. */
+export interface RecordPurgeResult {
+  records: number;
+  images: number;
+}
+
 export interface PurgeResult {
   records: number;
   images: number;
