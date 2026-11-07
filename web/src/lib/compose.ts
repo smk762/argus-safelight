@@ -94,11 +94,16 @@ export function normaliseCompose(state: ComposeState, policies: Policies | null,
   return next;
 }
 
-export function toRequest(state: ComposeState): GenerateRequest {
+/** Whether a request may ask for expansion. The checkbox and `toRequest` both read this, so what the form shows is what is sent. */
+export function canExpand(health: Health | null): boolean {
+  return health == null || health.backends.ollama;
+}
+
+export function toRequest(state: ComposeState, expandable = true): GenerateRequest {
   return {
     user_prompt: state.userPrompt,
     negative_prompt: state.negativePrompt,
-    expand: state.expand,
+    expand: state.expand && expandable,
     enforcing_policy: state.enforcingPolicy,
     advisory_policies: state.advisoryPolicies,
     thinking: state.thinking,
@@ -137,10 +142,13 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * 2 ** 32);
 }
 
+export const READ_ONLY_BLOCK = "Darkroom is read-only: it refuses every write, pre-flight included.";
+
 /** Generate is offered only when darkroom answers and SingGuard is reachable. The reason otherwise. */
 export function generateBlock(health: Health | null, error: string | null, state: ComposeState, policies: Policies | null): string | null {
   if (error) return `Darkroom is not reachable: ${error}`;
   if (!health) return "Waiting for darkroom's /health.";
+  if (health.read_only) return READ_ONLY_BLOCK;
   if (!health.backends.singguard) return "SingGuard is unreachable. Darkroom never runs unguarded.";
   if (!health.backends.comfyui) return "ComfyUI is unreachable.";
   if (policyMode(policies, state.enforcingPolicy) === "sfw" && !health.sfw_available) return "SFW generation needs NudeNet, which this server does not have.";

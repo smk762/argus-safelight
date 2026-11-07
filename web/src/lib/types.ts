@@ -282,6 +282,8 @@ export interface Preflight {
   refusal: PreflightRefusal | null;
   warnings: PreflightWarning[];
   results: Record<string, Cell>;
+  /** False from `POST /preflight`, which never expands: an expansion differs per run. Absent on the stream's `preflight` event, which judged the real one. */
+  expansion_applied?: boolean;
 }
 
 export interface ProgressEvent {

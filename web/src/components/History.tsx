@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { getRecords, imageUrl } from "@/lib/api";
+import { MAX_PAGE_SIZE, getRecords, imageUrl } from "@/lib/api";
 import { historyQuery, parseHistoryFilter, type HistoryFilter } from "@/lib/historyQuery";
 import { OUTCOME_LABEL, OUTCOME_TONE, hasImage } from "@/lib/outcome";
 import { REASON_WORDS, matchesRule, promptChangedVerdict, reasonParts, recordRules, rowVerdict, type RuleHit } from "@/lib/shields";
@@ -20,7 +20,6 @@ import { PurgeButton } from "./PurgeDialog";
 import { Shield } from "./Shield";
 import { Badge, Notice, Spinner } from "./ui";
 
-const PAGE_SIZE = 200;
 const SELECT = "rounded-md border border-base-600/60 bg-base-800 px-2 py-1 text-small text-text-primary";
 
 /** Where a new server starts: the app opens on the history, so this says how to fill it. */
@@ -42,7 +41,7 @@ export function History() {
   const params = useSearchParams();
   const filter = parseHistoryFilter(params);
   const { health } = useDarkroom();
-  const { data, error, reload } = useLoad(`${filter.outcome ?? ""}|${filter.mode ?? ""}`, () => getRecords({ outcome: filter.outcome, mode: filter.mode, pageSize: PAGE_SIZE }));
+  const { data, error, reload } = useLoad(`${filter.outcome ?? ""}|${filter.mode ?? ""}`, () => getRecords({ outcome: filter.outcome, mode: filter.mode, pageSize: MAX_PAGE_SIZE }));
   const fetched = data?.records ?? null;
   const [picked, setPicked] = useState<ReadonlySet<string>>(() => new Set());
   const narrowed = filter.changed || filter.removed || filter.rule != null;
@@ -93,6 +92,11 @@ export function History() {
         </label>
       </div>
       {error ? <Notice tone="error">{error}</Notice> : null}
+      {data && fetched && data.total > fetched.length ? (
+        <Notice>
+          Showing {fetched.length} of {data.total} records. The rule, verdict and image filters, and Select all, see only these.
+        </Notice>
+      ) : null}
       {!records && !error ? (
         <p className="flex items-center gap-2 text-small text-text-secondary">
           <Spinner /> Loading records…
