@@ -6,8 +6,8 @@ import { promptChangedVerdict, rowDisagrees, policyRows } from "./shields";
 
 describe("history filter in the URL", () => {
   it("round-trips every field", () => {
-    const filter = { outcome: "review" as const, mode: "nsfw" as const, changed: true };
-    expect(historyQuery(filter)).toBe("?outcome=review&mode=nsfw&changed=1");
+    const filter = { outcome: "review" as const, mode: "nsfw" as const, changed: true, rule: "adult-granular:B" };
+    expect(historyQuery(filter)).toBe("?outcome=review&mode=nsfw&changed=1&rule=adult-granular%3AB");
     expect(parseHistoryFilter(new URLSearchParams(historyQuery(filter)))).toEqual(filter);
   });
 

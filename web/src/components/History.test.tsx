@@ -53,6 +53,18 @@ describe("History", () => {
     expect(replace).toHaveBeenCalledWith("/history?outcome=review", { scroll: false });
   });
 
+  it("offers the rules on the records, by policy, and filters by the one in the URL", async () => {
+    search = "?rule=adult-granular:A";
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(1));
+    expect(screen.getByRole("link", { name: /schoolgirl/ })).toBeTruthy();
+    const select = screen.getByLabelText("Rule") as HTMLSelectElement;
+    expect(select.value).toBe("adult-granular:A");
+    expect([...select.querySelectorAll("optgroup")].map((group) => group.label)).toEqual(["adult-granular", "default", "Other reasons"]);
+    fireEvent.change(select, { target: { value: "" } });
+    expect(replace).toHaveBeenCalledWith("/history", { scroll: false });
+  });
+
   it("Prompt changed the verdict lists exactly the records whose cells disagree", async () => {
     search = "?changed=1";
     render(<History />);

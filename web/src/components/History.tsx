@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getRecords, imageUrl } from "@/lib/api";
 import { historyQuery, parseHistoryFilter, type HistoryFilter } from "@/lib/historyQuery";
 import { OUTCOME_LABEL, OUTCOME_TONE, hasImage } from "@/lib/outcome";
-import { allCells, overallState, promptChangedVerdict, ruleLetters } from "@/lib/shields";
+import { REASON_WORDS, allCells, matchesRule, overallState, promptChangedVerdict, reasonParts, recordRules, ruleLetters, type RuleHit } from "@/lib/shields";
 import { ago, formatWhen } from "@/lib/time";
 import { OUTCOMES, type GenerationRecord, type Mode, type Outcome } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
@@ -18,6 +18,7 @@ import { Shield } from "./Shield";
 import { Badge, Notice, Spinner } from "./ui";
 
 const PAGE_SIZE = 200;
+const SELECT = "rounded-md border border-base-600/60 bg-base-800 px-2 py-1 text-small text-text-primary";
 
 /** Where a new server starts: the app opens on the history, so this says how to fill it. */
 function EmptyHistory() {
@@ -31,7 +32,7 @@ function EmptyHistory() {
   );
 }
 
-/** `GET /records`, filtered by outcome and mode on darkroom's side and by "Prompt changed the verdict" here. The URL holds the filter. */
+/** `GET /records`, filtered by outcome and mode on darkroom's side and by "Prompt changed the verdict" and the rule here. The URL holds the filter. */
 export function History() {
   const router = useRouter();
   const pathname = usePathname();
@@ -40,7 +41,8 @@ export function History() {
   const { health } = useDarkroom();
   const { data, error, reload } = useLoad(`${filter.outcome ?? ""}|${filter.mode ?? ""}`, () => getRecords({ outcome: filter.outcome, mode: filter.mode, pageSize: PAGE_SIZE }));
   const fetched = data?.records ?? null;
-  const records = fetched && filter.changed ? fetched.filter(promptChangedVerdict) : fetched;
+  const narrowed = filter.changed || filter.rule != null;
+  const records = fetched?.filter((record) => (!filter.changed || promptChangedVerdict(record)) && (!filter.rule || matchesRule(record, filter.rule))) ?? null;
 
   const setFilter = (patch: Partial<HistoryFilter>) => {
     router.replace(`${pathname}${historyQuery({ ...filter, ...patch })}`, { scroll: false });
@@ -53,7 +55,7 @@ export function History() {
           History
         </h1>
         <span className="text-small text-text-secondary" aria-live="polite">
-          {records && fetched ? (filter.changed && fetched.length > 0 ? `${records.length} of ${fetched.length} record${fetched.length === 1 ? "" : "s"}` : `${records.length} record${records.length === 1 ? "" : "s"}`) : ""}
+          {records && fetched ? (narrowed && fetched.length > 0 ? `${records.length} of ${fetched.length} record${fetched.length === 1 ? "" : "s"}` : `${records.length} record${records.length === 1 ? "" : "s"}`) : ""}
         </span>
         {health?.devmode ? (
           <span className="ml-auto">
@@ -73,6 +75,7 @@ export function History() {
             ["nsfw", "NSFW"],
           ]}
         />
+        <RuleSelect records={fetched ?? []} value={filter.rule} onChange={(rule) => setFilter({ rule })} />
         <label className="flex items-center gap-1.5 text-small text-text-primary" title="Only records where a policy's isolated and with-prompt scans disagree.">
           <input type="checkbox" checked={filter.changed} onChange={(event) => setFilter({ changed: event.target.checked })} className="accent-accent-primary" />
           <span>Prompt changed the verdict</span>
@@ -88,10 +91,10 @@ export function History() {
         </p>
       ) : null}
       {records && records.length === 0 ? (
-        !filter.outcome && !filter.mode && !filter.changed ? (
+        !filter.outcome && !filter.mode && !narrowed ? (
           <EmptyHistory />
         ) : (
-          <p className="text-small text-text-secondary">{fetched && fetched.length > 0 && filter.changed ? "No record here where the prompt changed the verdict." : "No records match."}</p>
+          <p className="text-small text-text-secondary">{fetched && fetched.length > 0 && filter.rule ? "No record here matches that rule." : fetched && fetched.length > 0 && filter.changed ? "No record here where the prompt changed the verdict." : "No records match."}</p>
         )
       ) : null}
       {records && records.length > 0 ? (
@@ -105,11 +108,55 @@ export function History() {
   );
 }
 
+/** The rules on the records in view, grouped by policy because a letter means something different under each one. */
+function RuleSelect({ records, value, onChange }: { records: GenerationRecord[]; value: string | null; onChange: (rule: string | null) => void }) {
+  const byPolicy = new Map<string, Map<string, RuleHit>>();
+  for (const record of records) {
+    for (const hit of recordRules(record)) {
+      if (!byPolicy.has(hit.policy)) byPolicy.set(hit.policy, new Map());
+      byPolicy.get(hit.policy)?.set(hit.code, hit);
+    }
+  }
+  const words = REASON_WORDS.filter((word) => records.some((record) => reasonParts(record.outcome_reason).includes(word)));
+  const known = words.includes(value ?? "") || [...byPolicy.values()].some((hits) => value != null && hits.has(value));
+  return (
+    <label className="flex items-center text-small">
+      <span className="sr-only">Rule</span>
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value || null)} className={`max-w-[320px] ${SELECT}`}>
+        <option value="">All rules</option>
+        {value && !known ? <option value={value}>{value}</option> : null}
+        {[...byPolicy.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([policy, hits]) => (
+            <optgroup key={policy} label={policy}>
+              {[...hits.values()]
+                .sort((a, b) => a.rule.localeCompare(b.rule))
+                .map((hit) => (
+                  <option key={hit.code} value={hit.code}>
+                    {hit.policy} · {hit.rule}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        {words.length > 0 ? (
+          <optgroup label="Other reasons">
+            {words.map((word) => (
+              <option key={word} value={word}>
+                {word}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
+      </select>
+    </label>
+  );
+}
+
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
   return (
     <label className="flex items-center gap-1.5 text-small text-text-secondary">
       <span className="sr-only">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-base-600/60 bg-base-800 px-2 py-1 text-small text-text-primary">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className={SELECT}>
         {options.map(([optionValue, text]) => (
           <option key={optionValue} value={optionValue}>
             {text}

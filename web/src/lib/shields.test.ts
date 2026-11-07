@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { fixtureRecord, fixtureRecords } from "./fixture.test-util";
-import { firedCell, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, rowDisagrees, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
+import { firedCell, matchesRule, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, recordRules, rowDisagrees, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
 import type { Cell, ScanPair } from "./types";
 
 const cell = (state: Cell["state"], rules: string[] = []): Cell => ({
@@ -122,6 +122,31 @@ describe("fired cell", () => {
   });
   it("ignores an unchecked advisory cell", () => {
     expect(uncheckedCell(fixtureRecord("fx-review-agree"))).toBeNull();
+  });
+});
+
+describe("rule filter", () => {
+  const ids = (wanted: string) =>
+    fixtureRecords()
+      .filter((record) => matchesRule(record, wanted))
+      .map((record) => record.id)
+      .sort();
+
+  it("finds a rule in any cell: pre-flight or scan, enforcing or advisory", () => {
+    expect(ids("default:A")).toEqual(["fx-deleted-illegal", "fx-refused", "fx-refused-illegal", "fx-review-agree"]);
+  });
+  it("keeps the same letter under another policy apart", () => {
+    expect(ids("adult-granular:A")).toEqual(["fx-refused-illegal"]);
+  });
+  it("names each rule once, as the policy words it", () => {
+    expect(recordRules(fixtureRecord("fx-deleted-illegal"))).toEqual([
+      { code: "adult-granular:H", policy: "adult-granular", rule: "H. Non-Consensual Sexual Content" },
+      { code: "default:A", policy: "default", rule: "A. Sexual Content Risk" },
+    ]);
+  });
+  it("matches a reason word on the record's reason, and never a failed record's error text", () => {
+    expect(ids("minor-exposed")).toEqual(["fx-deleted-minor"]);
+    expect(ids("ComfyUI: websocket closed before the image arrived")).toEqual([]);
   });
 });
 
