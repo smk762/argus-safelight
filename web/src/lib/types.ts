@@ -218,6 +218,8 @@ export interface ModelOption {
 
 export interface Models {
   checkpoints: ModelOption[];
+  /** The one a form starts on, resolved by darkroom. Null when its setting matches nothing. */
+  default_checkpoint: string | null;
   loras: ModelOption[];
   vaes: ModelOption[];
   samplers: string[];
