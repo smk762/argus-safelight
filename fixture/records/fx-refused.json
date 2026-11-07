@@ -1,0 +1,67 @@
+{
+  "record_version": "1.0",
+  "id": "fx-refused",
+  "created_at": "2026-10-20T10:10:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "refused",
+  "outcome_reason": "default:A",
+  "critical": false,
+  "removed_at": null,
+  "request": {
+    "mode": "sfw",
+    "user_prompt": "boudoir photo set, silk sheets",
+    "expanded_prompt": null,
+    "final_prompt": "boudoir photo set, silk sheets",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": null,
+    "engine": "comfyui",
+    "engine_version": null
+  },
+  "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+      "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+      "default": {
+        "state": "flagged",
+        "result": {
+          "safe": false,
+          "rules": [
+            "A. Sexual Content Risk"
+          ],
+          "explanation": "The request is for boudoir photography, which the default rules count as sexual content. Rule A.",
+          "model": "SingGuard-4b",
+          "thinking": "slow",
+          "fast_verdict": "unsafe",
+          "fast_rule": "A. Sexual Content Risk"
+        },
+        "error": null
+      },
+      "adult-granular": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null
+  },
+  "image": null
+}

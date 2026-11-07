@@ -1,6 +1,6 @@
 # argus-safelight — build doc
 
-Standalone demo UI for [argus-darkroom](../argus-darkroom/spec.md), the way lightbox is the demo for argus-lens and cull is the demo for argus-curator. A user writes a prompt, sees the pre-flight verdict, generates, and sees what each guard said about the output. Images that are destroyed show as their record, never as pixels. The suite-wide UI (argus-studio) gets a full redesign later, once each package's UI is finished. Until then it gets no darkroom tab. This doc is the build plan; the repo does not exist yet.
+Standalone demo UI for [argus-darkroom](../argus-darkroom/spec.md), the way lightbox is the demo for argus-lens and cull is the demo for argus-curator. A user writes a prompt, sees the pre-flight verdict, generates, and sees what each guard said about the output. Images that are destroyed show as their record, never as pixels. The suite-wide UI (argus-studio) gets a full redesign later, once each package's UI is finished. Until then it gets no darkroom tab. This doc is the design and its acceptance list; usage is in the [README](README.md).
 
 The server is the product. Safelight is a client: it shows the verdicts darkroom recorded and decides nothing itself.
 
@@ -10,10 +10,10 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
    - Prompt and negative prompt.
    - Checkpoint and LoRA pickers (`GET /models`), with a weight for each LoRA.
    - Sampler, scheduler, steps, cfg, size and seed (random, or fixed with a lock).
-   - Ollama expansion on or off. When on, the expanded prompt is shown before Generate, and it is the text that gets checked.
+   - Ollama expansion on or off. Expansion runs only at generation: it is not deterministic, so a verdict on one expansion would say nothing about the next. The form says so, and the expanded prompt appears in the live view and the record, not before Generate.
    - **Policies.** The enforcing policy is labelled as enforcing and defaults to the server's. Each policy carries an **SFW** or **NSFW** badge, taken from `GET /policies`, not worked out from its name in the browser. Choosing an NSFW enforcing policy states what changes: non-illegal pre-flight flags warn instead of blocking, and illegal content is still refused and deleted. When `/health` reports `nsfw_allowed: false`, NSFW policies are offered only as advisory. Advisory policies are checkboxes. The wording of each policy, and its illegal rules, comes from `GET /policies` and is a click away.
    - Thinking mode, and the NudeNet blur threshold.
-2. **Pre-flight.** A Check button calls `POST /preflight`. Generate does the same check first, regardless. The panel shows one shield per policy, and the rule and explanation for any shield that is not green. Under an NSFW enforcing policy, a non-illegal flag shows as an amber warning and Generate stays enabled. A refusal says which rule fired, under which policy, in SingGuard's own words. It also shows the final prompt that was judged, so the user sees what the expansion added.
+2. **Pre-flight.** A Check button calls `POST /preflight`, which judges the prompt as written, with its trigger words but without expansion (`expansion_applied: false`). Generate checks again regardless, on the final prompt with any expansion in it, before anything renders, so a prompt that passed Check can still be refused. The panel shows one shield per policy, and the rule and explanation for any shield that is not green. Under an NSFW enforcing policy, a non-illegal flag shows as an amber warning and Generate stays enabled. A refusal says which rule fired, under which policy, in SingGuard's own words. It also shows the final prompt that was judged, and on a generation the expansion, so the user sees what the expansion added.
 3. **Generate.** Progress comes from the SSE stream: pre-flight, queued, the ComfyUI step bar, then one event per finished scan cell. The shield grid fills in as the scans finish.
 4. **Result.**
    - **passed:** the image and an all-green grid.
@@ -69,14 +69,14 @@ Once release narrows the policies to `default` and one adult policy, the grid is
 ## Shape
 
 ```
-browser ──▶ safelight :3000 ──▶ argus-darkroom :8106
+browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             compose, shields,     preflight, generate (SSE),
             history               records, images by id
 ```
 
 - A Next.js app of the same generation as lightbox and cull (App Router, Tailwind tokens from the suite palette, light and dark themes). It is not a static export, because generation is live. Pages call darkroom directly. `NEXT_PUBLIC_DARKROOM_URL` defaults to `http://localhost:8106` and is baked in when the image is built, like cull's `NEXT_PUBLIC_CURATOR_URL`.
 - In the darkroom compose file, safelight runs beside the published darkroom image. ComfyUI, Ollama, SingGuard and NudeNet are external and reached by URL.
-- Safelight offers Generate only after `GET /health` answers and reports SingGuard reachable. Ollama expansion is disabled, with the reason, when `/health` reports Ollama unreachable.
+- Safelight offers Generate only after `GET /health` answers and reports SingGuard reachable. Ollama expansion is disabled, with the reason, when `/health` reports Ollama unreachable, and the request then asks for none. Check and Generate are disabled, with the reason, when `/health` reports `read_only`, because darkroom refuses every write, pre-flight included.
 
 ## Fixture
 

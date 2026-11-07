@@ -1,0 +1,69 @@
+{
+  "record_version": "1.0",
+  "id": "fx-refused-illegal",
+  "created_at": "2026-10-20T10:18:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "refused",
+  "outcome_reason": "adult-granular:A",
+  "critical": false,
+  "removed_at": null,
+  "request": {
+    "mode": "nsfw",
+    "user_prompt": "schoolgirl in uniform, suggestive pose",
+    "expanded_prompt": null,
+    "final_prompt": "schoolgirl in uniform, suggestive pose",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": null,
+    "engine": "comfyui",
+    "engine_version": null
+  },
+  "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+      "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+      "adult-granular": {
+        "state": "illegal",
+        "result": {
+          "safe": false,
+          "rules": [
+            "A. Minors"
+          ],
+          "explanation": "The request asks for sexualised content of someone presented as a child. Rule A, Minors.",
+          "model": "SingGuard-4b",
+          "thinking": "slow",
+          "fast_verdict": "unsafe",
+          "fast_rule": "A. Minors"
+        },
+        "error": null
+      },
+      "default": {
+        "state": "flagged",
+        "result": {
+          "safe": false,
+          "rules": [
+            "A. Sexual Content Risk"
+          ],
+          "explanation": "Sexual content is requested. Rule A.",
+          "model": "SingGuard-4b",
+          "thinking": "slow",
+          "fast_verdict": "unsafe",
+          "fast_rule": "A. Sexual Content Risk"
+        },
+        "error": null
+      }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null
+  },
+  "image": null
+}

@@ -1,0 +1,153 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { canExpand, defaultCompose, enforceBlock, fromRecord, generateBlock, normaliseCompose, policyMode, toRequest } from "./compose";
+import { fixtureRecord } from "./fixture.test-util";
+import type { Health, Models, Policies } from "./types";
+
+const FIXTURE = join(__dirname, "..", "..", "..", "fixture");
+const policyFile = JSON.parse(readFileSync(join(FIXTURE, "policies.json"), "utf8")) as { default: string; policies: Omit<Policies["policies"][number], "enforceable">[] };
+const models = JSON.parse(readFileSync(join(FIXTURE, "models.json"), "utf8")) as Models;
+
+const health = (over: Partial<Health> = {}): Health => ({
+  version: "test",
+  backends: { comfyui: true, ollama: true, singguard: true, nudenet: true, age: true },
+  policies: policyFile.policies.map((policy) => policy.name),
+  default_policy: "adult-granular",
+  thinking: "cascade",
+  nsfw_allowed: true,
+  sfw_available: true,
+  devmode: false,
+  ...over,
+});
+
+const policies = (nsfwAllowed = true, nudenet = true): Policies => ({
+  default: nsfwAllowed ? "adult-granular" : "default",
+  policies: policyFile.policies.map((policy) => ({ ...policy, enforceable: policy.mode === "nsfw" ? nsfwAllowed : nudenet })),
+});
+
+describe("defaults", () => {
+  it("takes the enforcing default and thinking mode from the server", () => {
+    const state = defaultCompose(health(), policies(), models);
+    expect(state.enforcingPolicy).toBe("adult-granular");
+    expect(state.thinking).toBe("cascade");
+    expect(state.checkpoint).toBe(models.default_checkpoint);
+    expect(state.checkpoint).not.toBe(models.checkpoints[0].name);
+    expect(state.seed).toBeNull();
+    expect(state.seedLocked).toBe(false);
+  });
+  it("starts on the first checkpoint when darkroom names no default", () => {
+    expect(defaultCompose(health(), policies(), { ...models, default_checkpoint: null }).checkpoint).toBe(models.checkpoints[0].name);
+  });
+  it("reads the mode from the catalogue, and by name before it loads", () => {
+    expect(policyMode(policies(), "adult")).toBe("nsfw");
+    expect(policyMode(null, "default")).toBe("sfw");
+    expect(policyMode(null, "sfw-strict")).toBe("sfw");
+    expect(policyMode(null, "anything-else")).toBe("nsfw");
+  });
+});
+
+describe("normalise", () => {
+  it("moves an NSFW enforcing policy off a server without --allow-nsfw, keeping it available as advisory", () => {
+    const base = { ...defaultCompose(health(), policies(), models), enforcingPolicy: "adult-granular", advisoryPolicies: ["adult-granular", "default"] };
+    const next = normaliseCompose(base, policies(false), models);
+    expect(next.enforcingPolicy).toBe("default");
+    expect(next.advisoryPolicies).toEqual(["adult-granular"]);
+    expect(enforceBlock(policies(false).policies.find((policy) => policy.name === "adult")!)).toContain("--allow-nsfw");
+  });
+  it("drops advisory repeats and unknown models", () => {
+    const base = { ...defaultCompose(health(), policies(), models), advisoryPolicies: ["adult-granular", "nope"], checkpoint: "gone.safetensors", loras: [{ name: "gone", weight: 1, trigger_words: [] }] };
+    const next = normaliseCompose(base, policies(), models);
+    expect(next.advisoryPolicies).toEqual([]);
+    expect(next.checkpoint).toBe(models.default_checkpoint);
+    expect(next.loras).toEqual([]);
+  });
+  it("returns the same object when nothing changes", () => {
+    const base = defaultCompose(health(), policies(), models);
+    expect(normaliseCompose(base, policies(), models)).toBe(base);
+  });
+});
+
+describe("request", () => {
+  it("sends a null seed unless it is locked", () => {
+    const base = { ...defaultCompose(health(), policies(), models), seed: 42 };
+    expect(toRequest(base).seed).toBeNull();
+    expect(toRequest({ ...base, seedLocked: true }).seed).toBe(42);
+  });
+});
+
+describe("from a record", () => {
+  it("refills the form with the same seed and parameters from a deleted record", () => {
+    const record = fixtureRecord("fx-deleted-illegal");
+    const state = fromRecord(record, defaultCompose(health(), policies(), models));
+    expect(state.seed).toBe(31337);
+    expect(state.seedLocked).toBe(true);
+    expect(state.userPrompt).toBe("sleeping figure, bedroom, candid");
+    expect(state.expand).toBe(true);
+    expect(state.sampling).toEqual(record.request.sampling);
+    expect(state.enforcingPolicy).toBe("adult-granular");
+    expect(state.advisoryPolicies).toEqual(["default"]);
+    expect(toRequest(state).seed).toBe(31337);
+  });
+  it("keeps the form's own checkpoint, LoRAs and sampling for a record refused in pre-flight", () => {
+    const base = { ...defaultCompose(health(), policies(), models), loras: [{ name: "argus-style-soft.safetensors", weight: 0.7, trigger_words: ["argus soft style"] }] };
+    const state = fromRecord(fixtureRecord("fx-refused"), base);
+    expect(state.userPrompt).toBe("boudoir photo set, silk sheets");
+    expect(state.checkpoint).toBe(base.checkpoint);
+    expect(state.loras).toEqual(base.loras);
+    expect(state.sampling).toEqual(base.sampling);
+    expect(state.seed).toBeNull();
+    expect(state.seedLocked).toBe(false);
+    expect(toRequest(state).seed).toBeNull();
+  });
+  it("takes what a refused record does hold: the seed and sampling the request sent", () => {
+    const sampling = { ...defaultCompose(health(), policies(), models).sampling, steps: 12 };
+    const record = fixtureRecord("fx-refused");
+    const state = fromRecord({ ...record, request: { ...record.request, seed: 7, sampling } }, defaultCompose(health(), policies(), models));
+    expect(state.seed).toBe(7);
+    expect(state.seedLocked).toBe(true);
+    expect(state.sampling).toEqual(sampling);
+  });
+  it("carries LoRA weights and the NudeNet threshold", () => {
+    const state = fromRecord(fixtureRecord("fx-review-disagree"), defaultCompose(health(), policies(), models));
+    expect(state.loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: [] }]);
+    expect(state.nsfwThreshold).toBe(0.2);
+  });
+  it("refills each LoRA's trigger words from the record, and sends them again", () => {
+    const record = fixtureRecord("fx-review-disagree");
+    record.request.loras = [{ ...record.request.loras[0], trigger_words: ["studio lighting", "soft"] }];
+    const state = fromRecord(record, defaultCompose(health(), policies(), models));
+    expect(state.loras[0].trigger_words).toEqual(["studio lighting", "soft"]);
+    expect(toRequest(state).loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: ["studio lighting", "soft"] }]);
+  });
+});
+
+describe("expansion", () => {
+  const base = { ...defaultCompose(health(), policies(), models), userPrompt: "a lemon", expand: true };
+  it("is not sent while the checkbox shows it off", () => {
+    const down = health({ backends: { comfyui: true, ollama: false, singguard: true, nudenet: true, age: true } });
+    expect(canExpand(down)).toBe(false);
+    expect(toRequest(base, canExpand(down)).expand).toBe(false);
+    expect(toRequest(base, canExpand(health())).expand).toBe(true);
+  });
+});
+
+describe("generate gating", () => {
+  const ready = { ...defaultCompose(health(), policies(), models), userPrompt: "a lemon" };
+  it("needs health, SingGuard and a prompt", () => {
+    expect(generateBlock(null, null, ready, policies())).toContain("/health");
+    expect(generateBlock(null, "ECONNREFUSED", ready, policies())).toContain("not reachable");
+    expect(generateBlock(health({ backends: { comfyui: true, ollama: true, singguard: false, nudenet: true, age: true } }), null, ready, policies())).toContain("SingGuard");
+    expect(generateBlock(health(), null, { ...ready, userPrompt: " " }, policies())).toContain("prompt");
+    expect(generateBlock(health(), null, ready, policies())).toBeNull();
+  });
+  it("says so when darkroom is read-only", () => {
+    expect(generateBlock(health({ read_only: true }), null, ready, policies())).toContain("read-only");
+  });
+  it("refuses SFW generation without NudeNet", () => {
+    expect(generateBlock(health({ sfw_available: false }), null, { ...ready, enforcingPolicy: "default" }, policies())).toContain("NudeNet");
+    expect(generateBlock(health({ sfw_available: false }), null, ready, policies())).toBeNull();
+  });
+});
