@@ -7,7 +7,6 @@
   "outcome_reason": "minor-exposed",
   "critical": true,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "nsfw",
     "user_prompt": "beach volleyball team photo, sunny",

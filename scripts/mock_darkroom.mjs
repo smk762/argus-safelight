@@ -275,7 +275,7 @@ function refusalReason(pre) {
   return pre.refusal.rule ? ruleCode(pre.refusal.policy, pre.refusal.rule) : pre.refusal.reason;
 }
 
-function baseRecord(id, outcome, reason, critical, request, guardBlock, image, error = null) {
+function baseRecord(id, outcome, reason, critical, request, guardBlock, image) {
   return {
     record_version: "1.0",
     id,
@@ -285,7 +285,6 @@ function baseRecord(id, outcome, reason, critical, request, guardBlock, image, e
     outcome_reason: reason,
     critical,
     removed_at: null,
-    error,
     request,
     guard: guardBlock,
     image,
@@ -322,7 +321,7 @@ async function generate(body, send) {
     await sleep(STEP_MS);
     if (user.includes("[fail]") && step === Math.ceil(total / 2)) {
       const message = "ComfyUI: websocket closed before the image arrived";
-      const record = baseRecord(id, "failed", message, false, request, guardBase, null, message);
+      const record = baseRecord(id, "failed", message, false, request, guardBase, null);
       records.set(id, record);
       send("error", { detail: message, record_id: id });
       send("complete", { record });

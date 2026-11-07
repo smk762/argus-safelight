@@ -7,7 +7,6 @@
   "outcome_reason": "adult-granular:H",
   "critical": true,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "nsfw",
     "user_prompt": "sleeping figure, bedroom, candid",

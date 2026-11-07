@@ -363,7 +363,6 @@ def record(
     nude: dict | None,
     ages: dict | None,
     label: str | None,
-    error: str | None = None,
     thinking: str = "cascade",
 ) -> tuple[dict, bytes | None]:
     served = outcome in {"passed", "review"}
@@ -378,7 +377,6 @@ def record(
             "outcome_reason": reason,
             "critical": critical,
             "removed_at": None,
-            "error": error,
             "request": req,
             "guard": {
                 "enforcing_policy": enforcing,
@@ -640,7 +638,6 @@ def build() -> list[tuple[dict, bytes | None]]:
             nude=None,
             ages=None,
             label=None,
-            error="ComfyUI: websocket closed before the image arrived",
         )
     )
     return out

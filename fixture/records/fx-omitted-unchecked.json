@@ -7,7 +7,6 @@
   "outcome_reason": "sfw-unchecked",
   "critical": false,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "sfw",
     "user_prompt": "a red bicycle leaning on a canal railing",

@@ -86,7 +86,7 @@ export function FailedTile({ record }: { record: GenerationRecord }) {
     <div role="group" aria-label="Failed generation" className={`flex flex-col justify-center gap-3 border border-base-600 bg-base-800 p-6 ${TILE}`}>
       <Badge className="w-fit border-base-600 text-text-secondary">failed</Badge>
       <p className="font-display text-subheading font-semibold text-text-primary">Generation failed.</p>
-      <p className="break-words text-small text-text-secondary">{record.error ?? record.outcome_reason ?? "Darkroom did not say why."}</p>
+      <p className="break-words text-small text-text-secondary">{record.outcome_reason ?? "Darkroom did not say why."}</p>
       <p className="text-caption text-text-muted">No image was produced. The record keeps the request, so the same seed can be run again.</p>
     </div>
   );

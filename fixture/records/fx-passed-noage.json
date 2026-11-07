@@ -7,7 +7,6 @@
   "outcome_reason": null,
   "critical": false,
   "removed_at": null,
-  "error": null,
   "request": {
     "mode": "sfw",
     "user_prompt": "a bowl of lemons on a wooden table, soft window light",
