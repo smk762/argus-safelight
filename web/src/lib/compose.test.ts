@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { defaultCompose, enforceBlock, fromRecord, generateBlock, normaliseCompose, policyMode, toRequest } from "./compose";
+import { canExpand, defaultCompose, enforceBlock, fromRecord, generateBlock, normaliseCompose, policyMode, toRequest } from "./compose";
 import { fixtureRecord } from "./fixture.test-util";
 import type { Health, Models, Policies } from "./types";
 
@@ -124,6 +124,16 @@ describe("from a record", () => {
   });
 });
 
+describe("expansion", () => {
+  const base = { ...defaultCompose(health(), policies(), models), userPrompt: "a lemon", expand: true };
+  it("is not sent while the checkbox shows it off", () => {
+    const down = health({ backends: { comfyui: true, ollama: false, singguard: true, nudenet: true, age: true } });
+    expect(canExpand(down)).toBe(false);
+    expect(toRequest(base, canExpand(down)).expand).toBe(false);
+    expect(toRequest(base, canExpand(health())).expand).toBe(true);
+  });
+});
+
 describe("generate gating", () => {
   const ready = { ...defaultCompose(health(), policies(), models), userPrompt: "a lemon" };
   it("needs health, SingGuard and a prompt", () => {
@@ -132,6 +142,9 @@ describe("generate gating", () => {
     expect(generateBlock(health({ backends: { comfyui: true, ollama: true, singguard: false, nudenet: true, age: true } }), null, ready, policies())).toContain("SingGuard");
     expect(generateBlock(health(), null, { ...ready, userPrompt: " " }, policies())).toContain("prompt");
     expect(generateBlock(health(), null, ready, policies())).toBeNull();
+  });
+  it("says so when darkroom is read-only", () => {
+    expect(generateBlock(health({ read_only: true }), null, ready, policies())).toContain("read-only");
   });
   it("refuses SFW generation without NudeNet", () => {
     expect(generateBlock(health({ sfw_available: false }), null, { ...ready, enforcingPolicy: "default" }, policies())).toContain("NudeNet");

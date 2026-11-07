@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, SIZES, generateBlock, randomSeed } from "@/lib/compose";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed } from "@/lib/compose";
 import { THINKING_MODES, type ThinkingMode } from "@/lib/types";
 
 import { useCompose } from "./ComposeProvider";
@@ -29,7 +29,8 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: st
 export function ComposeForm() {
   const { health, policies, models, error } = useDarkroom();
   const { compose, ready, update, check, preflight, start, stop, running } = useCompose();
-  const ollamaDown = health != null && !health.backends.ollama;
+  const ollamaDown = !canExpand(health);
+  const readOnly = health?.read_only ?? false;
   const checking = preflight.state === "checking";
   const block = generateBlock(health, error, compose, policies);
 
@@ -54,7 +55,7 @@ export function ComposeForm() {
             <input type="checkbox" id="expand" checked={compose.expand && !ollamaDown} disabled={ollamaDown} onChange={(event) => update({ expand: event.target.checked })} className="mt-1 accent-accent-primary" />
             <label htmlFor="expand" className={`text-small ${ollamaDown ? "text-text-muted" : "text-text-primary"}`}>
               Expand the prompt with Ollama
-              <span className="block text-caption text-text-muted">{ollamaDown ? "Disabled: /health reports Ollama unreachable." : "The expanded prompt is shown after Check, and it is the text that gets checked."}</span>
+              <span className="block text-caption text-text-muted">{ollamaDown ? "Disabled: /health reports Ollama unreachable." : "Check judges the prompt as written. Generate expands it, then judges the expansion before anything renders."}</span>
             </label>
           </div>
 
@@ -151,14 +152,14 @@ export function ComposeForm() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Sampler" htmlFor="sampler">
                 <select id="sampler" value={compose.sampling.sampler} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, sampler: event.target.value } }))} className={FIELD} disabled={!models}>
-                  {(models?.samplers ?? [compose.sampling.sampler]).map((name) => (
+                  {withCurrent(models?.samplers, compose.sampling.sampler).map((name) => (
                     <option key={name}>{name}</option>
                   ))}
                 </select>
               </Field>
               <Field label="Scheduler" htmlFor="scheduler">
                 <select id="scheduler" value={compose.sampling.scheduler} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, scheduler: event.target.value } }))} className={FIELD} disabled={!models}>
-                  {(models?.schedulers ?? [compose.sampling.scheduler]).map((name) => (
+                  {withCurrent(models?.schedulers, compose.sampling.scheduler).map((name) => (
                     <option key={name}>{name}</option>
                   ))}
                 </select>
@@ -210,8 +211,8 @@ export function ComposeForm() {
       <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-base-600/40 bg-base-800 py-4">
         <Button
           onClick={() => void check()}
-          disabled={!ready || checking || running || !compose.userPrompt.trim()}
-          title={!compose.userPrompt.trim() ? "Write a prompt first." : "POST /preflight: the text-only check, before anything is generated"}
+          disabled={!ready || checking || running || readOnly || !compose.userPrompt.trim()}
+          title={readOnly ? READ_ONLY_BLOCK : !compose.userPrompt.trim() ? "Write a prompt first." : "POST /preflight: the text-only check, before anything is generated"}
         >
           {checking ? <Spinner /> : null}
           Check
@@ -229,6 +230,11 @@ export function ComposeForm() {
       </div>
     </div>
   );
+}
+
+/** What a select offers: the server's list, and the form's own value when that is not on it. `/models` lists nothing while ComfyUI is down. */
+function withCurrent(names: string[] | undefined, current: string): string[] {
+  return names?.includes(current) ? names : [current, ...(names ?? [])];
 }
 
 function sizeOptions(current: number) {

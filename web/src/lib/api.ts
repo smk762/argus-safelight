@@ -56,6 +56,9 @@ export const getPolicies = (): Promise<Policies> => getJson("/policies");
 export const getModels = (): Promise<Models> => getJson("/models");
 export const getRecord = (id: string): Promise<GenerationRecord> => getJson(`/record/${encodeURIComponent(id)}`);
 
+/** The most `GET /records` serves at once. Darkroom answers 422 above it. */
+export const MAX_PAGE_SIZE = 200;
+
 export interface RecordQuery {
   outcome?: Outcome | null;
   mode?: Mode | null;

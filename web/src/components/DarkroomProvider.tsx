@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApiError, getHealth, getModels, getPolicies } from "@/lib/api";
 import type { Health, Models, Policies } from "@/lib/types";
@@ -19,7 +19,11 @@ const DarkroomContext = createContext<Darkroom | null>(null);
 
 const HEALTH_POLL_MS = 30_000;
 
-/** `/health`, `/policies` and `/models` once, then `/health` again on a timer so a backend coming or going is noticed. */
+/**
+ * `/health`, `/policies` and `/models` once, then `/health` again on a timer so a backend coming or going is noticed.
+ * The timer fetches the catalogue again when it never loaded, or when ComfyUI is back: `/models` lists no samplers or
+ * schedulers without it.
+ */
 export function DarkroomProvider({ children }: { children: ReactNode }) {
   const [health, setHealth] = useState<Health | null>(null);
   const [policies, setPolicies] = useState<Policies | null>(null);
@@ -28,6 +32,7 @@ export function DarkroomProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
   const [loadedTick, setLoadedTick] = useState(-1);
   const loading = loadedTick !== tick;
+  const catalogue = useRef({ loaded: false, comfyui: false });
 
   const reload = useCallback(() => setTick((value) => value + 1), []);
 
@@ -41,6 +46,7 @@ export function DarkroomProvider({ children }: { children: ReactNode }) {
         setPolicies(nextPolicies);
         setModels(nextModels);
         setError(null);
+        catalogue.current = { loaded: true, comfyui: nextHealth.backends.comfyui };
       } catch (caught) {
         if (cancelled) return;
         setError(caught instanceof ApiError || caught instanceof Error ? caught.message : String(caught));
@@ -59,12 +65,13 @@ export function DarkroomProvider({ children }: { children: ReactNode }) {
         const next = await getHealth();
         setHealth(next);
         setError(null);
+        if (!catalogue.current.loaded || (next.backends.comfyui && !catalogue.current.comfyui)) reload();
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : String(caught));
       }
     }, HEALTH_POLL_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [reload]);
 
   const value = useMemo<Darkroom>(() => ({ health, policies, models, error, loading, reload }), [health, policies, models, error, loading, reload]);
   return <DarkroomContext.Provider value={value}>{children}</DarkroomContext.Provider>;

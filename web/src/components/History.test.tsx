@@ -17,8 +17,10 @@ const purge = vi.fn();
 const removeImage = vi.fn();
 const purgeRecord = vi.fn();
 
+let extra = 0;
+
 function page(records: GenerationRecord[]): RecordPage {
-  return { records, total: records.length, page: 1, page_size: 500 };
+  return { records, total: records.length + extra, page: 1, page_size: 200 };
 }
 
 vi.mock("next/navigation", () => ({
@@ -31,6 +33,7 @@ vi.mock("./DarkroomProvider", () => ({
 }));
 vi.mock("./ComposeProvider", () => ({ useCompose: () => ({ running: false }) }));
 vi.mock("@/lib/api", () => ({
+  MAX_PAGE_SIZE: 200,
   getRecords: (query: { outcome?: string | null; mode?: string | null }) =>
     Promise.resolve(page(store.filter((record) => (!query.outcome || record.outcome === query.outcome) && (!query.mode || record.request.mode === query.mode)))),
   imageUrl: (id: string) => `/image/${id}`,
@@ -42,6 +45,7 @@ vi.mock("@/lib/api", () => ({
 
 beforeEach(() => {
   store = fixtureRecords();
+  extra = 0;
   devmode = false;
   search = "";
   replace.mockClear();
@@ -143,6 +147,27 @@ describe("History", () => {
     await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(expected.length));
     for (const id of expected) expect(screen.getByRole("link", { name: new RegExp(store.find((r) => r.id === id)!.request.user_prompt) })).toBeTruthy();
     expect((screen.getByLabelText(/Prompt changed the verdict/) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("says when darkroom holds more records than one page shows", async () => {
+    extra = 40;
+    render(<History />);
+    expect(await screen.findByText(new RegExp(`Showing ${store.length} of ${store.length + 40} records`))).toBeTruthy();
+  });
+
+  it("keeps the focus in the purge dialog when the history re-renders, and counts images only from a full page", async () => {
+    devmode = true;
+    extra = 40;
+    const { rerender } = render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    fireEvent.click(screen.getByRole("button", { name: "Purge all" }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(dialog.textContent).toContain(`${store.length + 40} records`));
+    expect(dialog.textContent).toContain("all images");
+    const input = screen.getByLabelText(/Type/) as HTMLInputElement;
+    input.focus();
+    rerender(<History />);
+    expect(document.activeElement).toBe(input);
   });
 
   it("has no purge button in the DOM unless /health reports devmode", async () => {

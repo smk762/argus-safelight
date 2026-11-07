@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
-import { archiveUrl, getRecords, purge } from "@/lib/api";
+import { MAX_PAGE_SIZE, archiveUrl, getRecords, purge } from "@/lib/api";
 import { hasImage } from "@/lib/outcome";
 import type { PurgeResult } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
@@ -44,26 +44,29 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
   const dialogRef = useRef<HTMLDivElement>(null);
   const { reload: reloadDarkroom } = useDarkroom();
   const { running } = useCompose();
-  const { data: page, error: countError } = useLoad("purge-counts", () => getRecords({ pageSize: 500 }));
+  const { data: page, error: countError } = useLoad("purge-counts", () => getRecords({ pageSize: MAX_PAGE_SIZE }));
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Once, on its own: `onClose` changes whenever the history re-renders, as it does on every health poll.
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     dialogRef.current?.querySelector<HTMLElement>("a, button, input")?.focus();
+    return () => previous?.focus?.();
+  }, []);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      previous?.focus?.();
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   const records = page?.total ?? null;
-  const images = page ? page.records.filter(hasImage).length : null;
+  // Only a page that holds every record can count images; past that the dialog says "all".
+  const images = page && page.records.length === page.total ? page.records.filter(hasImage).length : null;
   const armed = typed.trim().toLowerCase() === CONFIRM_WORD && !busy && !running;
 
   const confirm = async () => {

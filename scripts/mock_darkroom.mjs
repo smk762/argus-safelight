@@ -49,6 +49,7 @@ const SCAN_MS = Number(process.env.MOCK_SCAN_MS || 350);
 const VERSION = "0.0.0+mock";
 const MODEL = "SingGuard-4b";
 const SIZE = 512;
+const MAX_PAGE = 200;
 
 const policyFile = JSON.parse(readFileSync(join(ROOT, "policies.json"), "utf8"));
 const models = JSON.parse(readFileSync(join(ROOT, "models.json"), "utf8"));
@@ -521,7 +522,8 @@ const server = createServer(async (req, res) => {
       const enforcing = body.enforcing_policy || DEFAULT_POLICY;
       if (!POLICIES.has(enforcing)) return json(res, 400, { detail: `unknown policy ${enforcing}` });
       if (modeOf(enforcing) === "nsfw" && !NSFW_ALLOWED) return json(res, 400, { detail: `${enforcing} is an NSFW policy and the server was not started with --allow-nsfw` });
-      return json(res, 200, preflight(body));
+      // Darkroom's /preflight never expands: an expansion differs per run, so it judges the prompt as written.
+      return json(res, 200, { ...preflight({ ...body, expand: false }), expansion_applied: false });
     }
     if (req.method === "POST" && path === "/generate/stream") {
       const body = await readBody(req);
@@ -548,7 +550,8 @@ const server = createServer(async (req, res) => {
       const outcome = url.searchParams.get("outcome");
       const mode = url.searchParams.get("mode");
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-      const pageSize = Math.min(500, Math.max(1, Number(url.searchParams.get("page_size") || 50)));
+      const pageSize = Math.max(1, Number(url.searchParams.get("page_size") || 50));
+      if (pageSize > MAX_PAGE) return json(res, 422, { detail: `page_size must be at most ${MAX_PAGE}` });
       const all = sorted().filter((r) => (!outcome || r.outcome === outcome) && (!mode || r.request.mode === mode));
       return json(res, 200, { records: all.slice((page - 1) * pageSize, page * pageSize), total: all.length, page, page_size: pageSize });
     }
