@@ -11,12 +11,25 @@ import { ago, formatWhen } from "@/lib/time";
 import { OUTCOMES, type GenerationRecord, type Mode, type Outcome } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
 
+import { ComposeButton } from "./ComposeDialog";
 import { useDarkroom } from "./DarkroomProvider";
 import { PurgeButton } from "./PurgeDialog";
 import { Shield } from "./Shield";
 import { Badge, Notice, Spinner } from "./ui";
 
 const PAGE_SIZE = 200;
+
+/** Where a new server starts: the app opens on the history, so this says how to fill it. */
+function EmptyHistory() {
+  return (
+    <div className="max-w-prose space-y-3">
+      <p className="text-small text-text-secondary">
+        No records yet. <strong>Compose</strong> opens the form. Write a prompt, pick the policies, then <strong>Check</strong> for the pre-flight verdict: a text-only SingGuard check of the final prompt and the negative prompt under every selected policy, before anything is generated. <strong>Generate</strong> runs the same check first, regardless.
+      </p>
+      <ComposeButton />
+    </div>
+  );
+}
 
 /** `GET /records`, filtered by outcome and mode on darkroom's side and by "Prompt changed the verdict" here. The URL holds the filter. */
 export function History() {
@@ -75,7 +88,11 @@ export function History() {
         </p>
       ) : null}
       {records && records.length === 0 ? (
-        <p className="text-small text-text-secondary">{fetched && fetched.length > 0 && filter.changed ? "No record here where the prompt changed the verdict." : "No records match."}</p>
+        !filter.outcome && !filter.mode && !filter.changed ? (
+          <EmptyHistory />
+        ) : (
+          <p className="text-small text-text-secondary">{fetched && fetched.length > 0 && filter.changed ? "No record here where the prompt changed the verdict." : "No records match."}</p>
+        )
       ) : null}
       {records && records.length > 0 ? (
         <ul className="space-y-2">

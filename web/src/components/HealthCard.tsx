@@ -1,23 +1,16 @@
 "use client";
 
+import { BACKENDS } from "@/lib/health";
 import { darkroomUrl } from "@/lib/types";
 
 import { useDarkroom } from "./DarkroomProvider";
 import { Button, Card, SectionTitle, Spinner } from "./ui";
 
-const BACKENDS: { key: keyof NonNullable<ReturnType<typeof useDarkroom>["health"]>["backends"]; label: string; note: string }[] = [
-  { key: "singguard", label: "SingGuard", note: "Darkroom never runs unguarded; Generate waits for this." },
-  { key: "comfyui", label: "ComfyUI", note: "Renders the image." },
-  { key: "nudenet", label: "NudeNet", note: "Exposure score. Without it SFW generation is refused." },
-  { key: "ollama", label: "Ollama", note: "Optional prompt expansion. Never a guard." },
-  { key: "age", label: "Age check", note: "MiVOLO estimate from detected faces, when the extra is installed." },
-];
-
 /** What `/health` says about darkroom and the servers behind it. */
-export function HealthCard() {
+export function HealthCard({ className = "" }: { className?: string }) {
   const { health, error, loading, reload } = useDarkroom();
   return (
-    <Card>
+    <Card className={className}>
       <div className="flex items-center justify-between gap-2">
         <SectionTitle>Darkroom</SectionTitle>
         {loading ? <Spinner /> : <Button small onClick={reload}>Refresh</Button>}
@@ -37,10 +30,12 @@ export function HealthCard() {
             {BACKENDS.map(({ key, label, note }) => {
               const up = health.backends[key];
               return (
-                <li key={key} className="flex items-center gap-2" title={note}>
-                  <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${up ? "bg-success" : "bg-error"}`} />
-                  <span className="text-text-primary">{label}</span>
-                  <span className="text-caption text-text-muted">{up ? "reachable" : "unreachable"}</span>
+                <li key={key} className="flex items-start gap-2">
+                  <span aria-hidden="true" className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${up ? "bg-success" : "bg-error"}`} />
+                  <span>
+                    <span className="text-text-primary">{label}</span> <span className="text-caption text-text-muted">{up ? "reachable" : "unreachable"}</span>
+                    <span className="block text-caption text-text-muted">{note}</span>
+                  </span>
                 </li>
               );
             })}

@@ -92,7 +92,7 @@ describe("History", () => {
     fireEvent.click(button);
     await waitFor(() => expect(purge).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await waitFor(() => expect(screen.getByText("No records match.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Compose" })).toBeTruthy());
     expect(screen.queryAllByRole("listitem").length).toBe(0);
   });
 });

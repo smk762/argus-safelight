@@ -8,7 +8,8 @@ import { hasImage } from "@/lib/outcome";
 import type { GenerationRecord } from "@/lib/types";
 
 import { useCompose } from "./ComposeProvider";
-import { Button } from "./ui";
+import { CheckIcon, CloseIcon, CopyIcon, RegenerateIcon, TrashIcon } from "./icons";
+import { Button, IconButton } from "./ui";
 
 type CopyState = "idle" | "copied" | "failed";
 
@@ -54,14 +55,19 @@ export function RecordActions({ record, onRemoved }: { record: GenerationRecord;
     }
   };
 
+  const copyLabel = copy === "copied" ? "Copied" : copy === "failed" ? "Copy failed" : "Copy record";
+
   return (
     <>
-      <Button tone="primary" onClick={regenerate} disabled={running} title={running ? "Wait for the current generation to finish." : "Refill the form from this record, seed held, and open it."}>
-        Regenerate
-      </Button>
-      <Button onClick={copyRecord} title="Copy the record as JSON." aria-live="polite">
-        {copy === "copied" ? "Copied" : copy === "failed" ? "Copy failed" : "Copy record"}
-      </Button>
+      <IconButton label="Regenerate" tip={running ? "Wait for the current generation to finish" : "Regenerate: refill the form from this record, seed held"} tone="primary" onClick={regenerate} disabled={running}>
+        <RegenerateIcon />
+      </IconButton>
+      <IconButton label={copyLabel} tip={copy === "idle" ? "Copy the record as JSON" : copyLabel} tone={copy === "failed" ? "danger" : "neutral"} onClick={copyRecord}>
+        {copy === "copied" ? <CheckIcon /> : copy === "failed" ? <CloseIcon /> : <CopyIcon />}
+      </IconButton>
+      <span className="sr-only" aria-live="polite">
+        {copy === "idle" ? "" : copyLabel}
+      </span>
       {hasImage(record) ? (
         confirming ? (
           <span role="group" aria-label="Confirm removing the image" className="inline-flex flex-wrap items-center gap-2 text-small text-text-secondary">
@@ -75,9 +81,9 @@ export function RecordActions({ record, onRemoved }: { record: GenerationRecord;
             {removeError ? <span className="text-error">{removeError}</span> : null}
           </span>
         ) : (
-          <Button tone="danger" onClick={() => setConfirming(true)} title="Ask darkroom to delete the image file. The record is kept, marked removed.">
-            Remove image
-          </Button>
+          <IconButton label="Remove image" tip="Remove image: darkroom deletes the file and keeps the record" tone="danger" onClick={() => setConfirming(true)}>
+            <TrashIcon />
+          </IconButton>
         )
       ) : null}
     </>

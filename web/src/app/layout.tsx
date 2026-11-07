@@ -4,7 +4,6 @@ import { DM_Sans, Inter } from "next/font/google";
 import { ComposeDialog } from "@/components/ComposeDialog";
 import { ComposeProvider } from "@/components/ComposeProvider";
 import { DarkroomProvider } from "@/components/DarkroomProvider";
-import { HealthCard } from "@/components/HealthCard";
 import { Shell } from "@/components/Shell";
 
 import "./globals.css";
@@ -29,7 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-dvh">
         <DarkroomProvider>
           <ComposeProvider>
-            <Shell sidebar={<HealthCard />}>{children}</Shell>
+            <Shell>{children}</Shell>
             <ComposeDialog />
           </ComposeProvider>
         </DarkroomProvider>
