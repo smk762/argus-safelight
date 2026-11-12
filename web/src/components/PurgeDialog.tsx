@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { MAX_PAGE_SIZE, archiveUrl, getRecords, purge } from "@/lib/api";
 import { hasImage } from "@/lib/outcome";
@@ -41,28 +41,14 @@ export function PurgeButton({ onPurged }: { onPurged?: (result: PurgeResult) => 
 function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (result: PurgeResult) => void }) {
   const titleId = useId();
   const inputId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const { reload: reloadDarkroom } = useDarkroom();
   const { running } = useCompose();
   const { data: page, error: countError } = useLoad("purge-counts", () => getRecords({ pageSize: MAX_PAGE_SIZE }));
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Once, on its own: `onClose` changes whenever the history re-renders, as it does on every health poll.
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialogRef.current?.querySelector<HTMLElement>("a, button, input")?.focus();
-    return () => previous?.focus?.();
-  }, []);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const records = page?.total ?? null;
   // Only a page that holds every record can count images; past that the dialog says "all".
@@ -75,6 +61,8 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
     try {
       const result = await purge();
       reloadDarkroom();
+      // `close()` hands the focus back to the button that opened the dialog; unmounting it would not.
+      dialogRef.current?.close();
       onPurged(result);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -83,8 +71,31 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-base-900/70 p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="w-full max-w-md space-y-4 rounded-lg border border-error/50 bg-base-800 p-5 shadow-xl">
+    // A native modal: the page behind is inert, focus stays inside and returns to Purge all on close, Esc closes it.
+    // `closedby="any"` closes it on a backdrop click; `onClick` does the same where `closedby` is not supported.
+    <dialog
+      ref={(node) => {
+        dialogRef.current = node;
+        if (node && !node.open) {
+          node.showModal();
+          // The safe action takes the focus in a destructive confirm. React's `autoFocus` runs before `showModal()`,
+          // which would move the focus to the first control, the archive link.
+          cancelRef.current?.focus();
+        }
+      }}
+      {...{ closedby: "any" }}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onCancel={(event) => {
+        // Not while darkroom is purging: the Cancel button is disabled then too.
+        if (busy) event.preventDefault();
+      }}
+      onClick={(event) => {
+        if (event.target === dialogRef.current && !busy) dialogRef.current.close();
+      }}
+      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-error/50 bg-base-800 p-0 text-text-primary shadow-xl backdrop:bg-base-900/70"
+    >
+      <div className="space-y-4 p-5">
         <h2 id={titleId} className="font-display text-subheading font-semibold text-text-primary">
           Purge everything darkroom holds?
         </h2>
@@ -123,7 +134,7 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
         {running ? <Notice tone="warning">A generation is running; darkroom refuses to purge until it finishes.</Notice> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
         <div className="flex items-center justify-end gap-2">
-          <Button onClick={onClose} disabled={busy}>
+          <Button onClick={() => dialogRef.current?.close()} disabled={busy} ref={cancelRef}>
             Cancel
           </Button>
           <Button tone="danger" onClick={confirm} disabled={!armed}>
@@ -131,6 +142,6 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
           </Button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

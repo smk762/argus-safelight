@@ -32,6 +32,17 @@ make fixture   # uv run scripts/make_fixture.py
 
 Single test: `cd web && npx vitest run -t "name"` (or the Docker equivalent the Makefile prints).
 
+## Modern Web Guidance
+
+Frontend work here uses the [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance) skill (`/modern-web-guidance`). It is installed per user, not committed, because it fetches its guides with `npx` at query time: `/plugin marketplace add GoogleChrome/modern-web-guidance` then `/plugin install modern-web-guidance@googlechrome` in Claude Code, or `npx modern-web-guidance@latest install` for other agents. Search it before writing dialog, popover, form, image or CSP code; `npx -y modern-web-guidance@latest legacy-scan web/src --json` is the modernization pass (clean as of issue #23).
+
+House exceptions to its advice, with the reason:
+
+- **Browser support:** Baseline widely available, plus newly available features that degrade on their own (`closedby="any"` on the purge dialog keeps an `onClick` backdrop fallback). No polyfills.
+- **Shield detail stays `popover="manual"`** with `placeBeside` and React state, not `popover="hint"` + `interestfor` + anchor positioning: none of those three is in every current engine, and the guide's way needs a polyfill for each.
+- **The status card and `Tip` stay CSS-revealed** (`group-hover`/`group-focus-within`) for the same reason, with `useEscapeDismiss` covering WCAG 1.4.13's "dismissible".
+- **History thumbnails load darkroom's full image**, lazily. Darkroom serves no thumbnail size; that is a darkroom change, not a client one.
+
 ## Conventions & gotchas
 
 - **The browser decides nothing.** Outcome, cell states, blur, the fired rule: all from the record. Do not reclassify rules, compare scores to thresholds, or infer a policy's mode from its name (`/policies` says `mode`). The blur threshold in the form changes the request, not the display.
@@ -40,6 +51,10 @@ Single test: `cd web && npx vitest run -t "name"` (or the Docker equivalent the 
 - **Age wording** is in `age.ts` only: "MiVOLO estimate: N" with the hover text, never a bare age or an "Age" field. Minor-exposed deletions are phrased as "a MiVOLO age estimate under 18 together with NudeNet exposure".
 - **Shields carry a mark and a label** (`shieldMark`, `shieldLabel`); colour is never the only signal. The enforcing policy is first in every grid and labelled.
 - **A shield's detail is a native popover** (`popover="manual"`, placed by `placeBeside`). It has to be in the top layer: the grids scroll and the pre-flight shields sit in the compose dialog, so `absolute` and `z-index` get clipped or hidden.
+- **Modals are native `<dialog>` opened with `showModal()`** (`ComposeDialog`, `PolicyDialog`, `PurgeDialog`): the browser gives the inert page, focus containment, Escape and the top layer, so no `role="dialog"`, `aria-modal`, focus trap or Escape listener. Name each with `aria-labelledby`. Close with `dialog.close()` and react in `onClose`, so the focus returns to the opener; unmounting an open dialog skips that. jsdom has no `showModal`; the component tests stub it.
+- **Hover and focus content closes on Escape** without the pointer or focus moving (WCAG 1.4.13): `useEscapeDismiss` for the CSS-revealed `Tip` and status card, a document listener in `ShieldCell`, which also `preventDefault`s so the same Escape does not close the compose dialog behind it.
+- **CSP:** `src/proxy.ts` sets a nonce CSP on every page (`lib/csp.ts`): nonced scripts with `'strict-dynamic'`, nonced styles, and darkroom's origin for `connect-src`/`img-src`, resolved from the request's Host with `darkroomUrl()`. The layout puts the nonce on `THEME_BOOT`; any new inline `<script>` needs it too, and a server-rendered `style` attribute is blocked in production (set styles from the client, as `LiveView` and `placeBeside` do). Development adds `'unsafe-eval'` and `'unsafe-inline'` styles for `next dev` only. Reading the nonce makes every route dynamic, which is expected.
+- **Server and browser must render the same text.** Anything that depends on `window` (the darkroom URL the page calls, the theme) goes through `useSyncExternalStore` with a server snapshot, or the page logs a hydration error on any host but localhost.
 - **Disagreement needs two verdicts.** `rowDisagrees` is false while a cell is pending and when either cell is `unchecked`; the ≠ badge and the "Prompt changed the verdict" filter both use it. `promptTurned` (dashed outline) is safe → flagged/illegal only.
 - **`types.ts` mirrors darkroom's contract.** When darkroom's record shape changes, change `types.ts`, `scripts/make_fixture.py`, the mock, and run `make fixture`, or the tests drift from the server. Check a change against the real server with darkroom's `make demo` (same shapes, fake backends), not only the mock.
 - **`outcome_reason` is a joined list.** `policy:letter` codes and words, comma-separated (`adult-granular:A, minor-exposed`). Read it with `reasonParts`, and never compare the whole string to a word. `firedCell` matches a code on its policy as well as its letter, because letters mean different things per policy.

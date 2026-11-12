@@ -27,6 +27,8 @@ export function ImageTile({ record }: { record: GenerationRecord }) {
         alt={`Image for record ${record.id}: ${record.request.user_prompt}`}
         width={record.image?.width}
         height={record.image?.height}
+        // The record's main image is the page's largest paint; it never shares a page with another one.
+        fetchPriority="high"
         className={`h-full w-full object-contain transition-[filter] ${hidden ? "scale-105 blur-2xl" : ""}`}
         draggable={false}
       />

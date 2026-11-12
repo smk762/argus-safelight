@@ -130,6 +130,16 @@ body {
   background: color-mix(in srgb, #6366f1 45%, transparent);
 }
 
+/* A modal keeps scroll gestures to itself: without these, scrolling over the backdrop or past the end of a dialog
+   scrolls the page behind it. Progressive enhancement; never lock the page with overflow on html or body. */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
 :focus-visible {
   outline: 2px solid #22d3ee;
   outline-offset: 2px;
