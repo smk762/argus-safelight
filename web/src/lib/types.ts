@@ -107,6 +107,19 @@ export interface RecordRequest {
   workflow: string | null;
   engine: string;
   engine_version: string | null;
+  /** Image-to-image: the input's identity and denoise, never its pixels. Null (or absent, before darkroom's img2img) for text-to-image. */
+  init_image?: InitImageRef | null;
+}
+
+/** An image-to-image input as darkroom judged and rendered it: decoded, upright, RGB, re-encoded as a PNG. */
+export interface InitImageRef {
+  sha256: string;
+  phash: string;
+  width: number;
+  height: number;
+  /** Of the bytes the caller sent, before darkroom re-encoded them. */
+  source_sha256: string;
+  denoise: number;
 }
 
 export interface NudeNetBlock {
@@ -138,6 +151,17 @@ export interface GuardBlock {
   scans: Record<string, ScanPair>;
   nudenet: NudeNetBlock | null;
   age: AgeBlock | null;
+  /** The image-to-image input's own scan, before anything reached ComfyUI. Null for text-to-image and when pre-flight refused first. */
+  input?: InputScanBlock | null;
+}
+
+/** An input image gets an output's checks and goes on only when `outcome` is "passed"; anything else refuses the attempt ("input image: …"). */
+export interface InputScanBlock {
+  scans: Record<string, ScanPair>;
+  nudenet: NudeNetBlock;
+  age: AgeBlock | null;
+  outcome: Outcome;
+  reason: string | null;
 }
 
 export interface ImageBlock {
@@ -227,6 +251,8 @@ export interface CheckpointOption extends ModelOption {
   family: string | null;
   /** The LoRA counts a workflow renders it with. Empty: no workflow fits it, so darkroom refuses it. */
   lora_counts: number[];
+  /** The LoRA counts an image-to-image workflow renders it with. Empty (or absent, before darkroom's img2img): no img2img. */
+  img2img_lora_counts?: number[];
 }
 
 /** A workflow template darkroom loaded. Darkroom picks one per request: the checkpoint's family and the LoRA count. */
@@ -235,6 +261,8 @@ export interface WorkflowInfo {
   /** Null: a single template used for every checkpoint. */
   family: string | null;
   loras: number;
+  /** An image-to-image template (`<family>[+lora<N>]+img2img`). Absent before darkroom's img2img. */
+  img2img?: boolean;
   /** The scalar placeholders it fills (`$negative`, `$guidance`, `$clip_skip`, `$vae`, …). Darkroom 400s a request that sets a value with no slot. */
   slots: string[];
 }
@@ -277,6 +305,8 @@ export interface GenerateRequest {
   seed: number | null;
   sampling: SamplingParams;
   nsfw_threshold: number;
+  /** Image-to-image: the input as base64 (PNG, JPEG or WebP, at most 16 MiB and 4096 px a side) and the denoise (0.05 to 1). */
+  init_image?: { data_base64: string; denoise: number };
 }
 
 export interface PreflightRefusal {
@@ -320,6 +350,9 @@ export interface ScanEvent {
   context: ScanContext;
   cell: Cell;
 }
+
+/** The stream's `input_scan` event: one cell of the image-to-image input's scan, sent before `queued`. Same shape as `scan`. */
+export type InputScanEvent = ScanEvent;
 
 /** `POST /purge/{id}`, devmode only. */
 export interface RecordPurgeResult {
