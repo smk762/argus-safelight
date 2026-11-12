@@ -12,6 +12,16 @@ The standalone **demo UI for argus-darkroom**: compose a prompt, see the pre-fli
 
 There is no host Node here; the Makefile runs npm in `node:22-bookworm-slim` via Docker when `npm` is missing. Use `docker compose`, never `docker-compose`.
 
+## Argus suite
+<!-- argus-suite: keep this block; argus-ci checks for it -->
+This repo is part of the Argus suite. The suite map below lists every sibling and what it owns; check it before
+building something a sibling may already do. **On every release, update this repo's row and capabilities in
+argus-cortex's SUITE.md** (a PR to argus-cortex in the same release).
+
+@../argus-core/SUITE.md
+
+Not checked out? Read https://github.com/smk762/argus-cortex/blob/main/SUITE.md
+
 ## Layout
 
 - `web/src/lib/`: pure, unit-tested logic. `types.ts` (darkroom's wire contract, `record_version` 1.0), `api.ts` (fetch wrappers, `generate()` over the SSE stream), `sse.ts`, `shields.ts` (cell severity, marks and labels, `policyRows`, `rowDisagrees`, `promptTurned`, `promptChangedVerdict`, `reasonParts`, `firedCell`, `uncheckedCell`, `recordRules`, `matchesRule`), `outcome.ts` (labels, tones, the deleted/omitted wording, `hasImage`), `age.ts` (the only place MiVOLO wording lives), `health.ts` (the backends and the status icon's summary), `compose.ts` (form state, `toRequest`, `fromRecord`, `generateBlock`), `live.ts` (the reducer over stream events), `historyQuery.ts` (the filter in the URL), `theme.ts`, `useLoad.ts`.
