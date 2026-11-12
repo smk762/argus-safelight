@@ -81,6 +81,8 @@ export interface SamplingParams {
   scheduler: string;
   steps: number;
   cfg: number;
+  /** Flux's distilled guidance, for a workflow with a `$guidance` slot. Null or absent: not used, and darkroom 400s a value the workflow has no slot for. */
+  guidance?: number | null;
   clip_skip: number;
   width: number;
   height: number;
@@ -101,6 +103,8 @@ export interface RecordRequest {
   vae: ModelRef | null;
   loras: LoRARef[];
   workflow_sha256: string | null;
+  /** The template darkroom chose by checkpoint family and LoRA count (its file stem, e.g. `flux+lora1`). Null on a record refused in pre-flight. */
+  workflow: string | null;
   engine: string;
   engine_version: string | null;
 }
@@ -180,6 +184,8 @@ export interface Health {
   expansion_enabled?: boolean;
   age_unavailable?: string | null;
   workflow_loaded?: boolean;
+  /** Real darkroom only. The workflow templates it loaded, by name. */
+  workflows?: string[];
   /** Real darkroom only. True when the server refuses every write, pre-flight included, with a 403. */
   read_only?: boolean;
 }
@@ -216,12 +222,30 @@ export interface ModelOption {
   trigger_words?: string[];
 }
 
+export interface CheckpointOption extends ModelOption {
+  /** Its top-level folder under `checkpoints/` (`sdxl`, `flux`, …). Null for a file at the top. */
+  family: string | null;
+  /** The LoRA counts a workflow renders it with. Empty: no workflow fits it, so darkroom refuses it. */
+  lora_counts: number[];
+}
+
+/** A workflow template darkroom loaded. Darkroom picks one per request: the checkpoint's family and the LoRA count. */
+export interface WorkflowInfo {
+  name: string;
+  /** Null: a single template used for every checkpoint. */
+  family: string | null;
+  loras: number;
+  /** The scalar placeholders it fills (`$negative`, `$guidance`, `$clip_skip`, `$vae`, …). Darkroom 400s a request that sets a value with no slot. */
+  slots: string[];
+}
+
 export interface Models {
-  checkpoints: ModelOption[];
+  checkpoints: CheckpointOption[];
   /** The one a form starts on, resolved by darkroom. Null when its setting matches nothing. */
   default_checkpoint: string | null;
   loras: ModelOption[];
   vaes: ModelOption[];
+  workflows: WorkflowInfo[];
   samplers: string[];
   schedulers: string[];
 }

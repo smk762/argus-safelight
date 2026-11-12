@@ -82,7 +82,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   );
 
   const check = useCallback(async () => {
-    const request = toRequest(compose, expandable);
+    const request = toRequest(compose, expandable, models);
     const key = JSON.stringify(request);
     setPreflight({ state: "checking", result: null, error: null, forRequest: key });
     try {
@@ -93,13 +93,13 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       setPreflight({ state: "error", result: null, error: caught instanceof ApiError || caught instanceof Error ? caught.message : String(caught), forRequest: key });
       return null;
     }
-  }, [compose, expandable]);
+  }, [compose, expandable, models]);
 
   const running = isRunning(live);
 
   const start = useCallback(() => {
     if (controller.current) return;
-    const request = toRequest(compose, expandable);
+    const request = toRequest(compose, expandable, models);
     const abort = new AbortController();
     controller.current = abort;
     dispatch({ type: "start", request });
@@ -130,7 +130,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         controller.current = null;
       });
-  }, [compose, expandable, router]);
+  }, [compose, expandable, models, router]);
 
   const stop = useCallback(() => controller.current?.abort(), []);
   const clearLive = useCallback(() => {
@@ -140,7 +140,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const openComposer = useCallback(() => setComposerOpen(true), []);
   const closeComposer = useCallback(() => setComposerOpen(false), []);
 
-  const preflightCurrent = preflight.forRequest === JSON.stringify(toRequest(compose, expandable));
+  const preflightCurrent = preflight.forRequest === JSON.stringify(toRequest(compose, expandable, models));
 
   const value = useMemo<Compose>(
     () => ({ compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive, composerOpen, openComposer, closeComposer }),

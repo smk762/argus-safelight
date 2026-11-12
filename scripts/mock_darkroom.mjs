@@ -23,6 +23,11 @@
  *
  * Markers combine. `[illegal] [minor]` under an adult policy is deleted with both reasons in `outcome_reason`.
  *
+ * Workflows are chosen as darkroom chooses them, by the checkpoint's family (its folder) and the LoRA count, from
+ * `workflows` in fixture/models.json. A generation darkroom would refuse is a 400 with darkroom's wording: a checkpoint
+ * with no template, a LoRA count none renders, or a negative prompt, guidance or clip skip above 2 with no slot.
+ * `/preflight` does not check, as darkroom's does not.
+ *
  * Environment: MOCK_PORT (8106), MOCK_NSFW_ALLOWED (1), MOCK_DEVMODE (1),
  * MOCK_OLLAMA (1), MOCK_SINGGUARD (1), MOCK_NUDENET (1), MOCK_AGE (1),
  * MOCK_STEP_MS (60), MOCK_SCAN_MS (350).
@@ -58,6 +63,36 @@ const DEFAULT_POLICY = NSFW_ALLOWED ? policyFile.default : "default";
 
 /** @type {Map<string, object>} */
 const records = new Map();
+
+const familyOf = (checkpoint) => {
+  const [head, ...rest] = String(checkpoint).split("/");
+  return rest.length > 0 && head ? head : null;
+};
+
+/** The template darkroom's `WorkflowSet.select` picks, or the 400 it answers with. */
+function chooseWorkflow(body) {
+  const name = String(body.checkpoint ?? "");
+  if (!models.checkpoints.some((checkpoint) => checkpoint.name === name)) return { error: `checkpoint ${JSON.stringify(name)} not found under the models root` };
+  const family = familyOf(name);
+  const count = (body.loras ?? []).length;
+  const fits = models.workflows.filter((workflow) => workflow.family === null || workflow.family === family);
+  const workflow = fits.find((candidate) => candidate.loras === count);
+  if (!workflow) {
+    if (family === null && models.workflows.every((candidate) => candidate.family !== null)) {
+      return { error: `checkpoint ${JSON.stringify(name)} is not in a family folder (checkpoints/<family>/...), so no workflow can be chosen for it` };
+    }
+    const counts = [...new Set(fits.map((candidate) => candidate.loras))].sort((a, b) => a - b);
+    const offered = counts.length ? `it renders with ${counts.join(", ")} LoRA(s)` : "it has no workflow";
+    return { error: `no workflow renders ${family ? `the '${family}' family` : "this checkpoint"} with ${count} LoRA(s): ${offered}` };
+  }
+  const slots = new Set(workflow.slots);
+  const sampling = body.sampling ?? {};
+  if (String(body.negative_prompt ?? "").trim() && !slots.has("$negative")) return { error: "this run has a negative prompt but the workflow has no $negative slot" };
+  if (sampling.guidance != null && !slots.has("$guidance")) return { error: "this run sets guidance but the workflow has no $guidance slot" };
+  if (sampling.guidance == null && slots.has("$guidance")) return { error: "the workflow uses $guidance but this run has no value for it" };
+  if (Number(sampling.clip_skip ?? 1) > 2 && !slots.has("$clip_skip")) return { error: "this run sets clip_skip above 2 but the workflow has no $clip_skip slot" };
+  return { workflow };
+}
 /** @type {Map<string, Buffer>} */
 const images = new Map();
 let comfyHistory = 0;
@@ -238,7 +273,8 @@ const newId = () => `gen-${Date.now().toString(36)}-${Math.random().toString(36)
 
 function requestBlock(body, pre, seed) {
   const sampling = body.sampling ?? {};
-  const checkpoint = models.checkpoints.find((c) => c.name === body.checkpoint) ?? models.checkpoints[0];
+  const known = models.checkpoints.find((c) => c.name === body.checkpoint) ?? models.checkpoints[0];
+  const checkpoint = { name: known.name, sha256: known.sha256 };
   const loras = (body.loras ?? []).flatMap((l) => {
     const ref = models.loras.find((m) => m.name === l.name);
     return ref ? [{ name: ref.name, sha256: ref.sha256, weight: Number(l.weight ?? 1), trigger_words: l.trigger_words ?? [] }] : [];
@@ -256,6 +292,7 @@ function requestBlock(body, pre, seed) {
       scheduler: sampling.scheduler ?? "karras",
       steps: Number(sampling.steps ?? 28),
       cfg: Number(sampling.cfg ?? 5.5),
+      guidance: sampling.guidance == null ? null : Number(sampling.guidance),
       clip_skip: Number(sampling.clip_skip ?? 1),
       width: Number(sampling.width ?? SIZE),
       height: Number(sampling.height ?? SIZE),
@@ -264,6 +301,7 @@ function requestBlock(body, pre, seed) {
     vae: null,
     loras,
     workflow_sha256: "5b".repeat(32),
+    workflow: chooseWorkflow(body).workflow?.name ?? null,
     engine: "comfyui",
     engine_version: "0.3.60",
   };
@@ -307,7 +345,7 @@ async function generate(body, send) {
   send("preflight", pre);
   if (pre.outcome === "refused") {
     // Nothing was resolved or hashed, and the seed and sampling are only what the request sent.
-    const unresolved = { ...request, seed: Number.isInteger(body.seed) ? body.seed : null, sampling: body.sampling ? request.sampling : null, checkpoint: null, vae: null, loras: [], workflow_sha256: null, engine_version: null };
+    const unresolved = { ...request, seed: Number.isInteger(body.seed) ? body.seed : null, sampling: body.sampling ? request.sampling : null, checkpoint: null, vae: null, loras: [], workflow_sha256: null, workflow: null, engine_version: null };
     const record = baseRecord(id, "refused", refusalReason(pre), false, unresolved, guardBase, null);
     records.set(id, record);
     send("complete", { record });
@@ -506,6 +544,8 @@ const server = createServer(async (req, res) => {
         thinking: "cascade",
         nsfw_allowed: NSFW_ALLOWED,
         sfw_available: NUDENET,
+        workflow_loaded: true,
+        workflows: models.workflows.map((workflow) => workflow.name),
         devmode: DEVMODE,
         generating,
       });
@@ -522,6 +562,7 @@ const server = createServer(async (req, res) => {
       const enforcing = body.enforcing_policy || DEFAULT_POLICY;
       if (!POLICIES.has(enforcing)) return json(res, 400, { detail: `unknown policy ${enforcing}` });
       if (modeOf(enforcing) === "nsfw" && !NSFW_ALLOWED) return json(res, 400, { detail: `${enforcing} is an NSFW policy and the server was not started with --allow-nsfw` });
+      // No workflow check here: darkroom chooses the template when a generation begins, so pre-flight accepts any.
       // Darkroom's /preflight never expands: an expansion differs per run, so it judges the prompt as written.
       return json(res, 200, { ...preflight({ ...body, expand: false }), expansion_applied: false });
     }
@@ -531,6 +572,8 @@ const server = createServer(async (req, res) => {
       if (!POLICIES.has(enforcing)) return json(res, 400, { detail: `unknown policy ${enforcing}` });
       if (modeOf(enforcing) === "nsfw" && !NSFW_ALLOWED) return json(res, 400, { detail: `${enforcing} is an NSFW policy and the server was not started with --allow-nsfw` });
       if (modeOf(enforcing) === "sfw" && !NUDENET) return json(res, 400, { detail: "SFW generation needs a NudeNet server (NUDENET_URL is empty)" });
+      const chosen = chooseWorkflow(body);
+      if (chosen.error) return json(res, 400, { detail: chosen.error });
       if (!SINGGUARD) return json(res, 503, { detail: "SingGuard is unreachable; darkroom never runs unguarded" });
       if (generating) return json(res, 409, { detail: "a generation is already running" });
       generating = true;

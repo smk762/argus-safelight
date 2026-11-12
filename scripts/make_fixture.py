@@ -180,20 +180,57 @@ POLICIES: list[dict[str, Any]] = [
     },
 ]
 
+# Darkroom's example workflow directory, as `GET /models` describes it: a template per checkpoint family and LoRA count.
+# `slots` are the scalar placeholders each fills; a request that sets a value with no slot is a 400.
+_SDXL_SLOTS = ["$base_checkpoint", "$cfg", "$clip_skip", "$height", "$negative", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_FLUX_SLOTS = ["$base_checkpoint", "$cfg", "$guidance", "$height", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_KLEIN_SLOTS = ["$base_checkpoint", "$cfg", "$height", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_SD35_SLOTS = ["$base_checkpoint", "$cfg", "$height", "$negative", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+WORKFLOWS = [
+    {"name": "flux", "family": "flux", "loras": 0, "slots": _FLUX_SLOTS},
+    {"name": "flux+lora1", "family": "flux", "loras": 1, "slots": _FLUX_SLOTS},
+    {"name": "flux+lora2", "family": "flux", "loras": 2, "slots": _FLUX_SLOTS},
+    {"name": "flux-klein", "family": "flux-klein", "loras": 0, "slots": _KLEIN_SLOTS},
+    {"name": "sd35", "family": "sd35", "loras": 0, "slots": _SD35_SLOTS},
+    {"name": "sdxl", "family": "sdxl", "loras": 0, "slots": _SDXL_SLOTS},
+    {"name": "sdxl+lora1", "family": "sdxl", "loras": 1, "slots": _SDXL_SLOTS},
+    {"name": "sdxl+lora2", "family": "sdxl", "loras": 2, "slots": _SDXL_SLOTS},
+]
+
+
+def _checkpoint(name: str, sha: str) -> dict:
+    """A `/models` checkpoint: its family is its top-level folder, and its LoRA counts are the templates for that family."""
+    family = name.split("/", 1)[0] if "/" in name else None
+    counts = sorted({w["loras"] for w in WORKFLOWS if w["family"] in (None, family)}) if family else []
+    return {"name": name, "sha256": sha * 32, "family": family, "lora_counts": counts}
+
+
 MODELS = {
     "checkpoints": [
-        {"name": "argus-base-v1.safetensors", "sha256": "1f" * 32},
-        {"name": "argus-photo-v2.safetensors", "sha256": "2e" * 32},
+        _checkpoint("sdxl/argus-base-v1.safetensors", "1f"),
+        _checkpoint("sdxl/argus-photo-v2.safetensors", "2e"),
+        _checkpoint("flux/argus-flux-dev.safetensors", "6a"),
+        _checkpoint("flux-klein/argus-klein-4b.safetensors", "7b"),
+        _checkpoint("sd35/argus-sd35-medium.safetensors", "8c"),
+        # A folder with no template: listed, never renderable.
+        _checkpoint("pony/argus-pony-v1.safetensors", "9d"),
     ],
-    "default_checkpoint": "argus-photo-v2.safetensors",
+    "default_checkpoint": "sdxl/argus-photo-v2.safetensors",
     "loras": [
         {"name": "argus-style-soft.safetensors", "sha256": "3d" * 32, "trigger_words": ["argus soft style"]},
         {"name": "argus-light-studio.safetensors", "sha256": "4c" * 32, "trigger_words": ["studio lighting"]},
     ],
     "vaes": [],
+    "workflows": WORKFLOWS,
     "samplers": ["euler", "euler_ancestral", "dpmpp_2m", "dpmpp_2m_sde", "ddim"],
-    "schedulers": ["normal", "karras", "exponential", "sgm_uniform"],
+    "schedulers": ["normal", "karras", "exponential", "sgm_uniform", "simple"],
 }
+
+
+def checkpoint_ref(index: int) -> dict:
+    """A record's checkpoint: the name and hash darkroom resolved, not the `/models` entry."""
+    ref = MODELS["checkpoints"][index]
+    return {"name": ref["name"], "sha256": ref["sha256"]}
 
 # ---------------------------------------------------------------------------
 # Helpers that write the record shape darkroom's spec describes.
@@ -234,7 +271,7 @@ def unchecked_cell(error: str) -> dict:
 
 
 def sampling(**over: Any) -> dict:
-    base = {"sampler": "dpmpp_2m", "scheduler": "karras", "steps": 28, "cfg": 5.5, "clip_skip": 1, "width": 512, "height": 512}
+    base = {"sampler": "dpmpp_2m", "scheduler": "karras", "steps": 28, "cfg": 5.5, "guidance": None, "clip_skip": 1, "width": 512, "height": 512}
     base.update(over)
     return base
 
@@ -251,6 +288,10 @@ def request(
     **sampling_over: Any,
 ) -> dict:
     loras = loras or []
+    checkpoint = checkpoint or checkpoint_ref(0)
+    # Darkroom's choice: the checkpoint's family and the LoRA count.
+    family = checkpoint["name"].split("/", 1)[0]
+    workflow = family if not loras else f"{family}+lora{len(loras)}"
     triggers = [MODELS["loras"][0]["trigger_words"][0] for lora in loras if lora["name"] == MODELS["loras"][0]["name"]]
     final = ", ".join([expanded or prompt, *triggers])
     return {
@@ -262,10 +303,11 @@ def request(
         "expansion": {"model": "qwen2.5:7b", "system_prompt_sha256": "ab" * 32} if expanded else None,
         "seed": seed,
         "sampling": sampling(**sampling_over),
-        "checkpoint": checkpoint or MODELS["checkpoints"][0],
+        "checkpoint": checkpoint,
         "vae": None,
         "loras": loras,
         "workflow_sha256": "5b" * 32,
+        "workflow": workflow,
         "engine": "comfyui",
         "engine_version": "0.3.60",
     }
@@ -273,7 +315,7 @@ def request(
 
 def refused(req: dict) -> dict:
     """*req* as a record refused in pre-flight keeps it: nothing was resolved or hashed, and no seed was drawn."""
-    unresolved = ("seed", "sampling", "checkpoint", "vae", "workflow_sha256", "engine_version")
+    unresolved = ("seed", "sampling", "checkpoint", "vae", "workflow_sha256", "workflow", "engine_version")
     return {**req, **dict.fromkeys(unresolved), "loras": []}
 
 
@@ -424,7 +466,19 @@ def build() -> list[tuple[dict, bytes | None]]:
             "passed",
             reason=None,
             critical=False,
-            req=request("sfw", "a bowl of lemons on a wooden table, soft window light", seed=1001, steps=20, sampler="euler", scheduler="normal"),
+            # Flux: no negative prompt slot, and guidance in place of a high CFG.
+            req=request(
+                "sfw",
+                "a bowl of lemons on a wooden table, soft window light",
+                negative="",
+                seed=1001,
+                checkpoint=checkpoint_ref(2),
+                steps=20,
+                sampler="euler",
+                scheduler="simple",
+                cfg=1.0,
+                guidance=3.5,
+            ),
             enforcing="default",
             advisory=[],
             preflight=preflight_ok("default"),

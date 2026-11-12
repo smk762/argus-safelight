@@ -1,15 +1,59 @@
 {
   "checkpoints": [
     {
-      "name": "argus-base-v1.safetensors",
-      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+      "name": "sdxl/argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f",
+      "family": "sdxl",
+      "lora_counts": [
+        0,
+        1,
+        2
+      ]
     },
     {
-      "name": "argus-photo-v2.safetensors",
-      "sha256": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e"
+      "name": "sdxl/argus-photo-v2.safetensors",
+      "sha256": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+      "family": "sdxl",
+      "lora_counts": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "flux/argus-flux-dev.safetensors",
+      "sha256": "6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a",
+      "family": "flux",
+      "lora_counts": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "flux-klein/argus-klein-4b.safetensors",
+      "sha256": "7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b",
+      "family": "flux-klein",
+      "lora_counts": [
+        0
+      ]
+    },
+    {
+      "name": "sd35/argus-sd35-medium.safetensors",
+      "sha256": "8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c",
+      "family": "sd35",
+      "lora_counts": [
+        0
+      ]
+    },
+    {
+      "name": "pony/argus-pony-v1.safetensors",
+      "sha256": "9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d",
+      "family": "pony",
+      "lora_counts": []
     }
   ],
-  "default_checkpoint": "argus-photo-v2.safetensors",
+  "default_checkpoint": "sdxl/argus-photo-v2.safetensors",
   "loras": [
     {
       "name": "argus-style-soft.safetensors",
@@ -27,6 +71,146 @@
     }
   ],
   "vaes": [],
+  "workflows": [
+    {
+      "name": "flux",
+      "family": "flux",
+      "loras": 0,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$guidance",
+        "$height",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "flux+lora1",
+      "family": "flux",
+      "loras": 1,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$guidance",
+        "$height",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "flux+lora2",
+      "family": "flux",
+      "loras": 2,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$guidance",
+        "$height",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "flux-klein",
+      "family": "flux-klein",
+      "loras": 0,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$height",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sd35",
+      "family": "sd35",
+      "loras": 0,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$height",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl",
+      "family": "sdxl",
+      "loras": 0,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$height",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+lora1",
+      "family": "sdxl",
+      "loras": 1,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$height",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+lora2",
+      "family": "sdxl",
+      "loras": 2,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$height",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    }
+  ],
   "samplers": [
     "euler",
     "euler_ancestral",
@@ -38,6 +222,7 @@
     "normal",
     "karras",
     "exponential",
-    "sgm_uniform"
+    "sgm_uniform",
+    "simple"
   ]
 }

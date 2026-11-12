@@ -80,6 +80,11 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
                 {s.steps} · {s.cfg} · {s.clip_skip}
               </span>
             </Kv>
+            {s.guidance != null ? (
+              <Kv label="Guidance">
+                <span className="font-mono">{s.guidance}</span>
+              </Kv>
+            ) : null}
             <Kv label="Size">
               <span className="font-mono">
                 {s.width} × {s.height}
@@ -117,7 +122,7 @@ export function ParametersCard({ record }: { record: GenerationRecord }) {
         ) : null}
         {request.workflow_sha256 != null ? (
           <Kv label="Workflow" title={request.workflow_sha256}>
-            <span className="font-mono">{short(request.workflow_sha256)}</span>
+            <span className="font-mono">{request.workflow ? `${request.workflow} · ${short(request.workflow_sha256)}` : short(request.workflow_sha256)}</span>
           </Kv>
         ) : null}
         <Kv label="Thinking">

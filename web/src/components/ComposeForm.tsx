@@ -2,8 +2,9 @@
 
 import type { ReactNode } from "react";
 
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed } from "@/lib/compose";
-import { THINKING_MODES, type ThinkingMode } from "@/lib/types";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed, withCheckpoint } from "@/lib/compose";
+import { THINKING_MODES, type CheckpointOption, type Models, type ThinkingMode } from "@/lib/types";
+import { DEFAULT_GUIDANCE, checkpointOf, formWorkflow, loraAddBlock, renderable, usesSlot, workflowBlock, workflowFor } from "@/lib/workflows";
 
 import { useCompose } from "./ComposeProvider";
 import { useDarkroom } from "./DarkroomProvider";
@@ -32,7 +33,15 @@ export function ComposeForm() {
   const ollamaDown = !canExpand(health);
   const readOnly = health?.read_only ?? false;
   const checking = preflight.state === "checking";
-  const block = generateBlock(health, error, compose, policies);
+  const block = generateBlock(health, error, compose, policies, models);
+  // The template darkroom will choose decides which fields a request may set; the form shows only those.
+  const workflow = formWorkflow(models, compose.checkpoint, compose.loras.length);
+  const chosen = workflowFor(models, compose.checkpoint, compose.loras.length);
+  const unrenderable = workflowBlock(models, compose.checkpoint, compose.loras.length);
+  const addBlock = loraAddBlock(models, compose.checkpoint, compose.loras.length);
+  const family = checkpointOf(models, compose.checkpoint)?.family ?? null;
+  const hasNegative = usesSlot(workflow, "$negative");
+  const hasGuidance = usesSlot(workflow, "$guidance");
 
   return (
     <div className="@container space-y-5">
@@ -48,9 +57,15 @@ export function ComposeForm() {
           <Field label="Prompt" htmlFor="prompt">
             <textarea id="prompt" rows={4} value={compose.userPrompt} onChange={(event) => update({ userPrompt: event.target.value })} placeholder="What to generate" className={FIELD} />
           </Field>
-          <Field label="Negative prompt" htmlFor="negative" hint="Always part of pre-flight, labelled as what the image must not show.">
-            <textarea id="negative" rows={2} value={compose.negativePrompt} onChange={(event) => update({ negativePrompt: event.target.value })} className={FIELD} />
-          </Field>
+          {hasNegative ? (
+            <Field label="Negative prompt" htmlFor="negative" hint="Always part of pre-flight, labelled as what the image must not show.">
+              <textarea id="negative" rows={2} value={compose.negativePrompt} onChange={(event) => update({ negativePrompt: event.target.value })} className={FIELD} />
+            </Field>
+          ) : (
+            <p className="text-caption text-text-muted">
+              No negative prompt: {family ? <>the {family} workflow</> : <>this workflow</>} has no slot for one, so none is sent or checked. Yours is kept for a checkpoint that takes one.
+            </p>
+          )}
           <div className="flex items-start gap-2">
             <input type="checkbox" id="expand" checked={compose.expand && !ollamaDown} disabled={ollamaDown} onChange={(event) => update({ expand: event.target.checked })} className="mt-1 accent-accent-primary" />
             <label htmlFor="expand" className={`text-small ${ollamaDown ? "text-text-muted" : "text-text-primary"}`}>
@@ -61,13 +76,17 @@ export function ComposeForm() {
 
           <div className="space-y-3">
             <SectionTitle>Models</SectionTitle>
-            <Field label="Checkpoint" htmlFor="checkpoint">
-              <select id="checkpoint" value={compose.checkpoint} onChange={(event) => update({ checkpoint: event.target.value })} className={FIELD} disabled={!models}>
-                {models?.checkpoints.map((checkpoint) => (
-                  <option key={checkpoint.name} value={checkpoint.name}>
-                    {checkpoint.name}
-                  </option>
-                ))}
+            <Field
+              label="Checkpoint"
+              htmlFor="checkpoint"
+              hint={unrenderable ? <span className="text-warning">{unrenderable}</span> : chosen ? <>Darkroom renders this with the <span className="font-mono">{chosen.name}</span> workflow.</> : null}
+            >
+              <select id="checkpoint" value={compose.checkpoint} onChange={(event) => {
+                  // Read now, not in the updater: the select is controlled, so React puts its value back once the event ends.
+                  const name = event.target.value;
+                  update((current) => withCheckpoint(current, name, models));
+                }} className={FIELD} disabled={!models}>
+                {models ? <CheckpointOptions models={models} /> : null}
               </select>
             </Field>
             <div>
@@ -108,7 +127,9 @@ export function ComposeForm() {
                   </li>
                 ))}
               </ul>
-              {models && models.loras.some((lora) => !compose.loras.some((chosen) => chosen.name === lora.name)) ? (
+              {addBlock ? (
+                <p className="mt-1.5 text-caption text-text-muted">{addBlock} No more can be added.</p>
+              ) : models && models.loras.some((lora) => !compose.loras.some((chosen) => chosen.name === lora.name)) ? (
                 <select
                   aria-label="Add a LoRA"
                   value=""
@@ -170,6 +191,20 @@ export function ComposeForm() {
               <Field label="CFG" htmlFor="cfg">
                 <input id="cfg" type="number" min={0} max={30} step={0.5} value={compose.sampling.cfg} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, cfg: Number(event.target.value) } }))} className={FIELD} />
               </Field>
+              {hasGuidance ? (
+                <Field label="Guidance" htmlFor="guidance" hint="Flux's distilled guidance. The workflow needs a value; CFG usually stays at 1.">
+                  <input
+                    id="guidance"
+                    type="number"
+                    min={0}
+                    max={30}
+                    step={0.5}
+                    value={compose.sampling.guidance ?? DEFAULT_GUIDANCE}
+                    onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, guidance: Math.max(0, Number(event.target.value)) } }))}
+                    className={FIELD}
+                  />
+                </Field>
+              ) : null}
               <Field label="Width" htmlFor="width">
                 <select id="width" value={compose.sampling.width} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, width: Number(event.target.value) } }))} className={FIELD}>
                   {sizeOptions(compose.sampling.width)}
@@ -229,6 +264,28 @@ export function ComposeForm() {
         {block && ready && !running ? <p className="basis-full text-caption text-text-muted">{block}</p> : null}
       </div>
     </div>
+  );
+}
+
+/** The checkpoints by family, in darkroom's order. One that no workflow renders is listed but cannot be picked. */
+function CheckpointOptions({ models }: { models: Models }) {
+  const groups = new Map<string | null, CheckpointOption[]>();
+  for (const checkpoint of models.checkpoints) groups.set(checkpoint.family, [...(groups.get(checkpoint.family) ?? []), checkpoint]);
+  const option = (checkpoint: CheckpointOption) => (
+    <option key={checkpoint.name} value={checkpoint.name} disabled={!renderable(checkpoint)}>
+      {checkpoint.name}
+      {renderable(checkpoint) ? "" : " (no workflow)"}
+    </option>
+  );
+  if (groups.size === 1 && groups.has(null)) return <>{models.checkpoints.map(option)}</>;
+  return (
+    <>
+      {[...groups].map(([family, checkpoints]) => (
+        <optgroup key={family ?? ""} label={family ?? "No family folder"}>
+          {checkpoints.map(option)}
+        </optgroup>
+      ))}
+    </>
   );
 }
 

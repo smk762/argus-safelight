@@ -20,6 +20,7 @@
     "vae": null,
     "loras": [],
     "workflow_sha256": null,
+    "workflow": null,
     "engine": "comfyui",
     "engine_version": null
   },

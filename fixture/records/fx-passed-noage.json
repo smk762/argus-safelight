@@ -12,25 +12,27 @@
     "user_prompt": "a bowl of lemons on a wooden table, soft window light",
     "expanded_prompt": null,
     "final_prompt": "a bowl of lemons on a wooden table, soft window light",
-    "negative_prompt": "blurry, low quality, text, watermark",
+    "negative_prompt": "",
     "expansion": null,
     "seed": 1001,
     "sampling": {
       "sampler": "euler",
-      "scheduler": "normal",
+      "scheduler": "simple",
       "steps": 20,
-      "cfg": 5.5,
+      "cfg": 1.0,
+      "guidance": 3.5,
       "clip_skip": 1,
       "width": 512,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
-      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+      "name": "flux/argus-flux-dev.safetensors",
+      "sha256": "6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a"
     },
     "vae": null,
     "loras": [],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "flux",
     "engine": "comfyui",
     "engine_version": "0.3.60"
   },
