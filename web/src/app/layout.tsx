@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
+import { headers } from "next/headers";
 
 import { ComposeDialog } from "@/components/ComposeDialog";
 import { ComposeProvider } from "@/components/ComposeProvider";
@@ -16,14 +17,16 @@ export const metadata: Metadata = {
   description: "Guarded image generation with argus-darkroom: the pre-flight verdict, then what each guard said about the output.",
 };
 
-// Runs before paint so a saved theme does not flash the system one first.
+// Runs before paint so a saved theme does not flash the system one first. Inline, so it carries the request's CSP
+// nonce (set in `proxy.ts`); reading it makes every page render per request, which a live client does anyway.
 const THEME_BOOT = `try{var t=localStorage.getItem("safelight-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${inter.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       </head>
       <body className="min-h-dvh">
         <DarkroomProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { enforceBlock, policyByName } from "@/lib/compose";
 import type { Policies, PolicyInfo } from "@/lib/types";
@@ -109,6 +109,7 @@ export function PolicyPicker({
 /** The policy's text and its illegal rules, as `GET /policies` serves them. */
 export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   return (
     <dialog
       ref={(node) => {
@@ -119,10 +120,11 @@ export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose:
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
+      aria-labelledby={titleId}
       className="m-auto w-[min(720px,92vw)] rounded-lg border border-base-600 bg-base-800 p-0 text-text-primary shadow-soft backdrop:bg-base-900/70"
     >
       <div className="flex items-center justify-between gap-3 border-b border-base-600/60 px-5 py-3">
-        <h2 className="font-display text-subheading font-semibold">
+        <h2 id={titleId} className="font-display text-subheading font-semibold">
           <span className="font-mono">{policy.name}</span> <ModeBadge mode={policy.mode} />
         </h2>
         <IconButton label="Close" onClick={onClose}>

@@ -227,8 +227,9 @@ function Thumb({ record }: { record: GenerationRecord }) {
     const blur = record.guard.nudenet?.blur ?? false;
     return (
       <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-base-700">
+        {/* Darkroom serves the full image; lazy, so a long history fetches only the rows near the viewport. */}
         {/* eslint-disable-next-line @next/next/no-img-element -- loaded by record id from darkroom */}
-        <img src={imageUrl(record.id)} alt="" className={`h-full w-full object-cover ${blur ? "blur-md" : ""}`} draggable={false} />
+        <img src={imageUrl(record.id)} alt="" width={48} height={48} loading="lazy" decoding="async" className={`h-full w-full object-cover ${blur ? "blur-md" : ""}`} draggable={false} />
       </span>
     );
   }

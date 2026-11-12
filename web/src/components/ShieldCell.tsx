@@ -44,6 +44,20 @@ export function ShieldCell({
     if (show && node && typeof node.showPopover === "function") node.showPopover();
   }, [show]);
 
+  // Escape closes it however it opened (hover, focus or a click), without moving the pointer or the focus: WCAG 1.4.13.
+  // It closes only this: preventing the default stops the same Escape closing the compose dialog the shield sits in.
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      setPinned(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [show]);
+
   useEffect(() => {
     if (!show) return;
     const place = () => {
@@ -69,9 +83,6 @@ export function ShieldCell({
         onClick={() => setPinned((value) => !value)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") setPinned(false);
-        }}
         className={`rounded-md px-2 py-1 transition-colors hover:bg-base-700/70 ${outlined ? "outline-dashed outline-2 outline-offset-1 outline-warning/80" : ""}`}
       >
         <Shield state={state} letters={letters} size={size} withLabel={withLabel} labelBelow={labelBelow} />
