@@ -1,4 +1,5 @@
 import type { GenerateRequest, GenerationRecord, Health, LoRAChoice, Mode, Models, Policies, PolicyInfo, SamplingParams, ThinkingMode } from "./types";
+import { DEFAULT_GUIDANCE, checkpointOf, familySampling, formWorkflow, renderable, usesSlot, workflowBlock } from "./workflows";
 
 /** The compose form. Everything a request needs, plus whether the seed is held. */
 export interface ComposeState {
@@ -41,24 +42,37 @@ export function enforceBlock(policy: PolicyInfo): string | null {
   return "SFW generation needs NudeNet, which this server does not have.";
 }
 
+/** Darkroom's default when a workflow renders it, else the first that renders, else whatever there is. */
 function startingCheckpoint(models: Models | null): string {
-  return models?.default_checkpoint ?? models?.checkpoints[0]?.name ?? "";
+  const preferred = checkpointOf(models, models?.default_checkpoint ?? "");
+  if (preferred && renderable(preferred)) return preferred.name;
+  return models?.checkpoints.find(renderable)?.name ?? models?.default_checkpoint ?? models?.checkpoints[0]?.name ?? "";
+}
+
+/** The form on another checkpoint. A change of family moves the sampling to that family's starting values. */
+export function withCheckpoint(state: ComposeState, name: string, models: Models | null): ComposeState {
+  const before = checkpointOf(models, state.checkpoint);
+  const after = checkpointOf(models, name);
+  const sampling = before?.family === after?.family ? state.sampling : familySampling(state.sampling, after, models);
+  return { ...state, checkpoint: name, sampling };
 }
 
 export function defaultCompose(health: Health | null, policies: Policies | null, models: Models | null): ComposeState {
   const enforcing = policies?.default ?? health?.default_policy ?? "default";
   const thinking = (THINKING.includes(health?.thinking as ThinkingMode) ? health?.thinking : "cascade") as ThinkingMode;
+  const checkpoint = startingCheckpoint(models);
+  const sampling: SamplingParams = {
+    ...DEFAULT_SAMPLING,
+    sampler: models?.samplers.includes(DEFAULT_SAMPLING.sampler) ? DEFAULT_SAMPLING.sampler : (models?.samplers[0] ?? DEFAULT_SAMPLING.sampler),
+    scheduler: models?.schedulers.includes(DEFAULT_SAMPLING.scheduler) ? DEFAULT_SAMPLING.scheduler : (models?.schedulers[0] ?? DEFAULT_SAMPLING.scheduler),
+  };
   return {
     userPrompt: "",
     negativePrompt: DEFAULT_NEGATIVE,
     expand: false,
-    checkpoint: startingCheckpoint(models),
+    checkpoint,
     loras: [],
-    sampling: {
-      ...DEFAULT_SAMPLING,
-      sampler: models?.samplers.includes(DEFAULT_SAMPLING.sampler) ? DEFAULT_SAMPLING.sampler : (models?.samplers[0] ?? DEFAULT_SAMPLING.sampler),
-      scheduler: models?.schedulers.includes(DEFAULT_SAMPLING.scheduler) ? DEFAULT_SAMPLING.scheduler : (models?.schedulers[0] ?? DEFAULT_SAMPLING.scheduler),
-    },
+    sampling: familySampling(sampling, checkpointOf(models, checkpoint), models),
     seed: null,
     seedLocked: false,
     enforcingPolicy: enforcing,
@@ -99,10 +113,22 @@ export function canExpand(health: Health | null): boolean {
   return health == null || health.backends.ollama;
 }
 
-export function toRequest(state: ComposeState, expandable = true): GenerateRequest {
+/**
+ * The request for the form as it stands, shaped to the workflow darkroom will choose: no negative prompt, guidance or
+ * clip skip above the default for a template without that slot, which darkroom would refuse, and guidance for one with
+ * it, which darkroom requires. The form hides the same fields, so what it shows is what is sent.
+ */
+export function toRequest(state: ComposeState, expandable = true, models: Models | null = null): GenerateRequest {
+  const workflow = formWorkflow(models, state.checkpoint, state.loras.length);
+  const { guidance, ...rest } = state.sampling;
+  const sampling: SamplingParams = {
+    ...rest,
+    clip_skip: usesSlot(workflow, "$clip_skip") ? rest.clip_skip : DEFAULT_SAMPLING.clip_skip,
+    ...(usesSlot(workflow, "$guidance") ? { guidance: guidance ?? DEFAULT_GUIDANCE } : {}),
+  };
   return {
     user_prompt: state.userPrompt,
-    negative_prompt: state.negativePrompt,
+    negative_prompt: usesSlot(workflow, "$negative") ? state.negativePrompt : "",
     expand: state.expand && expandable,
     enforcing_policy: state.enforcingPolicy,
     advisory_policies: state.advisoryPolicies,
@@ -110,7 +136,7 @@ export function toRequest(state: ComposeState, expandable = true): GenerateReque
     checkpoint: state.checkpoint,
     loras: state.loras,
     seed: state.seedLocked ? state.seed : null,
-    sampling: state.sampling,
+    sampling,
     nsfw_threshold: state.nsfwThreshold,
   };
 }
@@ -145,13 +171,15 @@ export function randomSeed(): number {
 export const READ_ONLY_BLOCK = "Darkroom is read-only: it refuses every write, pre-flight included.";
 
 /** Generate is offered only when darkroom answers and SingGuard is reachable. The reason otherwise. */
-export function generateBlock(health: Health | null, error: string | null, state: ComposeState, policies: Policies | null): string | null {
+export function generateBlock(health: Health | null, error: string | null, state: ComposeState, policies: Policies | null, models: Models | null = null): string | null {
   if (error) return `Darkroom is not reachable: ${error}`;
   if (!health) return "Waiting for darkroom's /health.";
   if (health.read_only) return READ_ONLY_BLOCK;
   if (!health.backends.singguard) return "SingGuard is unreachable. Darkroom never runs unguarded.";
   if (!health.backends.comfyui) return "ComfyUI is unreachable.";
   if (policyMode(policies, state.enforcingPolicy) === "sfw" && !health.sfw_available) return "SFW generation needs NudeNet, which this server does not have.";
+  const workflow = workflowBlock(models, state.checkpoint, state.loras.length);
+  if (workflow) return workflow;
   if (!state.userPrompt.trim()) return "Write a prompt first.";
   return null;
 }

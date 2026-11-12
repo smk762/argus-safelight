@@ -23,17 +23,19 @@
       "scheduler": "karras",
       "steps": 28,
       "cfg": 5.5,
+      "guidance": null,
       "clip_skip": 1,
       "width": 512,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
+      "name": "sdxl/argus-base-v1.safetensors",
       "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
     },
     "vae": null,
     "loras": [],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
     "engine": "comfyui",
     "engine_version": "0.3.60"
   },

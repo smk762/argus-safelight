@@ -1,0 +1,149 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { defaultCompose, fromRecord, generateBlock, toRequest, withCheckpoint, type ComposeState } from "./compose";
+import { fixtureRecord } from "./fixture.test-util";
+import type { Health, Models } from "./types";
+import { DEFAULT_GUIDANCE, familySampling, formWorkflow, loraAddBlock, usesSlot, workflowBlock, workflowFor } from "./workflows";
+
+const FIXTURE = join(__dirname, "..", "..", "..", "fixture");
+const models = JSON.parse(readFileSync(join(FIXTURE, "models.json"), "utf8")) as Models;
+
+const SDXL = "sdxl/argus-photo-v2.safetensors";
+const FLUX = "flux/argus-flux-dev.safetensors";
+const KLEIN = "flux-klein/argus-klein-4b.safetensors";
+const SD35 = "sd35/argus-sd35-medium.safetensors";
+const PONY = "pony/argus-pony-v1.safetensors";
+
+const health: Health = {
+  version: "test",
+  backends: { comfyui: true, ollama: true, singguard: true, nudenet: true, age: true },
+  policies: ["default"],
+  default_policy: "default",
+  thinking: "cascade",
+  nsfw_allowed: true,
+  sfw_available: true,
+  devmode: false,
+};
+
+function on(checkpoint: string, over: Partial<ComposeState> = {}): ComposeState {
+  return { ...withCheckpoint(defaultCompose(health, null, models), checkpoint, models), userPrompt: "a flat blue field", ...over };
+}
+
+describe("choosing the workflow, as darkroom does", () => {
+  it("picks by the checkpoint's family and the LoRA count", () => {
+    expect(workflowFor(models, SDXL, 0)?.name).toBe("sdxl");
+    expect(workflowFor(models, SDXL, 2)?.name).toBe("sdxl+lora2");
+    expect(workflowFor(models, FLUX, 1)?.name).toBe("flux+lora1");
+    expect(workflowFor(models, KLEIN, 1)).toBeNull();
+    expect(workflowFor(models, PONY, 0)).toBeNull();
+  });
+
+  it("keeps following the family's slots when the LoRA count is one darkroom refuses", () => {
+    expect(formWorkflow(models, KLEIN, 1)?.name).toBe("flux-klein");
+    expect(formWorkflow(models, PONY, 0)).toBeNull();
+  });
+
+  it("reads which fields each family takes from its slots", () => {
+    expect(usesSlot(workflowFor(models, FLUX, 0), "$guidance")).toBe(true);
+    expect(usesSlot(workflowFor(models, FLUX, 0), "$negative")).toBe(false);
+    expect(usesSlot(workflowFor(models, SDXL, 0), "$guidance")).toBe(false);
+    expect(usesSlot(workflowFor(models, SDXL, 0), "$clip_skip")).toBe(true);
+    expect(usesSlot(workflowFor(models, SD35, 0), "$negative")).toBe(true);
+    expect(usesSlot(workflowFor(models, SD35, 0), "$clip_skip")).toBe(false);
+    // No template known: the form as it was, with a negative prompt and no guidance.
+    expect(usesSlot(null, "$negative")).toBe(true);
+    expect(usesSlot(null, "$guidance")).toBe(false);
+  });
+});
+
+describe("what renders", () => {
+  it("says why a checkpoint with no workflow cannot be used", () => {
+    expect(workflowBlock(models, PONY, 0)).toContain("pony");
+    expect(generateBlock(health, null, on(PONY), null, models)).toBe(workflowBlock(models, PONY, 0));
+    expect(generateBlock(health, null, on(SDXL), null, models)).toBeNull();
+  });
+
+  it("blocks a LoRA count the family has no template for, and says what to remove", () => {
+    expect(workflowBlock(models, KLEIN, 1)).toBe("The flux-klein family renders without LoRAs. Remove 1.");
+    expect(workflowBlock(models, SDXL, 3)).toBe("The sdxl family renders with 0, 1 or 2 LoRAs. Remove 1.");
+    expect(workflowBlock(models, FLUX, 2)).toBeNull();
+  });
+
+  it("stops offering LoRAs once the next count would not render", () => {
+    expect(loraAddBlock(models, SDXL, 1)).toBeNull();
+    expect(loraAddBlock(models, SDXL, 2)).toBe("The sdxl family renders with at most 2 LoRAs.");
+    expect(loraAddBlock(models, KLEIN, 0)).toBe("The flux-klein family renders without LoRAs.");
+  });
+
+  it("starts on a checkpoint that renders", () => {
+    const unrenderableDefault = { ...models, default_checkpoint: PONY };
+    expect(defaultCompose(health, null, unrenderableDefault).checkpoint).toBe(models.checkpoints[0].name);
+  });
+});
+
+describe("the request, shaped to the workflow", () => {
+  it("sends guidance to Flux and no negative prompt, which its templates have no slot for", () => {
+    const request = toRequest(on(FLUX, { negativePrompt: "blurry" }), true, models);
+    expect(request.sampling.guidance).toBe(DEFAULT_GUIDANCE);
+    expect(request.negative_prompt).toBe("");
+  });
+
+  it("sends no guidance to SDXL, and keeps its negative prompt", () => {
+    const request = toRequest(on(SDXL, { negativePrompt: "blurry" }), true, models);
+    expect("guidance" in request.sampling).toBe(false);
+    expect(request.negative_prompt).toBe("blurry");
+  });
+
+  it("keeps the negative prompt in the form across a family with no slot for it", () => {
+    const klein = withCheckpoint(on(SDXL, { negativePrompt: "blurry" }), KLEIN, models);
+    expect(toRequest(klein, true, models).negative_prompt).toBe("");
+    expect(toRequest(withCheckpoint(klein, SDXL, models), true, models).negative_prompt).toBe("blurry");
+  });
+
+  it("sends clip skip above 2 only to a template that has the slot", () => {
+    const deep = (checkpoint: string) => {
+      const state = on(checkpoint);
+      return toRequest({ ...state, sampling: { ...state.sampling, clip_skip: 3 } }, true, models).sampling.clip_skip;
+    };
+    expect(deep(SDXL)).toBe(3);
+    expect(deep(SD35)).toBe(1);
+  });
+
+  it("refills a Flux record's guidance and leaves its negative prompt empty", () => {
+    const record = fixtureRecord("fx-passed-noage");
+    expect(record.request.workflow).toBe("flux");
+    const state = fromRecord(record, on(SDXL));
+    expect(state.checkpoint).toBe(FLUX);
+    expect(toRequest(state, true, models).sampling.guidance).toBe(3.5);
+    expect(toRequest(state, true, models).negative_prompt).toBe("");
+  });
+});
+
+describe("per-family sampling", () => {
+  it("moves to the family's starting values when the family changes, and keeps the size", () => {
+    const sdxl = on(SDXL);
+    const flux = withCheckpoint({ ...sdxl, sampling: { ...sdxl.sampling, width: 768 } }, FLUX, models);
+    expect(flux.sampling).toMatchObject({ sampler: "euler", scheduler: "simple", steps: 20, cfg: 1, guidance: 3.5, width: 768 });
+    expect(withCheckpoint(flux, SD35, models).sampling).toMatchObject({ sampler: "euler", scheduler: "sgm_uniform", cfg: 4, guidance: null });
+    expect(withCheckpoint(flux, KLEIN, models).sampling.steps).toBe(4);
+  });
+
+  it("leaves the sampling alone within a family", () => {
+    const tuned = { ...on(SDXL), sampling: { ...on(SDXL).sampling, steps: 40 } };
+    expect(withCheckpoint(tuned, "sdxl/argus-base-v1.safetensors", models).sampling.steps).toBe(40);
+  });
+
+  it("does not pick a sampler or scheduler the server does not offer", () => {
+    const narrow = { ...models, schedulers: ["karras"] };
+    const current = on(SDXL).sampling;
+    expect(familySampling(current, narrow.checkpoints.find((c) => c.name === FLUX)!, narrow).scheduler).toBe("karras");
+  });
+
+  it("gives schnell a few steps", () => {
+    const schnell = { name: "flux/flux1-schnell.safetensors", family: "flux", lora_counts: [0] };
+    expect(familySampling(on(SDXL).sampling, schnell, models).steps).toBe(4);
+  });
+});
