@@ -1,0 +1,77 @@
+name: Release
+
+# On a v* tag: check the tag matches web/package.json and CHANGELOG.md, run the
+# CI checks, then create a GitHub Release from the tag's CHANGELOG.md section.
+# Nothing is published to a registry: darkroom's compose builds safelight from
+# source, with its own NEXT_PUBLIC_DARKROOM_URL baked in.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches web/package.json, and CHANGELOG.md has its section
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match web/package.json version $version."
+            exit 1
+          fi
+          grep -q "^## \[${TAG#v}\]" ../CHANGELOG.md || {
+            echo "::error::CHANGELOG.md has no [${TAG#v}] section."
+            exit 1
+          }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run darkroom:check
+      - run: npm test
+      - run: npm run build
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the release from the tag's CHANGELOG section
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Re-running the workflow must not fail on, or overwrite, a Release
+          # that already exists or was edited by hand.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it as is."
+            exit 0
+          fi
+          version="${TAG#v}"
+          awk -v v="$version" 'index($0, "## [" v "]") == 1 {on=1; next} on && /^## / {exit} on' CHANGELOG.md \
+            | sed '/./,$!d' > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no [$version] section; add one and re-run this job."
+            exit 1
+          fi
+          printf '\n**Full changelog:** %s/%s/blob/%s/CHANGELOG.md\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$TAG" >> notes.md
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md $prerelease
