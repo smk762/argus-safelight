@@ -36,6 +36,15 @@ describe("Shell", () => {
     expect(screen.getByRole("button", { name: /theme/ })).toBeTruthy();
   });
 
+  it("has a Docs entry in the header and the footer, marked on the docs pages", () => {
+    state.pathname = "/docs/design";
+    render(<Shell>page</Shell>);
+    const header = screen.getByRole("link", { name: "Docs" });
+    expect(header.getAttribute("href")).toBe("/docs");
+    expect(header.getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "Docs: argus-darkroom" }).getAttribute("href")).toBe("/docs");
+  });
+
   it("summarises darkroom in the status icon's name, with the detail beside it", () => {
     state.health = health(false);
     render(<Shell>page</Shell>);

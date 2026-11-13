@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-refused-illegal",
   "created_at": "2026-10-20T10:18:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "refused",
   "outcome_reason": "adult-granular:A",
   "critical": false,
@@ -41,9 +41,8 @@
           ],
           "explanation": "The request asks for sexualised content of someone presented as a child. Rule A, Minors.",
           "model": "SingGuard-4b",
-          "thinking": "slow",
-          "fast_verdict": "unsafe",
-          "fast_rule": "A. Minors"
+          "policy": "custom-641a2b290946",
+          "thinking": "slow"
         },
         "error": null
       },
@@ -56,9 +55,8 @@
           ],
           "explanation": "Sexual content is requested. Rule A.",
           "model": "SingGuard-4b",
-          "thinking": "slow",
-          "fast_verdict": "unsafe",
-          "fast_rule": "A. Sexual Content Risk"
+          "policy": "default",
+          "thinking": "slow"
         },
         "error": null
       }

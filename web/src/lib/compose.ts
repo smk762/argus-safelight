@@ -1,5 +1,5 @@
 import { DEFAULT_DENOISE, clampDenoise, type InputImage, type InputMask } from "./initImage";
-import type { GenerateRequest, GenerationRecord, Health, InitImageRef, LoRAChoice, Mode, Models, Policies, PolicyInfo, SamplingParams, ThinkingMode } from "./types";
+import type { GenerateRequest, GenerationRecord, Health, InitImageRef, LoRAChoice, Mode, Models, Policies, PolicyInfo, RequestSampling, ThinkingMode } from "./types";
 import { DEFAULT_GUIDANCE, checkpointOf, familySampling, formWorkflow, renderable, usesSlot, workflowBlock, type RenderMode } from "./workflows";
 
 /** The compose form. Everything a request needs, plus whether the seed is held. */
@@ -9,7 +9,7 @@ export interface ComposeState {
   expand: boolean;
   checkpoint: string;
   loras: LoRAChoice[];
-  sampling: SamplingParams;
+  sampling: RequestSampling;
   /** Null means darkroom picks a random seed. */
   seed: number | null;
   seedLocked: boolean;
@@ -31,7 +31,7 @@ export interface ComposeState {
 }
 
 export const DEFAULT_NEGATIVE = "blurry, low quality, text, watermark";
-export const DEFAULT_SAMPLING: SamplingParams = { sampler: "dpmpp_2m", scheduler: "karras", steps: 28, cfg: 5.5, clip_skip: 1, width: 512, height: 512 };
+export const DEFAULT_SAMPLING: RequestSampling = { sampler: "dpmpp_2m", scheduler: "karras", steps: 28, cfg: 5.5, clip_skip: 1, width: 512, height: 512 };
 export const NSFW_THRESHOLD_MIN = 0.2;
 export const NSFW_THRESHOLD_MAX = 1;
 export const SIZES = [512, 576, 640, 704, 768, 832, 896, 960, 1024] as const;
@@ -73,7 +73,7 @@ export function defaultCompose(health: Health | null, policies: Policies | null,
   const enforcing = policies?.default ?? health?.default_policy ?? "default";
   const thinking = (THINKING.includes(health?.thinking as ThinkingMode) ? health?.thinking : "cascade") as ThinkingMode;
   const checkpoint = startingCheckpoint(models);
-  const sampling: SamplingParams = {
+  const sampling: RequestSampling = {
     ...DEFAULT_SAMPLING,
     sampler: models?.samplers.includes(DEFAULT_SAMPLING.sampler) ? DEFAULT_SAMPLING.sampler : (models?.samplers[0] ?? DEFAULT_SAMPLING.sampler),
     scheduler: models?.schedulers.includes(DEFAULT_SAMPLING.scheduler) ? DEFAULT_SAMPLING.scheduler : (models?.schedulers[0] ?? DEFAULT_SAMPLING.scheduler),
@@ -143,7 +143,7 @@ export function canExpand(health: Health | null): boolean {
 export function toRequest(state: ComposeState, expandable = true, models: Models | null = null): GenerateRequest {
   const workflow = formWorkflow(models, state.checkpoint, state.loras.length, renderMode(state));
   const { guidance, ...rest } = state.sampling;
-  const sampling: SamplingParams = {
+  const sampling: RequestSampling = {
     ...rest,
     clip_skip: usesSlot(workflow, "$clip_skip") ? rest.clip_skip : DEFAULT_SAMPLING.clip_skip,
     ...(usesSlot(workflow, "$guidance") ? { guidance: guidance ?? DEFAULT_GUIDANCE } : {}),

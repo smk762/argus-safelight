@@ -6,7 +6,7 @@ import type { Cell, ScanPair } from "./types";
 
 const cell = (state: Cell["state"], rules: string[] = []): Cell => ({
   state,
-  result: state === "unchecked" ? null : { safe: state === "safe", rules, explanation: null, model: null, thinking: "fast" },
+  result: state === "unchecked" ? null : { safe: state === "safe", rules, explanation: null, model: null, policy: "default", thinking: "fast" },
   error: state === "unchecked" ? "timeout" : null,
 });
 const pair = (isolated: Cell, with_prompt: Cell): ScanPair => ({ isolated, with_prompt });

@@ -1,4 +1,4 @@
-import type { CheckpointOption, Models, SamplingParams, WorkflowInfo } from "./types";
+import type { CheckpointOption, Models, RequestSampling, WorkflowInfo } from "./types";
 
 /**
  * What darkroom can render, from `/models`. Darkroom picks a workflow template per request by the checkpoint's family
@@ -112,7 +112,7 @@ export function modeBlock(models: Models | null, checkpoint: string, loras: numb
 }
 
 /** Where a family's sampling starts when the form switches to it. A starting point only: every field stays editable. */
-const FAMILY_SAMPLING: Record<string, Partial<SamplingParams>> = {
+const FAMILY_SAMPLING: Record<string, Partial<RequestSampling>> = {
   sdxl: { sampler: "dpmpp_2m", scheduler: "karras", steps: 28, cfg: 5.5, guidance: null },
   flux: { sampler: "euler", scheduler: "simple", steps: 20, cfg: 1, guidance: DEFAULT_GUIDANCE },
   "flux-klein": { sampler: "euler", scheduler: "simple", steps: 4, cfg: 1, guidance: null },
@@ -123,10 +123,10 @@ const FAMILY_SAMPLING: Record<string, Partial<SamplingParams>> = {
  * The sampling to switch to for a checkpoint's family, keeping the size, clip skip and anything the server does not
  * offer. An unknown family keeps the current values. Schnell is distilled to a few steps.
  */
-export function familySampling(current: SamplingParams, checkpoint: CheckpointOption | null, models: Models | null): SamplingParams {
+export function familySampling(current: RequestSampling, checkpoint: CheckpointOption | null, models: Models | null): RequestSampling {
   const preset = checkpoint?.family ? FAMILY_SAMPLING[checkpoint.family] : undefined;
   if (!preset) return current;
-  const next: SamplingParams = { ...current, ...preset };
+  const next: RequestSampling = { ...current, ...preset };
   if (checkpoint?.family === "flux" && /schnell/i.test(checkpoint.name)) next.steps = 4;
   if (models?.samplers.length && !models.samplers.includes(next.sampler)) next.sampler = current.sampler;
   if (models?.schedulers.length && !models.schedulers.includes(next.scheduler)) next.scheduler = current.scheduler;

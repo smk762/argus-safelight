@@ -16,10 +16,11 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
 - **Pre-flight.** **Check** calls `POST /preflight` and shows one shield per policy, the rule and SingGuard's explanation for anything that is not green, and the final prompt that was judged. It judges the prompt as written: darkroom expands only at generation, then judges the expansion before rendering, and the live view shows what it added. A refusal says which rule fired, under which policy.
 - **Generate.** Progress from the SSE stream: pre-flight, queued, the ComfyUI step bar, then one event per finished scan cell. The shield grid fills in cell by cell. Generate is offered only after `GET /health` reports SingGuard reachable.
 - **Result.** One view per outcome. *passed* and *review* show the image, blurred when darkroom said so until you reveal it. *deleted* is a tile with no image that names the rule, policy and scan context that fired. *omitted* is a plainer tile saying the SFW output was withheld because NudeNet reported exposure, or did not answer; it looks unlike deleted on purpose. *refused* shows the pre-flight panel. *failed* shows the error. Every view ends in the full record.
-- **The shield grid.** Each policy judged the image alone and with the final prompt. Green tick, amber rule letter, red cross, grey question mark: a mark and a label on every shield, so colour is never the only signal. A **≠** badge marks a row whose two verdicts disagree, and a dashed outline marks a with-prompt cell where the prompt alone turned a green. Hover or tap for the rule, SingGuard's words, the thinking mode and the cascade's fast verdict.
+- **The shield grid.** Each policy judged the image alone and with the final prompt. Green tick, amber rule letter, red cross, grey question mark: a mark and a label on every shield, so colour is never the only signal. A **≠** badge marks a row whose two verdicts disagree, and a dashed outline marks a with-prompt cell where the prompt alone turned a green. Hover or tap for the rule, SingGuard's words and the thinking mode that answered.
 - **Age estimates** appear only as "MiVOLO estimate: 34", one line per face, with hover text saying it is an automated guess that can be wrong. A deletion for `minor-exposed` says it was triggered by a MiVOLO age estimate under 18 together with NudeNet exposure.
 - **Regenerate** refills the form from any record, seed held. **Copy record** copies the JSON. **Remove image** asks darkroom to delete the file and keeps the record.
 - **History** is where the app opens, from `GET /records`, filtered by outcome and mode, by the rule that fired (grouped by policy, since a letter means something different under each), and by **Prompt changed the verdict**: the records where a policy's isolated and with-prompt scans disagree, which is the comparison darkroom exists to show. Tick rows to remove their images, which keeps the records, or under `devmode` to purge the records too. A removed image is marked in the list and has its own filter. The URL holds the filter; a result's URL holds the record id.
+- **Docs.** The book icon opens darkroom's own docs at `/docs`, imported from its `dev` branch (README and the reference sections of `spec.md`) and labelled with the version and commit, with links to PyPI, GitHub at that commit and the changelog. The shield grid, every outcome, the policy picker and expansion link into them, and every record says which darkroom judged it: "Judged by argus-darkroom 0.1.4.dev18+g3cf0818, policy adult-granular, thinking cascade", read from the record.
 - **Purge all** exists only when `/health` reports `devmode`. The dialog counts what goes, offers the archive download first, and stays disabled until you type `purge`.
 
 | A deleted record | An omitted record |
@@ -85,7 +86,18 @@ make mock      # the fixture mock on :8106
 make dev       # next dev on :3097 (PORT)
 make check     # lint + typecheck + test + build, what CI runs
 make fixture   # redraw fixture/ (needs uv)
+make sync      # move to darkroom's dev HEAD: schema, wire types, docs, fixture (network; needs uv)
 ```
+
+## Keeping in step with darkroom
+
+Safelight tracks argus-darkroom's `dev` HEAD, never an old release. One sync record, [`web/schema/pins.json`](web/schema/pins.json), holds darkroom's repo, the `dev` commit, the package version at that commit (hatch-vcs's, e.g. `0.1.4.dev18+g3cf0818`) and a sha256 per imported file. From it:
+
+- **Wire types.** `web/src/lib/generated/darkroom.ts` is generated from darkroom's `schema/darkroom-wire.schema.json` at that commit (`make wire`), and `types.ts` re-exports the record types from it. `/health`, `/policies`, `/models`, the request and the stream events are not in darkroom's schema yet and stay hand-written.
+- **Docs.** `web/content/darkroom/` holds darkroom's `README.md` and `spec.md` exactly as they are at that commit. `/docs` renders them on the server as React elements: no raw HTML, no runtime fetch, no new CSP source. Links into darkroom's repo go to GitHub at the commit, and remote images (badges) are dropped.
+- **Fixture.** `fixture/darkroom.json` and every record's `darkroom_version` say which darkroom the fixture was recorded against.
+
+`make lint` (and CI) fails when any of them disagree with the record: a doc or the schema edited by hand, types not regenerated, or a fixture at another version. `make sync` moves everything to darkroom's `dev` HEAD in one step. It runs every fetched file through an opsec gate first, which refuses (and never redacts) private or link-local addresses, home and server paths, email addresses and any term in the `OPSEC_DENYLIST` environment variable (a CI secret, never committed). A scheduled workflow (`.github/workflows/darkroom-drift.yml`) does the same every day and opens a pull request when darkroom has moved, or an issue when the pull fails.
 
 ## The fixture
 

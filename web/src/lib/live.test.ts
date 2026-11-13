@@ -18,8 +18,8 @@ const request: GenerateRequest = {
   nsfw_threshold: 0.2,
 };
 
-const safe: Cell = { state: "safe", result: { safe: true, rules: [], explanation: null, model: null, thinking: "fast" }, error: null };
-const flagged: Cell = { state: "flagged", result: { safe: false, rules: ["B. Crimes"], explanation: "why", model: null, thinking: "slow" }, error: null };
+const safe: Cell = { state: "safe", result: { safe: true, rules: [], explanation: null, model: null, policy: "default", thinking: "fast" }, error: null };
+const flagged: Cell = { state: "flagged", result: { safe: false, rules: ["B. Crimes"], explanation: "why", model: null, policy: "default", thinking: "slow" }, error: null };
 
 const preflight = (outcome: Preflight["outcome"]): Preflight => ({
   mode: "nsfw",

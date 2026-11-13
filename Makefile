@@ -12,7 +12,7 @@ UV ?= uv
 PORT ?= 3097
 MOCK_PORT ?= 8106
 
-.PHONY: help install dev mock fixture build test lint check clean
+.PHONY: help install dev mock fixture sync wire build test lint check clean
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -29,14 +29,21 @@ mock:  ## Serve the fixture as a darkroom on :$(MOCK_PORT) (no GPU)
 fixture:  ## Redraw the committed fixture records and images (needs uv)
 	$(UV) run scripts/make_fixture.py
 
+sync:  ## Move to darkroom's dev HEAD: schema, wire types, docs, then re-record the fixture (network; needs uv)
+	cd web && $(NPM) run darkroom:pull
+	$(MAKE) fixture
+
+wire:  ## Regenerate the wire types from the committed schema (web/schema/pins.json)
+	cd web && $(NPM) run darkroom:types
+
 build:  ## next build
 	cd web && $(NPM) run build
 
 test:  ## vitest
 	cd web && $(NPM) test
 
-lint:  ## eslint + tsc
-	cd web && $(NPM) run lint && $(NPM) run typecheck
+lint:  ## eslint + tsc + the darkroom sync record (docs, wire types, fixture version)
+	cd web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run darkroom:check
 
 check: lint test build  ## Everything CI runs
 

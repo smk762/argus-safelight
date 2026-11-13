@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { DOCS, OLLAMA_SETUP } from "@/lib/docsLinks";
 import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed, renderMode, withCheckpoint } from "@/lib/compose";
 import { THINKING_MODES, type CheckpointOption, type Models, type ThinkingMode } from "@/lib/types";
 import { DEFAULT_GUIDANCE, checkpointOf, formWorkflow, loraAddBlock, renderable, usesSlot, workflowBlock, workflowFor } from "@/lib/workflows";
@@ -9,6 +10,7 @@ import { DEFAULT_GUIDANCE, checkpointOf, formWorkflow, loraAddBlock, renderable,
 import { useCompose } from "./ComposeProvider";
 import { useDarkroom } from "./DarkroomProvider";
 import { InputImageField } from "./InputImageField";
+import { DocsLink, ExternalLink } from "./links";
 import { PolicyPicker } from "./PolicyPicker";
 import { Button, SectionTitle, Spinner } from "./ui";
 
@@ -70,10 +72,19 @@ export function ComposeForm() {
           )}
           <div className="flex items-start gap-2">
             <input type="checkbox" id="expand" checked={compose.expand && !ollamaDown} disabled={ollamaDown} onChange={(event) => update({ expand: event.target.checked })} className="mt-1 accent-accent-primary" />
-            <label htmlFor="expand" className={`text-small ${ollamaDown ? "text-text-muted" : "text-text-primary"}`}>
-              Expand the prompt with Ollama
-              <span className="block text-caption text-text-muted">{ollamaDown ? "Disabled: /health reports Ollama unreachable." : "Check judges the prompt as written. Generate expands it, then judges the expansion before anything renders."}</span>
-            </label>
+            <div className="text-small">
+              <label htmlFor="expand" className={ollamaDown ? "text-text-muted" : "text-text-primary"}>
+                Expand the prompt with Ollama
+                <span className="block text-caption text-text-muted">{ollamaDown ? "Disabled: /health reports Ollama unreachable." : "Check judges the prompt as written. Generate expands it, then judges the expansion before anything renders."}</span>
+              </label>
+              {/* Outside the label, so following a link never toggles the box. */}
+              <span className="block text-caption text-text-muted">
+                <DocsLink href={DOCS.cli} newTab>
+                  How expansion is judged
+                </DocsLink>
+                , <ExternalLink href={OLLAMA_SETUP}>setting up Ollama</ExternalLink>.
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3">

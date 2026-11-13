@@ -23,9 +23,10 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
    - **refused:** the pre-flight panel, with the record.
    - **Age estimate**, when darkroom recorded one: one line per face, e.g. "MiVOLO estimate: 34". It is never shown as a bare age, never in a field labelled "Age", and never shown without the tool's name. Its hover text says it is an automated guess from a face and can be wrong. A deletion for `minor-exposed` says it was triggered by "a MiVOLO age estimate under 18 together with NudeNet exposure", not "a minor".
    - Every result offers **Regenerate**, which refills the form from the record, and **Copy record** (JSON).
-5. **History.** Records from `GET /records`, filterable by outcome and by mode. A filter called **Prompt changed the verdict** lists the records where the isolated and with-prompt scans disagree. That filter is the comparison the package exists to show.
+5. **Docs.** darkroom's own docs, imported at its `dev` HEAD, under `/docs`: the README as the overview, and the build doc's reference sections (flow, policies, verdicts, prompt framing, record, what it does not do) as the design. The header names the version and commit, with PyPI, GitHub at that commit and the changelog. The help in context links into it: the shield grid (the two scans, the cell states, thinking modes), each outcome's definition, the policy picker (policies, SFW and NSFW, illegal rules) and expansion. Each record has a "Judged by argus-darkroom <version>, policy <enforcing>, thinking <mode>" line, read from the record.
+6. **History.** Records from `GET /records`, filterable by outcome and by mode. A filter called **Prompt changed the verdict** lists the records where the isolated and with-prompt scans disagree. That filter is the comparison the package exists to show.
 
-6. **Purge all (dev only).** Shown only when `/health` reports `devmode: true`, which is darkroom's `ARGUS_DARKROOM_DEVMODE`, set from `DEVMODE=1` in the compose `.env`. Darkroom also refuses the purge when that is off, so the hidden button is not the only safeguard. Clicking it opens a dialog:
+7. **Purge all (dev only).** Shown only when `/health` reports `devmode: true`, which is darkroom's `ARGUS_DARKROOM_DEVMODE`, set from `DEVMODE=1` in the compose `.env`. Darkroom also refuses the purge when that is off, so the hidden button is not the only safeguard. Clicking it opens a dialog:
    - It states what will go: N records, M images, and darkroom's ComfyUI history. It cannot be undone.
    - **Download archive** (`GET /archive`) comes first, as the obvious step.
    - **Purge** stays disabled until the user types `purge`, then sends `POST /purge`.
@@ -53,7 +54,7 @@ default          [shield]    [shield]     ← advisory
 - Colour is never the only signal. Each shield also carries a mark and a text label, for colour-blind users and in both light and dark themes.
 - The **overall shield**, beside the image, takes the worst cell.
 - A **≠** badge appears when the two cells in a row disagree. A dashed outline on the with-prompt column appears when the prompt alone turned an isolated green into amber or red.
-- Hovering or tapping a shield shows the rule code, SingGuard's explanation, the thinking mode that judged it, and the cascade's fast verdict when there was one.
+- Hovering or tapping a shield shows the rule code, SingGuard's explanation and the thinking mode that judged it. (Darkroom's record carries no separate fast-pass verdict for the cascade; `thinking` says which pass answered.)
 - The pre-flight panel uses the same shields, one column wide.
 
 Once release narrows the policies to `default` and one adult policy, the grid is 2 × 2.

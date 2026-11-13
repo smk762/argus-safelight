@@ -9,9 +9,8 @@ import { Shield } from "./Shield";
 
 /**
  * One shield with its detail on hover, focus or tap: the rule, SingGuard's
- * explanation, the thinking mode that judged it, and the cascade's fast
- * verdict when there was one. The state and the words come from the cell;
- * nothing is reclassified here.
+ * explanation and the thinking mode that judged it. The state and the words
+ * come from the cell; nothing is reclassified here.
  */
 export function ShieldCell({
   cell,
@@ -143,15 +142,6 @@ export function ShieldDetail({ cell, heading }: { cell: Cell | null; heading: st
             <dt className="inline text-text-muted">Judged in: </dt>
             <dd className="inline">{result.thinking ?? "unknown mode"}</dd>
           </div>
-          {result.fast_verdict ? (
-            <div>
-              <dt className="inline text-text-muted">Cascade fast pass: </dt>
-              <dd className="inline">
-                {result.fast_verdict}
-                {result.fast_rule ? ` (${result.fast_rule})` : ""}
-              </dd>
-            </div>
-          ) : null}
         </dl>
       ) : null}
     </>
