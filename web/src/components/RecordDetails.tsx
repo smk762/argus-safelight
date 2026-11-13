@@ -1,23 +1,26 @@
-import type { GenerationRecord } from "@/lib/types";
+import { OUTCOME_TONE } from "@/lib/outcome";
+import type { GenerationRecord, NudeNetBlock } from "@/lib/types";
 
 import { AgeEstimate } from "./AgeEstimate";
-import { Collapsible, Kv } from "./ui";
+import { formatShare } from "./MaskPainter";
+import { ShieldGrid } from "./ShieldGrid";
+import { Badge, Collapsible, Kv } from "./ui";
 
 const short = (sha: string) => `${sha.slice(0, 12)}…`;
 
-/** NudeNet's reading as darkroom recorded it. */
-export function NudeNetLine({ record }: { record: GenerationRecord }) {
-  const block = record.guard.nudenet;
+/** NudeNet's reading as darkroom recorded it: the output's, or with `block`, the input image's. */
+export function NudeNetLine({ record, block: given }: { record: GenerationRecord; block?: NudeNetBlock | null }) {
+  const block = given === undefined ? record.guard.nudenet : given;
   if (!block) return <p className="text-small text-text-muted">{record.outcome === "refused" || record.outcome === "failed" ? "NudeNet did not run." : "NudeNet did not respond."}</p>;
   const labels = Object.entries(block.labels);
   return (
     <div className="text-small">
       {block.exposed_score == null ? (
-        <p className="text-text-primary">NudeNet did not respond{block.blur ? "; the image is blurred" : ""}.</p>
+        <p className="text-text-primary">NudeNet did not respond{given === undefined && block.blur ? "; the image is blurred" : ""}.</p>
       ) : (
         <p className="text-text-primary">
           NudeNet exposed score <span className="font-mono">{block.exposed_score.toFixed(2)}</span> against a threshold of <span className="font-mono">{block.threshold.toFixed(2)}</span>
-          {record.request.mode === "nsfw" ? (block.blur ? "; blurred until revealed." : "; not blurred.") : "."}
+          {given === undefined && record.request.mode === "nsfw" ? (block.blur ? "; blurred until revealed." : "; not blurred.") : "."}
         </p>
       )}
       {labels.length > 0 ? (
@@ -155,6 +158,64 @@ export function ChecksCard({ record }: { record: GenerationRecord }) {
         <NudeNetLine record={record} />
         <AgeEstimate age={record.guard.age} />
       </div>
+    </Collapsible>
+  );
+}
+
+/**
+ * The image-to-image input: what darkroom recorded of it (size, denoise, hashes, the mask's share) and its own scan.
+ * Darkroom never stores the input's pixels, so there is nothing to show of the picture itself.
+ */
+export function InputImageCard({ record }: { record: GenerationRecord }) {
+  const init = record.request.init_image;
+  const input = record.guard.input;
+  if (!init) return null;
+  return (
+    <Collapsible title={init.mask ? "Input image and mask" : "Input image"} defaultOpen={input != null && input.outcome !== "passed"}>
+      <p className="text-caption text-text-muted">Darkroom never stores the input&apos;s pixels, so the record has no picture of it: only its hashes, size and scan.</p>
+      <dl className="mt-2 divide-y divide-base-600/40">
+        <Kv label="Size (upright)">
+          <span className="font-mono">
+            {init.width} × {init.height}
+          </span>
+        </Kv>
+        <Kv label="Denoise">
+          <span className="font-mono">{init.denoise}</span>
+        </Kv>
+        <Kv label="sha256 (as rendered)" title={init.sha256}>
+          <span className="font-mono">{short(init.sha256)}</span>
+        </Kv>
+        <Kv label="sha256 (as sent)" title={init.source_sha256}>
+          <span className="font-mono">{short(init.source_sha256)}</span>
+        </Kv>
+        <Kv label="pHash">
+          <span className="font-mono">{init.phash}</span>
+        </Kv>
+        {init.mask ? (
+          <>
+            <Kv label="Mask repaints">
+              <span className="font-mono">{formatShare(init.mask.masked_fraction)}</span>
+            </Kv>
+            <Kv label="Mask sha256" title={`as rendered ${init.mask.sha256}, as sent ${init.mask.source_sha256}`}>
+              <span className="font-mono">{short(init.mask.sha256)}</span>
+            </Kv>
+          </>
+        ) : null}
+      </dl>
+      {input ? (
+        <div className="mt-3 space-y-3 border-t border-base-600/40 pt-3">
+          <p className="flex flex-wrap items-center gap-2 text-small text-text-primary">
+            Input scan <Badge className={OUTCOME_TONE[input.outcome]}>{input.outcome}</Badge>
+            {input.reason ? <span className="font-mono text-caption text-text-secondary">{input.reason}</span> : null}
+          </p>
+          <ShieldGrid guard={{ enforcing_policy: record.guard.enforcing_policy, advisory_policies: record.guard.advisory_policies, scans: input.scans }} />
+          <NudeNetLine record={record} block={input.nudenet} />
+          <AgeEstimate age={input.age} />
+          {init.mask ? <p className="text-caption text-text-muted">The mask was not scanned: it selects a region and carries no imagery. The output is scanned as usual.</p> : null}
+        </div>
+      ) : (
+        <p className="mt-3 text-caption text-text-muted">The input was not scanned: pre-flight refused the prompt first.</p>
+      )}
     </Collapsible>
   );
 }

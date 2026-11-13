@@ -8,6 +8,14 @@
         0,
         1,
         2
+      ],
+      "img2img_lora_counts": [
+        0,
+        1
+      ],
+      "inpaint_lora_counts": [
+        0,
+        1
       ]
     },
     {
@@ -18,6 +26,14 @@
         0,
         1,
         2
+      ],
+      "img2img_lora_counts": [
+        0,
+        1
+      ],
+      "inpaint_lora_counts": [
+        0,
+        1
       ]
     },
     {
@@ -28,7 +44,9 @@
         0,
         1,
         2
-      ]
+      ],
+      "img2img_lora_counts": [],
+      "inpaint_lora_counts": []
     },
     {
       "name": "flux-klein/argus-klein-4b.safetensors",
@@ -36,7 +54,9 @@
       "family": "flux-klein",
       "lora_counts": [
         0
-      ]
+      ],
+      "img2img_lora_counts": [],
+      "inpaint_lora_counts": []
     },
     {
       "name": "sd35/argus-sd35-medium.safetensors",
@@ -44,13 +64,17 @@
       "family": "sd35",
       "lora_counts": [
         0
-      ]
+      ],
+      "img2img_lora_counts": [],
+      "inpaint_lora_counts": []
     },
     {
       "name": "pony/argus-pony-v1.safetensors",
       "sha256": "9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d",
       "family": "pony",
-      "lora_counts": []
+      "lora_counts": [],
+      "img2img_lora_counts": [],
+      "inpaint_lora_counts": []
     }
   ],
   "default_checkpoint": "sdxl/argus-photo-v2.safetensors",
@@ -76,6 +100,8 @@
       "name": "flux",
       "family": "flux",
       "loras": 0,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -93,6 +119,8 @@
       "name": "flux+lora1",
       "family": "flux",
       "loras": 1,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -110,6 +138,8 @@
       "name": "flux+lora2",
       "family": "flux",
       "loras": 2,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -127,6 +157,8 @@
       "name": "flux-klein",
       "family": "flux-klein",
       "loras": 0,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -143,6 +175,8 @@
       "name": "sd35",
       "family": "sd35",
       "loras": 0,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -160,6 +194,8 @@
       "name": "sdxl",
       "family": "sdxl",
       "loras": 0,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -178,6 +214,8 @@
       "name": "sdxl+lora1",
       "family": "sdxl",
       "loras": 1,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
@@ -196,11 +234,103 @@
       "name": "sdxl+lora2",
       "family": "sdxl",
       "loras": 2,
+      "mode": "txt2img",
+      "img2img": false,
       "slots": [
         "$base_checkpoint",
         "$cfg",
         "$clip_skip",
         "$height",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+img2img",
+      "family": "sdxl",
+      "loras": 0,
+      "mode": "img2img",
+      "img2img": true,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$denoise",
+        "$height",
+        "$init_image",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+lora1+img2img",
+      "family": "sdxl",
+      "loras": 1,
+      "mode": "img2img",
+      "img2img": true,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$denoise",
+        "$height",
+        "$init_image",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+inpaint",
+      "family": "sdxl",
+      "loras": 0,
+      "mode": "inpaint",
+      "img2img": false,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$denoise",
+        "$height",
+        "$init_image",
+        "$init_mask",
+        "$negative",
+        "$positive",
+        "$sampler",
+        "$scheduler",
+        "$seed",
+        "$steps",
+        "$width"
+      ]
+    },
+    {
+      "name": "sdxl+lora1+inpaint",
+      "family": "sdxl",
+      "loras": 1,
+      "mode": "inpaint",
+      "img2img": false,
+      "slots": [
+        "$base_checkpoint",
+        "$cfg",
+        "$clip_skip",
+        "$denoise",
+        "$height",
+        "$init_image",
+        "$init_mask",
         "$negative",
         "$positive",
         "$sampler",

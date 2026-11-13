@@ -1,5 +1,6 @@
-import type { GenerateRequest, GenerationRecord, Health, LoRAChoice, Mode, Models, Policies, PolicyInfo, SamplingParams, ThinkingMode } from "./types";
-import { DEFAULT_GUIDANCE, checkpointOf, familySampling, formWorkflow, renderable, usesSlot, workflowBlock } from "./workflows";
+import { DEFAULT_DENOISE, clampDenoise, type InputImage, type InputMask } from "./initImage";
+import type { GenerateRequest, GenerationRecord, Health, InitImageRef, LoRAChoice, Mode, Models, Policies, PolicyInfo, SamplingParams, ThinkingMode } from "./types";
+import { DEFAULT_GUIDANCE, checkpointOf, familySampling, formWorkflow, renderable, usesSlot, workflowBlock, type RenderMode } from "./workflows";
 
 /** The compose form. Everything a request needs, plus whether the seed is held. */
 export interface ComposeState {
@@ -16,6 +17,17 @@ export interface ComposeState {
   advisoryPolicies: string[];
   thinking: ThinkingMode;
   nsfwThreshold: number;
+  /** Image-to-image: how much of the input the sampler replaces. Kept when the image goes, so a draft holds it. */
+  denoise: number;
+  /** The input image, in memory only. Never written to browser storage. */
+  initImage: InputImage | null;
+  /** The inpainting mask, the input's size. Only with an input image. */
+  mask: InputMask | null;
+  /**
+   * The input a refilled record was made from. Darkroom keeps no input pixels, so the form cannot refill the image:
+   * Generate waits until the image is chosen again or the user goes on from text.
+   */
+  recordInput: InitImageRef | null;
 }
 
 export const DEFAULT_NEGATIVE = "blurry, low quality, text, watermark";
@@ -79,7 +91,17 @@ export function defaultCompose(health: Health | null, policies: Policies | null,
     advisoryPolicies: [],
     thinking,
     nsfwThreshold: NSFW_THRESHOLD_MIN,
+    denoise: DEFAULT_DENOISE,
+    initImage: null,
+    mask: null,
+    recordInput: null,
   };
+}
+
+/** What the form renders from: text, an input image, or an input image with a mask. */
+export function renderMode(state: Pick<ComposeState, "initImage" | "mask">): RenderMode {
+  if (!state.initImage) return "txt2img";
+  return state.mask ? "inpaint" : "img2img";
 }
 
 const THINKING: readonly ThinkingMode[] = ["fast", "fast-slow", "slow", "cascade"];
@@ -119,7 +141,7 @@ export function canExpand(health: Health | null): boolean {
  * it, which darkroom requires. The form hides the same fields, so what it shows is what is sent.
  */
 export function toRequest(state: ComposeState, expandable = true, models: Models | null = null): GenerateRequest {
-  const workflow = formWorkflow(models, state.checkpoint, state.loras.length);
+  const workflow = formWorkflow(models, state.checkpoint, state.loras.length, renderMode(state));
   const { guidance, ...rest } = state.sampling;
   const sampling: SamplingParams = {
     ...rest,
@@ -138,8 +160,25 @@ export function toRequest(state: ComposeState, expandable = true, models: Models
     seed: state.seedLocked ? state.seed : null,
     sampling,
     nsfw_threshold: state.nsfwThreshold,
+    ...(state.initImage
+      ? { init_image: { data_base64: state.initImage.dataBase64, denoise: clampDenoise(state.denoise), ...(state.mask ? { mask_base64: state.mask.dataBase64 } : {}) } }
+      : {}),
   };
 }
+
+/**
+ * The request without the input's pixels: what `POST /preflight` gets (darkroom's pre-flight judges the text alone, so
+ * the image need not travel), and what the form compares and keeps, so a 16 MiB string is not copied on every render.
+ */
+export function withoutPixels(request: GenerateRequest): GenerateRequest {
+  if (!request.init_image) return request;
+  const { init_image: _pixels, ...rest } = request;
+  void _pixels;
+  return rest;
+}
+
+/** Whether a pre-flight verdict still answers the form: the same text, policies and settings. Never holds pixels. */
+export const preflightKey = (request: GenerateRequest): string => JSON.stringify(withoutPixels(request));
 
 /**
  * The form refilled from a record, seed held, so Regenerate repeats the run exactly. A record refused in pre-flight
@@ -161,12 +200,19 @@ export function fromRecord(record: GenerationRecord, base: ComposeState): Compos
     advisoryPolicies: [...guard.advisory_policies],
     thinking: (THINKING.includes(guard.thinking as ThinkingMode) ? guard.thinking : base.thinking) as ThinkingMode,
     nsfwThreshold: guard.nudenet?.threshold ?? base.nsfwThreshold,
+    // The record names its input by hashes only: the image has to be chosen again, and the mask painted again.
+    denoise: request.init_image?.denoise ?? base.denoise,
+    initImage: null,
+    mask: null,
+    recordInput: request.init_image ?? null,
   };
 }
 
 export function randomSeed(): number {
   return Math.floor(Math.random() * 2 ** 32);
 }
+
+export const RECORD_INPUT_BLOCK = "This record was made from an input image, and darkroom keeps no input pixels. Choose the image again, or go on from text.";
 
 export const READ_ONLY_BLOCK = "Darkroom is read-only: it refuses every write, pre-flight included.";
 
@@ -178,7 +224,8 @@ export function generateBlock(health: Health | null, error: string | null, state
   if (!health.backends.singguard) return "SingGuard is unreachable. Darkroom never runs unguarded.";
   if (!health.backends.comfyui) return "ComfyUI is unreachable.";
   if (policyMode(policies, state.enforcingPolicy) === "sfw" && !health.sfw_available) return "SFW generation needs NudeNet, which this server does not have.";
-  const workflow = workflowBlock(models, state.checkpoint, state.loras.length);
+  if (state.recordInput && !state.initImage) return RECORD_INPUT_BLOCK;
+  const workflow = workflowBlock(models, state.checkpoint, state.loras.length, renderMode(state));
   if (workflow) return workflow;
   if (!state.userPrompt.trim()) return "Write a prompt first.";
   return null;

@@ -122,10 +122,10 @@ describe("History", () => {
     fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
     expect((screen.getByRole("button", { name: "Remove 0 images" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("checkbox", { name: "1 selected" }));
-    fireEvent.click(screen.getByRole("button", { name: "Remove 4 images" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove 6 images" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Removed 0 of 4: darkroom is read-only"));
-    expect(await screen.findByText("4 selected")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Removed 0 of 6: darkroom is read-only"));
+    expect(await screen.findByText("6 selected")).toBeTruthy();
   });
 
   it("marks a record whose image was removed, with no img element, and filters to those", async () => {

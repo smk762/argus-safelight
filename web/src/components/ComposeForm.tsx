@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed, withCheckpoint } from "@/lib/compose";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed, renderMode, withCheckpoint } from "@/lib/compose";
 import { THINKING_MODES, type CheckpointOption, type Models, type ThinkingMode } from "@/lib/types";
 import { DEFAULT_GUIDANCE, checkpointOf, formWorkflow, loraAddBlock, renderable, usesSlot, workflowBlock, workflowFor } from "@/lib/workflows";
 
 import { useCompose } from "./ComposeProvider";
 import { useDarkroom } from "./DarkroomProvider";
+import { InputImageField } from "./InputImageField";
 import { PolicyPicker } from "./PolicyPicker";
 import { Button, SectionTitle, Spinner } from "./ui";
 
@@ -35,10 +36,11 @@ export function ComposeForm() {
   const checking = preflight.state === "checking";
   const block = generateBlock(health, error, compose, policies, models);
   // The template darkroom will choose decides which fields a request may set; the form shows only those.
-  const workflow = formWorkflow(models, compose.checkpoint, compose.loras.length);
-  const chosen = workflowFor(models, compose.checkpoint, compose.loras.length);
-  const unrenderable = workflowBlock(models, compose.checkpoint, compose.loras.length);
-  const addBlock = loraAddBlock(models, compose.checkpoint, compose.loras.length);
+  const mode = renderMode(compose);
+  const workflow = formWorkflow(models, compose.checkpoint, compose.loras.length, mode);
+  const chosen = workflowFor(models, compose.checkpoint, compose.loras.length, mode);
+  const unrenderable = workflowBlock(models, compose.checkpoint, compose.loras.length, mode);
+  const addBlock = loraAddBlock(models, compose.checkpoint, compose.loras.length, mode);
   const family = checkpointOf(models, compose.checkpoint)?.family ?? null;
   const hasNegative = usesSlot(workflow, "$negative");
   const hasGuidance = usesSlot(workflow, "$guidance");
@@ -152,6 +154,8 @@ export function ComposeForm() {
               <p className="mt-1 text-caption text-text-muted">The trigger words you enter are appended to the final prompt by darkroom, after any expansion. They are checked with it.</p>
             </div>
           </div>
+
+          <InputImageField compose={compose} models={models} update={update} />
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Thinking mode" htmlFor="thinking" hint="fast is a verdict and rule; the others also write why. cascade runs fast, then slow on what fast flags.">

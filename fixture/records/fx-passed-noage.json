@@ -34,7 +34,8 @@
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
     "workflow": "flux",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "default",
@@ -91,7 +92,8 @@
       "threshold": 0.2,
       "blur": false
     },
-    "age": null
+    "age": null,
+    "input": null
   },
   "image": {
     "sha256": "3954fc108dc4c1887e76f9e8c99949d8548009ee533f29435deb9d30e7608159",
