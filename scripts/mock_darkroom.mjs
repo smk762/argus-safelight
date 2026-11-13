@@ -60,7 +60,8 @@ const NUDENET = flag("MOCK_NUDENET");
 const AGE = flag("MOCK_AGE");
 const STEP_MS = Number(process.env.MOCK_STEP_MS || 60);
 const SCAN_MS = Number(process.env.MOCK_SCAN_MS || 350);
-const VERSION = "0.0.0+mock";
+// The darkroom version the fixture was recorded against (`make fixture`, from web/schema/pins.json).
+const VERSION = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixture", "darkroom.json"), "utf8")).version;
 const MODEL = "SingGuard-4b";
 const SIZE = 512;
 const MAX_PAGE = 200;
@@ -243,16 +244,17 @@ const nonIllegalRule = (name) => (name === "default" ? "A. Sexual Content Risk" 
 /** `policy:letter`, as darkroom writes a rule into `outcome_reason`. */
 const ruleCode = (policy, rule) => `${policy}:${rule.slice(0, 1)}`;
 
-function guard(safe, rules, explanation, thinking, fast) {
-  const out = { safe, rules, explanation, model: MODEL, thinking };
-  if (fast != null) {
-    out.fast_verdict = fast;
-    out.fast_rule = fast === "unsafe" ? rules[0] ?? null : null;
-  }
-  return out;
-}
-const safeCell = (thinking) => ({ state: "safe", result: guard(true, [], "No rule matched.", thinking === "cascade" ? "fast" : thinking, thinking === "cascade" ? "safe" : null), error: null });
-const flaggedCell = (rule, why, thinking) => ({ state: "flagged", result: guard(false, [rule], why, thinking === "cascade" ? "slow" : thinking, thinking === "cascade" ? "unsafe" : null), error: null });
+/** How cortex's GuardResult names the policy it judged against: `default`, or `custom-` and a sha256 prefix of the text. */
+const policyName = (name) => {
+  const text = POLICIES.get(name)?.text;
+  return text == null ? "default" : `custom-${createHash("sha256").update(text.trim()).digest("hex").slice(0, 12)}`;
+};
+/** A cell as judged under `name`: its result carries that policy, as darkroom's records do. */
+const judgedBy = (name, cell) => (cell.result ? { ...cell, result: { ...cell.result, policy: policyName(name) } } : cell);
+
+const guard = (safe, rules, explanation, thinking) => ({ safe, rules, explanation, model: MODEL, policy: "default", thinking });
+const safeCell = (thinking) => ({ state: "safe", result: guard(true, [], "No rule matched.", thinking === "cascade" ? "fast" : thinking), error: null });
+const flaggedCell = (rule, why, thinking) => ({ state: "flagged", result: guard(false, [rule], why, thinking === "cascade" ? "slow" : thinking), error: null });
 const illegalCell = (rule, why, thinking) => ({ ...flaggedCell(rule, why, thinking), state: "illegal" });
 const uncheckedCell = (error) => ({ state: "unchecked", result: null, error });
 
@@ -295,6 +297,7 @@ function preflight(body) {
     } else {
       results[name] = safeCell(thinking);
     }
+    results[name] = judgedBy(name, results[name]);
   }
   let outcome = "ok";
   let refusal = null;
@@ -483,6 +486,7 @@ async function generate(body, send, input = null) {
         let cell = SINGGUARD ? safeCell(thinking) : uncheckedCell("SingGuard unreachable");
         const rule = firstIllegal(name);
         if (user.includes("[input-illegal]") && context === "isolated" && rule) cell = illegalCell(rule, `[Step 1] The input image alone matches rule ${rule.slice(0, 1)} under this policy.`, thinking);
+        cell = judgedBy(name, cell);
         inputScans[name][context] = cell;
         send("input_scan", { policy: name, context, cell });
       }
@@ -550,7 +554,7 @@ async function generate(body, send, input = null) {
   for (const name of names) {
     for (const context of ["isolated", "with_prompt"]) {
       await sleep(SCAN_MS);
-      const cell = cellFor(name, context);
+      const cell = judgedBy(name, cellFor(name, context));
       scans[name][context] = cell;
       send("scan", { policy: name, context, cell });
     }

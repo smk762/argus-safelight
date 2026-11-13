@@ -8,4 +8,8 @@ Darkroom records for every outcome, and the images the served ones keep, so the 
 
 The verdicts are written by hand to exercise the UI, not earned by the pictures. No sexual, violent or otherwise flagged content, generated or otherwise, goes in here.
 
-Regenerate with `uv run scripts/make_fixture.py` (or `make fixture`).
+- `darkroom.json`: the darkroom the fixture is recorded against, its repo, `dev` commit and version, copied from the sync record (`web/schema/pins.json`). Every record's `darkroom_version` is that version, and the mock reports it from `/health`. `make lint` fails when the two disagree.
+
+Every record is checked against darkroom's wire schema with every field present, as darkroom serves it (`web/src/lib/wire.test.ts`).
+
+Regenerate with `uv run scripts/make_fixture.py` (or `make fixture`). `make sync` moves the sync record to darkroom's `dev` HEAD first.

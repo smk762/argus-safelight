@@ -1,11 +1,13 @@
 "use client";
 
+import { DOCS, OUTCOME_DOCS, THINKING_DOCS } from "@/lib/docsLinks";
 import { OUTCOME_LABEL, OUTCOME_TONE, OVERALL_NOTE, hasImage } from "@/lib/outcome";
 import { allCells, overallState, ruleLetters } from "@/lib/shields";
 import { ago, formatWhen } from "@/lib/time";
 import type { GenerationRecord } from "@/lib/types";
 
 import { DeletedTile, FailedTile, ImageTile, OmittedTile, RefusedPanel } from "./OutcomeTiles";
+import { DocsLink } from "./links";
 import { ChecksCard, InputImageCard, ParametersCard, PromptsCard, RecordJson } from "./RecordDetails";
 import { Shield } from "./Shield";
 import { ShieldGrid } from "./ShieldGrid";
@@ -30,8 +32,12 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
           {ago(record.created_at)}
         </span>
         <span className="font-mono text-caption text-text-muted">{record.id}</span>
+        <DocsLink href={OUTCOME_DOCS[record.outcome]} className="text-caption text-accent-tertiary underline-offset-2 hover:underline">
+          What {record.outcome} means
+        </DocsLink>
         {actions ? <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div> : null}
       </header>
+      <MadeWith record={record} />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-3">
@@ -63,7 +69,10 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
           {scanned ? (
             <Card>
               <SectionTitle>Output scans</SectionTitle>
-              <p className="mt-1 text-caption text-text-muted">Each policy judged the image alone, then with the final prompt. Hover or tap a shield for the rule and SingGuard&apos;s words.</p>
+              <p className="mt-1 text-caption text-text-muted">
+                Each policy judged the image alone, then with the final prompt. Hover or tap a shield for the rule and SingGuard&apos;s words. In darkroom&apos;s docs: <DocsLink href={DOCS.scans}>the two scans</DocsLink>,{" "}
+                <DocsLink href={DOCS.verdicts}>what each shield means</DocsLink> and <DocsLink href={THINKING_DOCS}>thinking modes</DocsLink>.
+              </p>
               <div className="mt-3 overflow-x-auto">
                 <ShieldGrid guard={record.guard} />
               </div>
@@ -77,5 +86,16 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
       </div>
       <RecordJson record={record} />
     </article>
+  );
+}
+
+/** Which darkroom judged this record, and how: read from the record, never from this build's own pin. */
+export function MadeWith({ record }: { record: GenerationRecord }) {
+  return (
+    <p className="text-caption text-text-muted">
+      Judged by <span className="font-semibold text-text-secondary">argus-darkroom {record.darkroom_version}</span>, policy <span className="font-mono text-text-secondary">{record.guard.enforcing_policy}</span>, thinking{" "}
+      <span className="font-mono text-text-secondary">{record.guard.thinking}</span>.{" "}
+      <DocsLink href={DOCS.home}>Docs</DocsLink>
+    </p>
   );
 }

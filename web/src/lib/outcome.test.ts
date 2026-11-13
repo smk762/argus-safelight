@@ -84,11 +84,11 @@ describe("an input image's refusal", () => {
   it("names the rule and the input's scan context for an illegal input, and an MiVOLO estimate for minor-exposed", () => {
     const base = fixtureRecord("fx-refused-input");
     const input = base.guard.input!;
-    const illegal = { state: "illegal" as const, result: { safe: false, rules: ["A. Illegal Sexual Content"], explanation: null, model: null, thinking: "fast" }, error: null };
+    const illegal = { state: "illegal" as const, result: { safe: false, rules: ["A. Illegal Sexual Content"], explanation: null, model: null, policy: "default", thinking: "fast" }, error: null };
     const record = {
       ...base,
       outcome_reason: "input image: default:A, minor-exposed",
-      guard: { ...base.guard, input: { ...input, outcome: "deleted" as const, reason: "default:A, minor-exposed", scans: { default: { ...input.scans.default, isolated: illegal } }, age: { source: "mivolo", faces: [], minor_exposed: true } } },
+      guard: { ...base.guard, input: { ...input, outcome: "deleted" as const, reason: "default:A, minor-exposed", scans: { default: { ...input.scans.default, isolated: illegal } }, age: { source: "mivolo" as const, faces: [], minor_exposed: true } } },
     };
     const lines = inputRefusalSummary(record).lines;
     expect(lines[0]).toBe("Rule A. Illegal Sexual Content fired under default, in the isolated scan of the input image.");

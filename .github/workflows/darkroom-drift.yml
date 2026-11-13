@@ -1,0 +1,124 @@
+name: Darkroom drift
+
+# Keeps the docs, wire types and fixture at argus-darkroom's dev HEAD. When dev
+# has moved past the commit in web/schema/pins.json, this pulls it (through the
+# opsec gate), re-records the fixture, and opens a pull request into dev. A pull
+# the gate refuses, or one that cannot run, opens an issue instead.
+#
+# A pull request opened with GITHUB_TOKEN does not start other workflows, so this
+# job runs the checks itself and reports them in the PR. Push to the branch (or
+# close and reopen the PR) to run CI on it before merging.
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency: darkroom-drift
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci
+        working-directory: web
+
+      - name: Pull darkroom dev HEAD through the opsec gate
+        id: pull
+        working-directory: web
+        env:
+          OPSEC_DENYLIST: ${{ secrets.OPSEC_DENYLIST }}
+        run: npm run darkroom:pull 2>&1 | tee "$RUNNER_TEMP/pull.log"; exit "${PIPESTATUS[0]}"
+
+      - name: Re-record the fixture at that version
+        run: uv run scripts/make_fixture.py
+
+      - name: Has anything moved?
+        id: diff
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+            node -e 'const p=require("./web/schema/pins.json").darkroom;console.log(`short=${p.commit.slice(0,7)}\nversion=${p.version}`)' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checks
+        id: checks
+        if: steps.diff.outputs.moved == 'true'
+        continue-on-error: true
+        working-directory: web
+        run: |
+          set -o pipefail
+          { npm run lint && npm run typecheck && npm run darkroom:check && npm test; } 2>&1 | tail -n 60 | tee "$RUNNER_TEMP/checks.log"
+
+      - name: Open the sync pull request
+        if: steps.diff.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHORT: ${{ steps.diff.outputs.short }}
+          VERSION: ${{ steps.diff.outputs.version }}
+          CHECKS: ${{ steps.checks.outcome }}
+        run: |
+          branch="sync/darkroom-$SHORT"
+          if git ls-remote --exit-code origin "refs/heads/$branch" > /dev/null; then
+            echo "$branch already exists; its pull request is open or was handled."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -A
+          git commit -m "Sync to argus-darkroom dev @ $SHORT ($VERSION): docs, wire types, fixture"
+          git push origin "$branch"
+          {
+            echo "argus-darkroom \`dev\` moved to \`$SHORT\` (\`$VERSION\`). This pulls its wire schema and docs through the opsec gate, regenerates the wire types and re-records the fixture at that version, so all of them move together."
+            echo
+            if [ "$CHECKS" = "success" ]; then
+              echo "lint, typecheck, \`darkroom:check\` and the tests passed in the drift job."
+            else
+              echo "**The checks failed in the drift job.** Fix what darkroom changed (often \`types.ts\`, the fixture script or the mock) on this branch before merging:"
+              echo
+              echo '```'
+              cat "$RUNNER_TEMP/checks.log"
+              echo '```'
+            fi
+            echo
+            echo "Opened with GITHUB_TOKEN, so CI has not run on this PR: push to the branch, or close and reopen it, before merging."
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base dev --head "$branch" --title "Sync to argus-darkroom dev @ $SHORT" --body-file "$RUNNER_TEMP/body.md"
+
+      - name: Report a pull that failed
+        if: failure() && steps.pull.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Darkroom drift: the pull from dev failed"
+          if [ -n "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')" ]; then
+            echo "An issue is already open."
+            exit 0
+          fi
+          {
+            echo "The scheduled pull of argus-darkroom \`dev\` failed, so safelight's docs, wire types and fixture stay at the commit in \`web/schema/pins.json\`. If the opsec gate refused it, fix the doc in darkroom: the gate never redacts."
+            echo
+            # The log stays in the run: a gate refusal names what it matched, which should not be copied anywhere else.
+            if grep -q "opsec gate refused" "$RUNNER_TEMP/pull.log"; then echo "The opsec gate refused it. The files and lines are in the run's log."; fi
+            echo
+            echo "Run: $RUN"
+          } > "$RUNNER_TEMP/issue.md"
+          gh issue create --title "$title" --body-file "$RUNNER_TEMP/issue.md"

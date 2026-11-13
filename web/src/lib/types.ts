@@ -39,170 +39,47 @@ export const SCAN_CONTEXTS: readonly ScanContext[] = ["isolated", "with_prompt"]
 export type ThinkingMode = "fast" | "fast-slow" | "slow" | "cascade";
 export const THINKING_MODES: readonly ThinkingMode[] = ["fast", "fast-slow", "slow", "cascade"];
 
-export type CellState = "safe" | "flagged" | "illegal" | "unchecked";
+export type CellState = Cell["state"];
 
-/** SingGuard's verdict, as argus-cortex records it, plus the cascade's fast pass when the server reports one. */
-export interface GuardResult {
-  safe: boolean;
-  /** The rules that fired, as the policy names them ("H. Non-Consensual Sexual Content"); empty when safe. */
-  rules: string[];
-  explanation: string | null;
-  model: string | null;
-  thinking: ThinkingMode | string | null;
-  fast_verdict?: "safe" | "unsafe" | null;
-  fast_rule?: string | null;
-}
+/*
+ * The record, as darkroom serializes it: generated from darkroom's wire schema at the commit in `schema/pins.json`
+ * (`npm run darkroom:types`), never edited by hand. Re-exported under the names the app uses. The rest of this file
+ * (health, policies, models, requests, pre-flight, stream events) is not in darkroom's schema yet and is written
+ * against its README.
+ */
+import type {
+  AgeRecord,
+  Cell,
+  FaceAge,
+  GenerationRecord,
+  GuardRecord,
+  GuardResult,
+  ImageRecord,
+  InitImageRef,
+  InputScanRecord,
+  LoRARef,
+  MaskRef,
+  ModelRef,
+  NudeNetRecord,
+  RequestRecord,
+  SamplingParams,
+  ScanCells,
+} from "./generated/darkroom";
 
-/** One policy × one context. The state is darkroom's classification; the browser does not redo it. */
-export interface Cell {
-  state: CellState;
-  result: GuardResult | null;
-  error: string | null;
-}
-
-export interface ScanPair {
-  isolated: Cell;
-  with_prompt: Cell;
-}
-
-export interface ModelRef {
-  name: string;
-  sha256: string;
-}
-
-export interface LoRARef extends ModelRef {
-  weight: number;
-  /** The words the request supplied for this LoRA, already in the final prompt. Older records have none. */
-  trigger_words?: string[];
-}
-
-export interface SamplingParams {
-  sampler: string;
-  scheduler: string;
-  steps: number;
-  cfg: number;
-  /** Flux's distilled guidance, for a workflow with a `$guidance` slot. Null or absent: not used, and darkroom 400s a value the workflow has no slot for. */
-  guidance?: number | null;
-  clip_skip: number;
-  width: number;
-  height: number;
-}
-
-export interface RecordRequest {
-  mode: Mode;
-  user_prompt: string;
-  expanded_prompt: string | null;
-  final_prompt: string;
-  negative_prompt: string;
-  expansion: { model: string; system_prompt_sha256: string } | null;
-  /** Null on a record refused in pre-flight unless the request held a seed: none was drawn. */
-  seed: number | null;
-  /** This and the fields below are null on a record refused in pre-flight: nothing was resolved or hashed. `loras` is empty. */
-  sampling: SamplingParams | null;
-  checkpoint: ModelRef | null;
-  vae: ModelRef | null;
-  loras: LoRARef[];
-  workflow_sha256: string | null;
-  /** The template darkroom chose by checkpoint family and LoRA count (its file stem, e.g. `flux+lora1`). Null on a record refused in pre-flight. */
-  workflow: string | null;
-  engine: string;
-  engine_version: string | null;
-  /** Image-to-image: the input's identity and denoise, never its pixels. Null (or absent, before darkroom's img2img) for text-to-image. */
-  init_image?: InitImageRef | null;
-}
-
-/** An image-to-image input as darkroom judged and rendered it: decoded, upright, RGB, re-encoded as a PNG. */
-export interface InitImageRef {
-  sha256: string;
-  phash: string;
-  width: number;
-  height: number;
-  /** Of the bytes the caller sent, before darkroom re-encoded them. */
-  source_sha256: string;
-  denoise: number;
-  /** Inpainting: the mask's identity, never its pixels. Null (or absent) for plain image-to-image. */
-  mask?: MaskRef | null;
-}
-
-/** An inpainting mask as ComfyUI got it: upright, cut at 128, re-encoded as a 1-bit PNG. Not scanned: it carries no imagery. */
-export interface MaskRef {
-  sha256: string;
-  /** Of the bytes the caller sent. */
-  source_sha256: string;
-  /** The share of the image repainted, 0 to 1. */
-  masked_fraction: number;
-}
-
-export interface NudeNetBlock {
-  /** Null when NudeNet did not answer (an NSFW record keeps the block with blur on). */
-  exposed_score: number | null;
-  labels: Record<string, number>;
-  threshold: number;
-  blur: boolean;
-}
-
+export type { Cell, GenerationRecord, GuardResult, InitImageRef, LoRARef, MaskRef, ModelRef, SamplingParams };
+export type ScanPair = ScanCells;
+export type RecordRequest = RequestRecord;
+export type NudeNetBlock = NudeNetRecord;
 /** A tool's estimate from a face. Shown only as "MiVOLO estimate", never as an age. */
-export interface AgeFace {
-  age_estimate_years: number;
-  bbox: [number, number, number, number];
-}
-
-export interface AgeBlock {
-  source: "mivolo" | string;
-  faces: AgeFace[];
-  minor_exposed: boolean;
-}
-
-export interface GuardBlock {
-  enforcing_policy: string;
-  advisory_policies: string[];
-  thinking: ThinkingMode | string;
-  preflight: Record<string, Cell>;
-  /** Empty for refused and failed records. */
-  scans: Record<string, ScanPair>;
-  nudenet: NudeNetBlock | null;
-  age: AgeBlock | null;
-  /** The image-to-image input's own scan, before anything reached ComfyUI. Null for text-to-image and when pre-flight refused first. */
-  input?: InputScanBlock | null;
-}
-
+export type AgeFace = FaceAge;
+export type AgeBlock = AgeRecord;
+export type GuardBlock = GuardRecord;
 /** An input image gets an output's checks and goes on only when `outcome` is "passed"; anything else refuses the attempt ("input image: …"). */
-export interface InputScanBlock {
-  scans: Record<string, ScanPair>;
-  nudenet: NudeNetBlock;
-  age: AgeBlock | null;
-  outcome: Outcome;
-  reason: string | null;
-}
+export type InputScanBlock = InputScanRecord;
+export type ImageBlock = ImageRecord;
 
-export interface ImageBlock {
-  sha256: string;
-  phash: string;
-  width: number;
-  height: number;
-  /** Only when passed or review and not removed by the user. The browser never uses it; images load by id. */
-  path: string | null;
-}
-
-export interface GenerationRecord {
-  record_version: string;
-  id: string;
-  created_at: string;
-  darkroom_version: string;
-  outcome: Outcome;
-  /**
-   * Refused, deleted and review records join every reason with ", ": `policy:letter` codes, and for a deletion
-   * "minor-exposed" and "unchecked" ("adult-granular:A, minor-exposed"). Read those with `reasonParts`. Otherwise
-   * "unchecked", "sfw-exposed", "sfw-unchecked", the generation error, or null.
-   */
-  outcome_reason: string | null;
-  critical: boolean;
-  removed_at: string | null;
-  request: RecordRequest;
-  guard: GuardBlock;
-  /** Null for refused and failed records: nothing was rendered. */
-  image: ImageBlock | null;
-}
+/** Sampling as a request sends it: `guidance` only for a workflow with a `$guidance` slot, since darkroom 400s a value with no slot. */
+export type RequestSampling = Omit<SamplingParams, "guidance"> & { guidance?: number | null };
 
 export interface Health {
   version: string;
@@ -318,7 +195,7 @@ export interface GenerateRequest {
   checkpoint: string;
   loras: LoRAChoice[];
   seed: number | null;
-  sampling: SamplingParams;
+  sampling: RequestSampling;
   nsfw_threshold: number;
   /** Image-to-image: the input as base64 (PNG, JPEG or WebP, at most 16 MiB and 4096 px a side) and the denoise (0.05 to 1). */
   init_image?: {

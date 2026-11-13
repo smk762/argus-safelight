@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-inpaint-passed",
   "created_at": "2026-10-20T10:15:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "passed",
   "outcome_reason": null,
   "critical": false,
@@ -63,9 +63,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "default",
+          "thinking": "fast"
         },
         "error": null
       },
@@ -76,9 +75,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "custom-641a2b290946",
+          "thinking": "fast"
         },
         "error": null
       }
@@ -92,9 +90,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -105,9 +102,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -120,9 +116,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "custom-641a2b290946",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -133,9 +128,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "custom-641a2b290946",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -158,9 +152,8 @@
               "rules": [],
               "explanation": "No rule matched.",
               "model": "SingGuard-4b",
-              "thinking": "fast",
-              "fast_verdict": "safe",
-              "fast_rule": null
+              "policy": "default",
+              "thinking": "fast"
             },
             "error": null
           },
@@ -171,9 +164,8 @@
               "rules": [],
               "explanation": "No rule matched.",
               "model": "SingGuard-4b",
-              "thinking": "fast",
-              "fast_verdict": "safe",
-              "fast_rule": null
+              "policy": "default",
+              "thinking": "fast"
             },
             "error": null
           }
@@ -186,9 +178,8 @@
               "rules": [],
               "explanation": "No rule matched.",
               "model": "SingGuard-4b",
-              "thinking": "fast",
-              "fast_verdict": "safe",
-              "fast_rule": null
+              "policy": "custom-641a2b290946",
+              "thinking": "fast"
             },
             "error": null
           },
@@ -199,9 +190,8 @@
               "rules": [],
               "explanation": "No rule matched.",
               "model": "SingGuard-4b",
-              "thinking": "fast",
-              "fast_verdict": "safe",
-              "fast_rule": null
+              "policy": "custom-641a2b290946",
+              "thinking": "fast"
             },
             "error": null
           }

@@ -28,7 +28,9 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1] / "fixture"
 SIZE = 512
 T0 = datetime(2026, 10, 20, 9, 0, tzinfo=UTC)
-VERSION = "0.0.0+fixture"
+# The darkroom the fixture is recorded against: the sync record's commit and version (darkroom's `dev` HEAD).
+PIN = json.loads((ROOT.parent / "web" / "schema" / "pins.json").read_text())["darkroom"]
+VERSION = PIN["version"]
 MODEL = "SingGuard-4b"
 
 # ---------------------------------------------------------------------------
@@ -257,34 +259,51 @@ def checkpoint_ref(index: int) -> dict:
 # Helpers that write the record shape darkroom's spec describes.
 
 
-def guard(safe: bool, rules: list[str] | None = None, explanation: str = "", thinking: str = "cascade", fast: str | None = None) -> dict:
-    out: dict[str, Any] = {
+def guard(safe: bool, rules: list[str] | None = None, explanation: str = "", thinking: str = "cascade") -> dict:
+    """A SingGuard result. `policy` is stamped per policy by `stamp_policies` once the record is built."""
+    return {
         "safe": safe,
         "rules": rules or [],
         "explanation": explanation or ("No rule matched." if safe else ""),
         "model": MODEL,
+        "policy": "default",
         "thinking": thinking,
     }
-    if fast is not None:
-        out["fast_verdict"] = fast
-        out["fast_rule"] = (rules or [None])[0] if fast == "unsafe" else None
-    return out
+
+
+def policy_name(name: str) -> str:
+    """cortex's `policy_name`: `default`, or `custom-` and a sha256 prefix of the policy text."""
+    text = next(p["text"] for p in POLICIES if p["name"] == name)
+    return "default" if text is None else "custom-" + hashlib.sha256(text.strip().encode()).hexdigest()[:12]
+
+
+def stamp_policies(rec: dict) -> dict:
+    """Each result names the policy it was judged against, as cortex's GuardResult does."""
+    g = rec["guard"]
+    cells = [(name, c) for name, c in g["preflight"].items()]
+    for block in (g, g.get("input") or {"scans": {}}):
+        cells += [(name, c) for name, pair in block["scans"].items() for c in pair.values()]
+    for name, c in cells:
+        if c["result"] is not None:
+            c["result"]["policy"] = policy_name(name)
+    return rec
 
 
 def cell(state: str, result: dict | None = None, error: str | None = None) -> dict:
     return {"state": state, "result": result, "error": error}
 
 
-def safe_cell(fast: str | None = "safe") -> dict:
-    return cell("safe", guard(True, fast=fast, thinking="fast" if fast == "safe" else "cascade"))
+def safe_cell() -> dict:
+    """The cascade's fast pass answers a clean image; the slow pass judges a flagged one."""
+    return cell("safe", guard(True, thinking="fast"))
 
 
 def flagged_cell(rule: str, why: str) -> dict:
-    return cell("flagged", guard(False, [rule], why, thinking="slow", fast="unsafe"))
+    return cell("flagged", guard(False, [rule], why, thinking="slow"))
 
 
 def illegal_cell(rule: str, why: str) -> dict:
-    return cell("illegal", guard(False, [rule], why, thinking="slow", fast="unsafe"))
+    return cell("illegal", guard(False, [rule], why, thinking="slow"))
 
 
 def unchecked_cell(error: str) -> dict:
@@ -358,7 +377,9 @@ def input_scan(outcome: str, reason: str | None, scan_cells: dict, nude: dict, a
 
 def lora(index: int, weight: float) -> dict:
     ref = MODELS["loras"][index]
-    return {"name": ref["name"], "sha256": ref["sha256"], "weight": weight}
+    # The words the request supplied; darkroom appended them to the final prompt (see `request`).
+    words = ref["trigger_words"][:1] if index == 0 else []
+    return {"name": ref["name"], "sha256": ref["sha256"], "weight": weight, "trigger_words": words}
 
 
 def nudenet(score: float | None, threshold: float = 0.2, blur: bool = False, labels: dict[str, float] | None = None) -> dict | None:
@@ -800,11 +821,14 @@ def main() -> None:
         shutil.rmtree(ROOT / sub, ignore_errors=True)
         (ROOT / sub).mkdir(parents=True)
     for rec, data in build():
+        stamp_policies(rec)
         (ROOT / "records" / f"{rec['id']}.json").write_text(json.dumps(rec, indent=2) + "\n")
         if data is not None:
             (ROOT / "images" / f"{rec['id']}.png").write_bytes(data)
     (ROOT / "policies.json").write_text(json.dumps({"default": "adult-granular", "policies": POLICIES}, indent=2) + "\n")
     (ROOT / "models.json").write_text(json.dumps(MODELS, indent=2) + "\n")
+    recorded = {"repo": PIN["repo"], "commit": PIN["commit"], "version": VERSION}
+    (ROOT / "darkroom.json").write_text(json.dumps(recorded, indent=2) + "\n")
     print(f"wrote {len(list((ROOT / 'records').iterdir()))} records and {len(list((ROOT / 'images').iterdir()))} images under {ROOT}")
 
 
