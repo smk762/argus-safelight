@@ -79,7 +79,8 @@ export function liveReducer(state: LiveState, event: LiveEvent): LiveState {
     case "input_scan": {
       const { policy, context, cell } = event.scan;
       const pair = state.inputCells[policy] ?? { isolated: null, with_prompt: null };
-      return { ...state, phase: "input", inputCells: { ...state.inputCells, [policy]: { ...pair, [context]: cell } } };
+      const policies = state.policies.includes(policy) ? state.policies : [...state.policies, policy];
+      return { ...state, phase: "input", policies, inputCells: { ...state.inputCells, [policy]: { ...pair, [context]: cell } } };
     }
     case "queued":
       return { ...state, phase: "queued" };

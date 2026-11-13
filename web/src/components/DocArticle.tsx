@@ -33,7 +33,7 @@ const COMPONENTS = {
   h4: heading("h4", "mt-4 text-small font-semibold text-text-primary"),
   p: ({ children }: Props<"p">) => <p className="my-3 leading-relaxed text-text-secondary">{children}</p>,
   a: ({ href = "", children }: Props<"a">) =>
-    href.startsWith("/") ? (
+    href.startsWith("/") && !href.startsWith("//") ? (
       <Link href={href} className={LINK}>
         {children}
       </Link>

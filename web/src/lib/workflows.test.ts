@@ -76,6 +76,9 @@ describe("what renders", () => {
     expect(loraAddBlock(models, SDXL, 1)).toBeNull();
     expect(loraAddBlock(models, SDXL, 2)).toBe("The sdxl family renders with at most 2 LoRAs.");
     expect(loraAddBlock(models, KLEIN, 0)).toBe("The flux-klein family renders without LoRAs.");
+    const gap = { ...models, checkpoints: models.checkpoints.map((checkpoint) => (checkpoint.name === SDXL ? { ...checkpoint, lora_counts: [0, 2] } : checkpoint)) };
+    expect(loraAddBlock(gap, SDXL, 0)).toBeNull();
+    expect(loraAddBlock(gap, SDXL, 2)).toBe("The sdxl family renders with at most 2 LoRAs.");
   });
 
   it("starts on a checkpoint that renders", () => {
@@ -110,6 +113,8 @@ describe("the request, shaped to the workflow", () => {
     };
     expect(deep(SDXL)).toBe(3);
     expect(deep(SD35)).toBe(1);
+    const two = on(SD35);
+    expect(toRequest({ ...two, sampling: { ...two.sampling, clip_skip: 2 } }, true, models).sampling.clip_skip).toBe(2);
   });
 
   it("refills a Flux record's guidance and leaves its negative prompt empty", () => {

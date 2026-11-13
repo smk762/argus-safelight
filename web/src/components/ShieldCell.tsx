@@ -49,6 +49,9 @@ export function ShieldCell({
     if (!show) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // A shield pinned on the page under a modal (the compose dialog opened over a record) leaves that Escape alone.
+      const modal = [...document.querySelectorAll("dialog[open]")].find((dialog) => !dialog.contains(button.current));
+      if (modal) return;
       event.preventDefault();
       setOpen(false);
       setPinned(false);

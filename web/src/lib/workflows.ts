@@ -93,7 +93,8 @@ export function loraAddBlock(models: Models | null, checkpoint: string, loras: n
   const known = checkpointOf(models, checkpoint);
   if (!known || !renderable(known)) return null;
   const counts = modeCounts(known, mode);
-  if (counts.length === 0 || counts.includes(loras + 1)) return null;
+  // Any larger count that renders: a gap (0 or 2) is crossed one LoRA at a time, with `workflowBlock` saying "Add 1." meanwhile.
+  if (counts.length === 0 || counts.some((count) => count > loras)) return null;
   const what = mode === "txt2img" ? "" : ` ${MODE_LABEL[mode]}`;
   return counts.length === 1 && counts[0] === 0 ? `${familyName(known)} renders${what} without LoRAs.` : `${familyName(known)} renders${what} with at most ${Math.max(...counts)} LoRA${Math.max(...counts) === 1 ? "" : "s"}.`;
 }

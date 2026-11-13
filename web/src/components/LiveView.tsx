@@ -23,7 +23,8 @@ export function LiveView({ live, onStop, onClear }: { live: LiveState; onStop: (
   const stageIndex = refused ? 0 : byInput ? stages.indexOf("input") : stages.indexOf(live.phase as Stage);
   const rows: PolicyRow[] = live.policies.map((policy) => ({ policy, enforcing: policy === live.enforcing, pair: live.cells[policy] ?? null }));
   const inputRows: PolicyRow[] = live.policies.map((policy) => ({ policy, enforcing: policy === live.enforcing, pair: live.inputCells[policy] ?? null }));
-  const pastInput = !["idle", "preflight", "input"].includes(live.phase) && !byInput;
+  // An error carries no phase of its own, so the output grid shows after one only if a scan event already arrived.
+  const pastInput = !byInput && (["queued", "rendering", "scanning", "complete"].includes(live.phase) || (live.phase === "error" && scanned.done > 0));
   const steps = live.progress;
   const renderPct = steps ? Math.round((steps.step / Math.max(1, steps.total)) * 100) : 0;
   return (

@@ -102,7 +102,11 @@ function relativeImages(markdown) {
   const found = new Set();
   for (const match of markdown.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)) found.add(match[1]);
   for (const match of markdown.matchAll(/<img[^>]*\ssrc=["']([^"']+)["']/gi)) found.add(match[1]);
-  return [...found].filter((src) => !/^[a-z][a-z0-9+.-]*:|^\/\/|^#/i.test(src)).map((src) => posix.normalize(src.split(/[?#]/)[0]));
+  // Only paths inside the repo: `../` would read and write outside darkroom's checkout and `public/docs/darkroom/`.
+  return [...found]
+    .filter((src) => !/^[a-z][a-z0-9+.-]*:|^\/\/|^#/i.test(src))
+    .map((src) => posix.normalize(src.split(/[?#]/)[0]))
+    .filter((src) => !src.startsWith("../") && !src.startsWith("/"));
 }
 
 function gateOrThrow(label, text) {

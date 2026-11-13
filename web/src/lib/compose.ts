@@ -123,7 +123,7 @@ export function normaliseCompose(state: ComposeState, policies: Policies | null,
     if (advisory.length !== state.advisoryPolicies.length || advisory.some((name, index) => name !== state.advisoryPolicies[index])) next = { ...next, advisoryPolicies: advisory };
   }
   if (models) {
-    if (!models.checkpoints.some((checkpoint) => checkpoint.name === next.checkpoint)) next = { ...next, checkpoint: startingCheckpoint(models) };
+    if (!models.checkpoints.some((checkpoint) => checkpoint.name === next.checkpoint)) next = withCheckpoint(next, startingCheckpoint(models), models);
     const loras = next.loras.filter((lora) => models.loras.some((known) => known.name === lora.name));
     if (loras.length !== next.loras.length) next = { ...next, loras };
   }
@@ -145,7 +145,8 @@ export function toRequest(state: ComposeState, expandable = true, models: Models
   const { guidance, ...rest } = state.sampling;
   const sampling: RequestSampling = {
     ...rest,
-    clip_skip: usesSlot(workflow, "$clip_skip") ? rest.clip_skip : DEFAULT_SAMPLING.clip_skip,
+    // Darkroom refuses only a clip skip above 2 without the slot; 1 and 2 go through as they are.
+    clip_skip: rest.clip_skip <= 2 || usesSlot(workflow, "$clip_skip") ? rest.clip_skip : DEFAULT_SAMPLING.clip_skip,
     ...(usesSlot(workflow, "$guidance") ? { guidance: guidance ?? DEFAULT_GUIDANCE } : {}),
   };
   return {
