@@ -76,4 +76,8 @@ House exceptions to its advice, with the reason:
 - **Removing an image is not deleting a record.** `DELETE /record/{id}` keeps the record, so that action says "images" and skips rows with none. Only a devmode darkroom deletes records, with `POST /purge` or `POST /purge/{id}`; **Purge N records** renders only with `health.devmode`.
 - **Purge all** renders only when `health.devmode`; `History.test.tsx` asserts the button is absent from the DOM otherwise. The mock answers 404 to `POST /purge` without `MOCK_DEVMODE`, as darkroom does.
 - **Fixture content:** flat colour fields with a label and nothing else. Nothing sexual, violent or otherwise flagged goes in the repo, generated or not.
-- **Git:** `main` releases, `dev` is the working branch, topic branches off `dev` with a PR into `dev` (see `.cursor/rules/git-workflow.mdc`). Run `make check` before a PR. Never force-push; never commit `.env`.
+- **Git:** see Branches below and `.cursor/rules/git-workflow.mdc`. Run `make check` before a PR. Never force-push; never commit `.env`.
+
+## Branches
+
+`dev` is the default branch and the base for every PR. Cut feature branches from `origin/dev` and bring them up to date by merging `origin/dev`, never `main`. Never open a PR against `main` or push work to it directly: `main` must never be ahead of `dev`. A release fast-forwards `main` to a `dev` commit that passed CI (`git push origin origin/dev:main`), then tags it. If `main` is protected and needs a PR, merge the release PR, then immediately merge `main` back into `dev` so the merge commit is not left on `main` alone.
