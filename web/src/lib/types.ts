@@ -120,6 +120,17 @@ export interface InitImageRef {
   /** Of the bytes the caller sent, before darkroom re-encoded them. */
   source_sha256: string;
   denoise: number;
+  /** Inpainting: the mask's identity, never its pixels. Null (or absent) for plain image-to-image. */
+  mask?: MaskRef | null;
+}
+
+/** An inpainting mask as ComfyUI got it: upright, cut at 128, re-encoded as a 1-bit PNG. Not scanned: it carries no imagery. */
+export interface MaskRef {
+  sha256: string;
+  /** Of the bytes the caller sent. */
+  source_sha256: string;
+  /** The share of the image repainted, 0 to 1. */
+  masked_fraction: number;
 }
 
 export interface NudeNetBlock {
@@ -253,6 +264,8 @@ export interface CheckpointOption extends ModelOption {
   lora_counts: number[];
   /** The LoRA counts an image-to-image workflow renders it with. Empty (or absent, before darkroom's img2img): no img2img. */
   img2img_lora_counts?: number[];
+  /** The LoRA counts an inpainting workflow renders it with. Empty (or absent, before darkroom's inpainting): no masks. */
+  inpaint_lora_counts?: number[];
 }
 
 /** A workflow template darkroom loaded. Darkroom picks one per request: the checkpoint's family and the LoRA count. */
@@ -261,7 +274,9 @@ export interface WorkflowInfo {
   /** Null: a single template used for every checkpoint. */
   family: string | null;
   loras: number;
-  /** An image-to-image template (`<family>[+lora<N>]+img2img`). Absent before darkroom's img2img. */
+  /** `txt2img`, `img2img` or `inpaint` (`<family>[+lora<N>][+img2img|+inpaint]`). Absent before darkroom's img2img. */
+  mode?: "txt2img" | "img2img" | "inpaint";
+  /** True for a plain image-to-image template only (false for inpaint). Prefer `mode`. */
   img2img?: boolean;
   /** The scalar placeholders it fills (`$negative`, `$guidance`, `$clip_skip`, `$vae`, …). Darkroom 400s a request that sets a value with no slot. */
   slots: string[];
@@ -306,7 +321,12 @@ export interface GenerateRequest {
   sampling: SamplingParams;
   nsfw_threshold: number;
   /** Image-to-image: the input as base64 (PNG, JPEG or WebP, at most 16 MiB and 4096 px a side) and the denoise (0.05 to 1). */
-  init_image?: { data_base64: string; denoise: number };
+  init_image?: {
+    data_base64: string;
+    denoise: number;
+    /** Inpainting: a mask the input's size, white repaints (base64 PNG, JPEG or WebP). Selects an inpaint template. */
+    mask_base64?: string;
+  };
 }
 
 export interface PreflightRefusal {
