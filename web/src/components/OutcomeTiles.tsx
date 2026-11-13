@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { imageUrl } from "@/lib/api";
 import { deletedSummary, inputRefusalSummary, omittedSummary } from "@/lib/outcome";
-import { inputRefused, ruleLetters } from "@/lib/shields";
+import { inputGuard, inputRefused, ruleLetters } from "@/lib/shields";
 import type { Cell, GenerationRecord } from "@/lib/types";
 
 import { PreflightColumn, ShieldGrid } from "./ShieldGrid";
@@ -112,7 +112,7 @@ export function refusingCell(record: GenerationRecord): { policy: string; cell: 
  */
 function InputRefusedPanel({ record }: { record: GenerationRecord }) {
   const summary = inputRefusalSummary(record);
-  const input = record.guard.input;
+  const input = inputGuard(record);
   return (
     <div role="group" aria-label="Refused at the input image" className="space-y-4 rounded-lg border-2 border-error/60 bg-error/5 p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -132,7 +132,7 @@ function InputRefusedPanel({ record }: { record: GenerationRecord }) {
         <div>
           <p className="text-caption uppercase tracking-wide text-text-muted">The input image&apos;s scans</p>
           <div className="mt-1 overflow-x-auto">
-            <ShieldGrid guard={{ enforcing_policy: record.guard.enforcing_policy, advisory_policies: record.guard.advisory_policies, scans: input.scans }} />
+            <ShieldGrid guard={input} />
           </div>
         </div>
       ) : null}

@@ -1,8 +1,9 @@
+import { formatShare } from "@/lib/initImage";
 import { OUTCOME_TONE } from "@/lib/outcome";
+import { inputGuard } from "@/lib/shields";
 import type { GenerationRecord, NudeNetBlock } from "@/lib/types";
 
 import { AgeEstimate } from "./AgeEstimate";
-import { formatShare } from "./MaskPainter";
 import { ShieldGrid } from "./ShieldGrid";
 import { Badge, Collapsible, Kv } from "./ui";
 
@@ -169,6 +170,7 @@ export function ChecksCard({ record }: { record: GenerationRecord }) {
 export function InputImageCard({ record }: { record: GenerationRecord }) {
   const init = record.request.init_image;
   const input = record.guard.input;
+  const inputScans = inputGuard(record);
   if (!init) return null;
   return (
     <Collapsible title={init.mask ? "Input image and mask" : "Input image"} defaultOpen={input != null && input.outcome !== "passed"}>
@@ -202,13 +204,13 @@ export function InputImageCard({ record }: { record: GenerationRecord }) {
           </>
         ) : null}
       </dl>
-      {input ? (
+      {input && inputScans ? (
         <div className="mt-3 space-y-3 border-t border-base-600/40 pt-3">
           <p className="flex flex-wrap items-center gap-2 text-small text-text-primary">
             Input scan <Badge className={OUTCOME_TONE[input.outcome]}>{input.outcome}</Badge>
             {input.reason ? <span className="font-mono text-caption text-text-secondary">{input.reason}</span> : null}
           </p>
-          <ShieldGrid guard={{ enforcing_policy: record.guard.enforcing_policy, advisory_policies: record.guard.advisory_policies, scans: input.scans }} />
+          <ShieldGrid guard={inputScans} />
           <NudeNetLine record={record} block={input.nudenet} />
           <AgeEstimate age={input.age} />
           {init.mask ? <p className="text-caption text-text-muted">The mask was not scanned: it selects a region and carries no imagery. The output is scanned as usual.</p> : null}

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
 
-import { InputError, maskFromCanvas, readMask, type InputImage, type InputMask } from "@/lib/initImage";
+import { InputError, MASK_THRESHOLD, formatShare, luma, maskFromCanvas, readMask, type InputImage, type InputMask } from "@/lib/initImage";
 
 import { Button, Notice } from "./ui";
 
@@ -19,6 +19,8 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
   const maskRef = useRef<HTMLCanvasElement>(null);
   const viewRef = useRef<HTMLCanvasElement>(null);
   const last = useRef<{ x: number; y: number } | null>(null);
+  // Bumped by every change to the mask, and cleared on unmount, so a slow PNG encode never lands after a later change.
+  const version = useRef(0);
   const [tool, setTool] = useState<Tool>("brush");
   const longest = Math.max(image.width, image.height);
   const [size, setSize] = useState(() => Math.max(4, Math.round(longest / 20)));
@@ -36,7 +38,7 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
     const pixels = source.getImageData(0, 0, width, height);
     const out = view.createImageData(width, height);
     for (let i = 0; i < pixels.data.length; i += 4) {
-      if (pixels.data[i] >= 128) {
+      if (luma(pixels.data[i], pixels.data[i + 1], pixels.data[i + 2]) >= MASK_THRESHOLD) {
         out.data[i] = REPAINT[0];
         out.data[i + 1] = REPAINT[1];
         out.data[i + 2] = REPAINT[2];
@@ -66,11 +68,18 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
   // Start from the mask the form already holds, or from black. Drawing only: no state is set here.
   useEffect(() => {
     load(opening?.previewUrl ?? null);
+    const versions = version;
+    return () => {
+      versions.current = -1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per image; strokes update the canvas directly
   }, [image.id]);
 
   const commit = async () => {
-    if (maskRef.current) onMask(await maskFromCanvas(maskRef.current));
+    if (!maskRef.current) return;
+    const mine = ++version.current;
+    const next = await maskFromCanvas(maskRef.current);
+    if (version.current === mine) onMask(next);
   };
 
   const point = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -106,7 +115,7 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
     if (!context) return;
     const pixels = context.getImageData(0, 0, image.width, image.height);
     for (let i = 0; i < pixels.data.length; i += 4) {
-      const value = pixels.data[i] >= 128 ? 0 : 255;
+      const value = luma(pixels.data[i], pixels.data[i + 1], pixels.data[i + 2]) >= MASK_THRESHOLD ? 0 : 255;
       pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = value;
       pixels.data[i + 3] = 255;
     }
@@ -116,6 +125,7 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
   };
 
   const clear = () => {
+    version.current += 1;
     load(null);
     onMask(null);
   };
@@ -123,8 +133,10 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
   const upload = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
+    const mine = ++version.current;
     try {
       const read = await readMask(file, image);
+      if (version.current !== mine) return;
       load(read.previewUrl);
       onMask(read);
     } catch (caught) {
@@ -195,9 +207,4 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
       {error ? <Notice tone="error">{error}</Notice> : null}
     </div>
   );
-}
-
-export function formatShare(fraction: number): string {
-  if (fraction > 0 && fraction < 0.001) return "under 0.1%";
-  return `${(fraction * 100).toFixed(fraction < 0.1 ? 1 : 0)}%`;
 }

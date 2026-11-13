@@ -172,7 +172,8 @@ function pngMaskFraction(data) {
     }
     for (let x = 0; x < width; x++) {
       const i = x * channels;
-      const grey = channels >= 3 ? (line[i] * 299 + line[i + 1] * 587 + line[i + 2] * 114) / 1000 : line[i];
+      // Pillow's "L" conversion, rounded in fixed point.
+      const grey = channels >= 3 ? (line[i] * 19595 + line[i + 1] * 38470 + line[i + 2] * 7471 + 0x8000) >> 16 : line[i];
       if (grey >= 128) masked += 1;
     }
     previous = line;

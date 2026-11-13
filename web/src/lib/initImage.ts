@@ -73,10 +73,27 @@ export function maskedFraction(rgba: Uint8ClampedArray): number {
   if (pixels === 0) return 0;
   let masked = 0;
   for (let i = 0; i < rgba.length; i += 4) {
-    if ((rgba[i] * 299 + rgba[i + 1] * 587 + rgba[i + 2] * 114) / 1000 >= MASK_THRESHOLD) masked += 1;
+    if (luma(rgba[i], rgba[i + 1], rgba[i + 2]) >= MASK_THRESHOLD) masked += 1;
   }
   // Never 0 once something is masked, as darkroom rounds it.
   return masked === 0 ? 0 : Math.max(masked / pixels, 1e-6);
+}
+
+/** Pillow's RGB to "L" in fixed point (`L24` in Convert.c): ITU-R 601-2 luma, rounded, not truncated. */
+export function luma(r: number, g: number, b: number): number {
+  return (r * 19595 + g * 38470 + b * 7471 + 0x8000) >> 16;
+}
+
+/** Whether any pixel is not fully opaque. A canvas premultiplies alpha, so such a pixel's colour is not the file's. */
+export function hasTranslucency(rgba: Uint8ClampedArray): boolean {
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] < 255) return true;
+  return false;
+}
+
+/** The mask's share as the form words it: "25%", "2.5%", "under 0.1%". */
+export function formatShare(fraction: number): string {
+  if (fraction > 0 && fraction < 0.001) return "under 0.1%";
+  return `${(fraction * 100).toFixed(fraction < 0.1 ? 1 : 0)}%`;
 }
 
 export const NOTHING_MASKED = "The mask masks nothing: paint the region to repaint white.";
@@ -150,8 +167,11 @@ export async function readMask(file: File, image: InputImage): Promise<InputMask
   try {
     const size = maskSizeBlock(bitmap, image);
     if (size) throw new InputError(size);
-    const fraction = maskedFraction(pixels(bitmap));
-    if (fraction === 0) throw new InputError(NOTHING_MASKED);
+    const rgba = pixels(bitmap);
+    const fraction = maskedFraction(rgba);
+    // Darkroom's greyscale ignores alpha, but a canvas premultiplies it: a transparent white pixel reads back black
+    // here. With any translucency the share is only an estimate, so darkroom, not the form, says "masks nothing".
+    if (fraction === 0 && !hasTranslucency(rgba)) throw new InputError(NOTHING_MASKED);
     return { origin: "upload", width: bitmap.width, height: bitmap.height, dataBase64: base64, previewUrl, fraction };
   } finally {
     bitmap.close();

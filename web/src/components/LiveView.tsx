@@ -1,9 +1,9 @@
 "use client";
 
+import { formatShare } from "@/lib/initImage";
 import { PHASE_LABEL, isRunning, scannedCount, type LiveState } from "@/lib/live";
 import { inputRefused, type PolicyRow } from "@/lib/shields";
 
-import { formatShare } from "./MaskPainter";
 import { PreflightPanel } from "./PreflightPanel";
 import { ShieldGrid } from "./ShieldGrid";
 import { Button, Card, Notice, SectionTitle, Spinner } from "./ui";

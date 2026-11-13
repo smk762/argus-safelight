@@ -3,11 +3,11 @@
 import { useId, useState, type DragEvent } from "react";
 
 import type { ComposeState } from "@/lib/compose";
-import { InputError, MAX_DENOISE, MAX_INPUT_BYTES, MAX_INPUT_EDGE, MIN_DENOISE, clampDenoise, readInputImage } from "@/lib/initImage";
+import { InputError, MAX_DENOISE, MAX_INPUT_BYTES, MAX_INPUT_EDGE, MIN_DENOISE, clampDenoise, formatShare, readInputImage } from "@/lib/initImage";
 import type { Models } from "@/lib/types";
 import { modeBlock } from "@/lib/workflows";
 
-import { MaskPainter, formatShare } from "./MaskPainter";
+import { MaskPainter } from "./MaskPainter";
 import { Button, Notice, SectionTitle } from "./ui";
 
 const short = (sha: string) => `${sha.slice(0, 12)}…`;
@@ -47,7 +47,7 @@ export function InputImageField({ compose, models, update }: { compose: ComposeS
   const drop = (event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setOver(false);
-    if (!closed) void choose(event.dataTransfer.files[0]);
+    if (!closed && !reading) void choose(event.dataTransfer.files[0]);
   };
 
   return (

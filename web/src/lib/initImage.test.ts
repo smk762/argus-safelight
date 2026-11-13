@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DENOISE, MAX_INPUT_BYTES, clampDenoise, edgeBlock, fileBlock, maskSizeBlock, maskedFraction, sniffFormat } from "./initImage";
+import { DEFAULT_DENOISE, MAX_INPUT_BYTES, clampDenoise, edgeBlock, fileBlock, formatShare, hasTranslucency, luma, maskSizeBlock, maskedFraction, sniffFormat } from "./initImage";
 
 const bytes = (...values: number[]) => new Uint8Array([...values, ...new Array(16).fill(0)]);
 
@@ -36,6 +36,25 @@ describe("the input image, checked as darkroom checks it", () => {
     // White and mid-grey repaint; black does not; pure red is grey 76, kept even though transparent.
     expect(maskedFraction(rgba)).toBe(0.5);
     expect(maskedFraction(new Uint8ClampedArray([...pixel(127, 127, 127)]))).toBe(0);
+  });
+
+  it("rounds greyscale as Pillow's convert(\"L\") does, not truncating", () => {
+    // 0.299·0 + 0.587·218 + 0.114·0 = 127.97: Pillow rounds to 128 and repaints it.
+    expect(luma(0, 218, 0)).toBe(128);
+    expect(maskedFraction(new Uint8ClampedArray([0, 218, 0, 255]))).toBe(1);
+    expect(luma(255, 255, 255)).toBe(255);
+    expect(luma(0, 0, 0)).toBe(0);
+  });
+
+  it("notices translucency, which a canvas reads back premultiplied", () => {
+    expect(hasTranslucency(new Uint8ClampedArray([255, 255, 255, 255]))).toBe(false);
+    expect(hasTranslucency(new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 0]))).toBe(true);
+  });
+
+  it("words the mask's share", () => {
+    expect(formatShare(0.25)).toBe("25%");
+    expect(formatShare(0.025)).toBe("2.5%");
+    expect(formatShare(0.0001)).toBe("under 0.1%");
   });
 
   it("never rounds a masked region down to nothing", () => {
