@@ -18,7 +18,7 @@ describe("ResultView", () => {
   });
 
   it("puts no image element in the DOM for a deleted, omitted, refused or failed record", () => {
-    for (const id of ["fx-deleted-illegal", "fx-deleted-minor", "fx-deleted-unchecked", "fx-omitted-exposed", "fx-omitted-unchecked", "fx-refused", "fx-refused-illegal", "fx-failed"]) {
+    for (const id of ["fx-deleted-illegal", "fx-deleted-minor", "fx-deleted-unchecked", "fx-omitted-exposed", "fx-omitted-unchecked", "fx-refused", "fx-refused-illegal", "fx-refused-input", "fx-failed"]) {
       const { container, unmount } = render(<ResultView record={fixtureRecord(id)} />);
       expect(container.querySelectorAll("img, picture, canvas, video").length, id).toBe(0);
       unmount();
@@ -142,5 +142,29 @@ describe("ResultView", () => {
     const { container } = render(<ResultView record={fixtureRecord("fx-review-disagree")} />);
     expect(container.querySelector("img")?.className).toContain("blur");
     expect(screen.getByRole("button", { name: "Reveal" })).toBeTruthy();
+  });
+
+  it("says a refused input image refused the attempt, on the input's own scan, with no picture of it", () => {
+    const { container } = render(<ResultView record={fixtureRecord("fx-refused-input")} />);
+    expect(screen.getByRole("group", { name: "Refused at the input image" })).toBeTruthy();
+    expect(screen.getByText("The input image was refused. Nothing was generated.")).toBeTruthy();
+    expect(screen.getByText(/NudeNet reported exposure in the input image \(score 0\.41\), which an SFW policy does not allow/)).toBeTruthy();
+    expect(screen.getAllByText("input image: sfw-exposed").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("img, picture, canvas, video").length).toBe(0);
+    // The input card opens by itself, since it holds the reason.
+    const card = screen.getByText("Input image").closest("details");
+    expect(card?.open).toBe(true);
+  });
+
+  it("shows what darkroom kept of an inpainting input: size, denoise, hashes and the mask's share, and says it keeps no pixels", () => {
+    const { container } = render(<ResultView record={fixtureRecord("fx-inpaint-passed")} />);
+    const card = screen.getByText("Input image and mask").closest("details")!;
+    expect(card.textContent).toContain("Darkroom never stores the input's pixels");
+    expect(card.textContent).toContain("512 × 512");
+    expect(card.textContent).toContain("0.9");
+    expect(card.textContent).toContain("25%");
+    expect(card.textContent).toContain("The mask was not scanned");
+    // The only picture on the page is the output, by record id.
+    expect([...container.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual([expect.stringContaining("/image/fx-inpaint-passed")]);
   });
 });

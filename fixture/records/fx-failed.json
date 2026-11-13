@@ -34,7 +34,8 @@
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
     "workflow": "sdxl",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "adult-granular",
@@ -57,7 +58,8 @@
     },
     "scans": {},
     "nudenet": null,
-    "age": null
+    "age": null,
+    "input": null
   },
   "image": null
 }

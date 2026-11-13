@@ -34,7 +34,8 @@
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
     "workflow": "sdxl",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "default",
@@ -100,7 +101,8 @@
         }
       ],
       "minor_exposed": false
-    }
+    },
+    "input": null
   },
   "image": {
     "sha256": "b37e7bc6ec33b43b51194f5a702d7324e422adb07a5a7bf7ed1a2b753a0b918a",

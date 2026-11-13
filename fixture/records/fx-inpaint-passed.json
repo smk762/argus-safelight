@@ -1,0 +1,228 @@
+{
+  "record_version": "1.0",
+  "id": "fx-inpaint-passed",
+  "created_at": "2026-10-20T10:15:00Z",
+  "darkroom_version": "0.0.0+fixture",
+  "outcome": "passed",
+  "outcome_reason": null,
+  "critical": false,
+  "removed_at": null,
+  "request": {
+    "mode": "sfw",
+    "user_prompt": "a small sailing boat on the water",
+    "expanded_prompt": null,
+    "final_prompt": "a small sailing boat on the water",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 3030,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 28,
+      "cfg": 5.5,
+      "guidance": null,
+      "clip_skip": 1,
+      "width": 512,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "sdxl/argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+inpaint",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": {
+      "sha256": "d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6",
+      "phash": "f0f0e0e0c0c08080",
+      "width": 512,
+      "height": 512,
+      "source_sha256": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+      "denoise": 0.9,
+      "mask": {
+        "sha256": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+        "source_sha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+        "masked_fraction": 0.25
+      }
+    }
+  },
+  "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+      "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+      "default": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      },
+      "adult-granular": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "thinking": "fast",
+          "fast_verdict": "safe",
+          "fast_rule": null
+        },
+        "error": null
+      }
+    },
+    "scans": {
+      "default": {
+        "isolated": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        },
+        "with_prompt": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        }
+      },
+      "adult-granular": {
+        "isolated": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        },
+        "with_prompt": {
+          "state": "safe",
+          "result": {
+            "safe": true,
+            "rules": [],
+            "explanation": "No rule matched.",
+            "model": "SingGuard-4b",
+            "thinking": "fast",
+            "fast_verdict": "safe",
+            "fast_rule": null
+          },
+          "error": null
+        }
+      }
+    },
+    "nudenet": {
+      "exposed_score": 0.0,
+      "labels": {},
+      "threshold": 0.2,
+      "blur": false
+    },
+    "age": null,
+    "input": {
+      "scans": {
+        "default": {
+          "isolated": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "thinking": "fast",
+              "fast_verdict": "safe",
+              "fast_rule": null
+            },
+            "error": null
+          },
+          "with_prompt": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "thinking": "fast",
+              "fast_verdict": "safe",
+              "fast_rule": null
+            },
+            "error": null
+          }
+        },
+        "adult-granular": {
+          "isolated": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "thinking": "fast",
+              "fast_verdict": "safe",
+              "fast_rule": null
+            },
+            "error": null
+          },
+          "with_prompt": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "thinking": "fast",
+              "fast_verdict": "safe",
+              "fast_rule": null
+            },
+            "error": null
+          }
+        }
+      },
+      "nudenet": {
+        "exposed_score": 0.0,
+        "labels": {},
+        "threshold": 0.2,
+        "blur": false
+      },
+      "age": null,
+      "outcome": "passed",
+      "reason": null
+    }
+  },
+  "image": {
+    "sha256": "2c2dd83d4f21fa25983fcac9326d6fe926615dfb79c0318a015d03c882820547",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": "fx-inpaint-passed.png"
+  }
+}

@@ -64,6 +64,8 @@ Open <http://localhost:3097> (`PORT` in `.env` changes it). The mock serves the 
 | `[refuse-illegal]` | pre-flight hits an illegal rule | refused |
 | `[preflight-unchecked]` | the pre-flight check fails | refused, unchecked |
 | `[fail]` | ComfyUI fails mid-way | failed |
+| `[input-exposed]` | with an input image: NudeNet scores the input 0.41 | refused (`input image: sfw-exposed`) under SFW; the input passes under NSFW |
+| `[input-illegal]` | with an input image: the input's isolated scan hits an illegal rule | refused, critical (use an adult policy) |
 
 Markers combine: `[illegal] [minor]` under an adult policy is deleted with both reasons on the tile.
 
@@ -72,6 +74,8 @@ Markers combine: `[illegal] [minor]` under an adult policy is deleted with both 
 Against a live darkroom, omit `COMPOSE_PROFILES` and set `NEXT_PUBLIC_DARKROOM_URL` to that server before building. It is baked into the web image, so a change needs `docker compose up --build`. With a `localhost` URL the host follows the page: a page opened at this machine's LAN address calls that address on the URL's port. Every page carries a Content-Security-Policy that lets the browser reach that darkroom origin and no other, so a darkroom behind a different address than the baked-in URL (a reverse proxy, say) needs a rebuild with that URL, not just a redirect. In darkroom's own compose file, safelight runs beside the published darkroom image.
 
 To try the UI against the real darkroom server with no GPU, run darkroom's demo (`make demo` in the argus-darkroom repo). It serves the same wire shapes on :8106 against fake backends, with the same prompt markers as the mock. LoRA trigger words you enter per LoRA are sent in the request, appended to the final prompt by darkroom after any expansion, and kept in the record, so a record refills the form with them. Darkroom chooses its ComfyUI workflow per generation by the checkpoint's family folder (`sdxl/`, `flux/`, `flux-klein/`, `sd35/`) and the number of LoRAs, and the form follows `/models`: checkpoints are grouped by family, one with no workflow is listed but cannot be picked, LoRAs stop at the family's limit, a Guidance field appears for Flux and the negative prompt disappears where the workflow has no slot for it. Changing family moves the sampling to that family's usual starting values. The mock does the same with the fixture's `sdxl/`, `flux/`, `flux-klein/`, `sd35/` and template-less `pony/` checkpoints, and answers 400 where darkroom would.
+
+**Image-to-image and inpainting.** Where the checkpoint has a template for it (`img2img_lora_counts`, `inpaint_lora_counts` in `/models`; SDXL with 0 or 1 LoRA in darkroom's examples), the form takes an input image, picked or dropped: PNG, JPEG or WebP, up to 16 MiB and 4096 px a side, checked in the browser before it is sent. Denoise runs from 0.05 to 1. A mask turns it into inpainting: paint it over the preview (brush, eraser, invert) or upload one the input's size, white where it repaints. The input gets an output's checks before anything renders, shown live as its own row of shields, and only a passed input goes on; a refused one ends the attempt as `input image: <reason>`. The pixels stay in the page's memory: nothing is written to browser storage, pre-flight is sent without them (darkroom judges the text alone there), and darkroom keeps only hashes, so a record shows the input's size, denoise, hashes and mask share, never a picture, and Regenerate asks for the image again.
 
 For development:
 

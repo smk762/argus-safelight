@@ -3,10 +3,10 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { defaultCompose, fromRecord, generateBlock, toRequest, withCheckpoint, type ComposeState } from "./compose";
+import { RECORD_INPUT_BLOCK, defaultCompose, fromRecord, generateBlock, preflightKey, toRequest, withCheckpoint, withoutPixels, type ComposeState } from "./compose";
 import { fixtureRecord } from "./fixture.test-util";
 import type { Health, Models } from "./types";
-import { DEFAULT_GUIDANCE, familySampling, formWorkflow, loraAddBlock, usesSlot, workflowBlock, workflowFor } from "./workflows";
+import { DEFAULT_GUIDANCE, familySampling, formWorkflow, loraAddBlock, modeBlock, usesSlot, workflowBlock, workflowFor } from "./workflows";
 
 const FIXTURE = join(__dirname, "..", "..", "..", "fixture");
 const models = JSON.parse(readFileSync(join(FIXTURE, "models.json"), "utf8")) as Models;
@@ -145,5 +145,51 @@ describe("per-family sampling", () => {
   it("gives schnell a few steps", () => {
     const schnell = { name: "flux/flux1-schnell.safetensors", family: "flux", lora_counts: [0] };
     expect(familySampling(on(SDXL).sampling, schnell, models).steps).toBe(4);
+  });
+});
+
+describe("image-to-image and inpainting templates", () => {
+  const image = { id: 1, name: "in.png", format: "png" as const, bytes: 10, width: 512, height: 512, dataBase64: "AAAA", previewUrl: "data:image/png;base64,AAAA" };
+  const mask = { origin: "painted" as const, width: 512, height: 512, dataBase64: "BBBB", previewUrl: "data:image/png;base64,BBBB", fraction: 0.25 };
+
+  it("chooses by mode, so text-to-image never lands on an img2img template and back", () => {
+    expect(workflowFor(models, SDXL, 0)?.name).toBe("sdxl");
+    expect(workflowFor(models, SDXL, 0, "img2img")?.name).toBe("sdxl+img2img");
+    expect(workflowFor(models, SDXL, 1, "inpaint")?.name).toBe("sdxl+lora1+inpaint");
+    expect(workflowFor(models, FLUX, 0, "img2img")).toBeNull();
+  });
+
+  it("offers an input image only where the checkpoint has a template for it at this LoRA count, and says why not", () => {
+    expect(modeBlock(models, SDXL, 1, "img2img")).toBeNull();
+    expect(modeBlock(models, SDXL, 2, "img2img")).toBe("The sdxl family renders image-to-image with 0 or 1 LoRAs, and this form has 2.");
+    expect(modeBlock(models, FLUX, 0, "inpaint")).toBe("The flux family has no inpainting workflow on this server.");
+  });
+
+  it("blocks Generate where darkroom would refuse the mode, and never falls back to text", () => {
+    expect(generateBlock(health, null, on(FLUX, { initImage: image }), null, models)).toBe("The flux family has no image-to-image workflow on this server. Remove the input image, or pick another checkpoint.");
+    expect(generateBlock(health, null, on(SDXL, { initImage: image, mask }), null, models)).toBeNull();
+    expect(workflowBlock(models, SDXL, 2, "inpaint")).toBe("The sdxl family renders inpainting with 0 or 1 LoRAs. Remove 1.");
+    expect(loraAddBlock(models, SDXL, 1, "img2img")).toBe("The sdxl family renders image-to-image with at most 1 LoRA.");
+  });
+
+  it("sends the input and mask with Generate, and never to pre-flight or into the compared key", () => {
+    const state = on(SDXL, { initImage: image, mask, denoise: 0.9 });
+    const request = toRequest(state, true, models);
+    expect(request.init_image).toEqual({ data_base64: "AAAA", denoise: 0.9, mask_base64: "BBBB" });
+    expect(withoutPixels(request).init_image).toBeUndefined();
+    expect(preflightKey(request)).not.toContain("AAAA");
+    expect(preflightKey(request)).toBe(preflightKey(toRequest(on(SDXL, { denoise: 0.9 }), true, models)));
+    expect(toRequest(on(SDXL, { initImage: image }), true, models).init_image).toEqual({ data_base64: "AAAA", denoise: 0.5 });
+  });
+
+  it("asks for the input again when Regenerate refills an image-to-image record, which keeps no pixels", () => {
+    const record = fixtureRecord("fx-inpaint-passed");
+    const state = fromRecord(record, on(SDXL));
+    expect(state.initImage).toBeNull();
+    expect(state.denoise).toBe(0.9);
+    expect(state.recordInput?.mask?.masked_fraction).toBe(0.25);
+    expect(generateBlock(health, null, state, null, models)).toBe(RECORD_INPUT_BLOCK);
+    expect(generateBlock(health, null, { ...state, recordInput: null }, null, models)).toBeNull();
+    expect(generateBlock(health, null, { ...state, initImage: image }, null, models)).toBeNull();
   });
 });

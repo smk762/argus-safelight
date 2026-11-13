@@ -6,7 +6,7 @@ import { ago, formatWhen } from "@/lib/time";
 import type { GenerationRecord } from "@/lib/types";
 
 import { DeletedTile, FailedTile, ImageTile, OmittedTile, RefusedPanel } from "./OutcomeTiles";
-import { ChecksCard, ParametersCard, PromptsCard, RecordJson } from "./RecordDetails";
+import { ChecksCard, InputImageCard, ParametersCard, PromptsCard, RecordJson } from "./RecordDetails";
 import { Shield } from "./Shield";
 import { ShieldGrid } from "./ShieldGrid";
 import { Badge, Card, SectionTitle } from "./ui";
@@ -69,6 +69,7 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
               </div>
             </Card>
           ) : null}
+          <InputImageCard record={record} />
           <ChecksCard record={record} />
           <PromptsCard record={record} />
           <ParametersCard record={record} />

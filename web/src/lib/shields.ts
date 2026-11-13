@@ -96,13 +96,32 @@ export interface RowVerdict {
   title: string;
 }
 
-/** The shield on a history row: the worst scan cell, or for a refusal, which has no scans, the worst pre-flight cell. */
+/** The prefix darkroom puts on `outcome_reason` when the input image refused the attempt. */
+export const INPUT_REFUSAL = "input image: ";
+
+/** Refused by the image-to-image input's own scan, after the text pre-flight let it through. Read from `guard.input`, not the reason's wording. */
+export function inputRefused(record: Pick<GenerationRecord, "outcome" | "guard">): boolean {
+  const input = record.guard.input;
+  return record.outcome === "refused" && input != null && input.outcome !== "passed";
+}
+
+/** The input image's scan cells, as a guard block the grid and `firedCell` can read. Null for text-to-image. */
+export function inputGuard(record: Pick<GenerationRecord, "guard">): Pick<GenerationRecord["guard"], "enforcing_policy" | "advisory_policies" | "scans"> | null {
+  const input = record.guard.input;
+  return input ? { enforcing_policy: record.guard.enforcing_policy, advisory_policies: record.guard.advisory_policies, scans: input.scans } : null;
+}
+
+/**
+ * The shield on a history row: the worst scan cell. A refusal has no output scans, so it shows the worst pre-flight
+ * cell, or the worst input-scan cell when the input image refused it.
+ */
 export function rowVerdict(record: Pick<GenerationRecord, "outcome" | "guard">): RowVerdict | null {
   const refused = record.outcome === "refused";
-  const cells = refused ? Object.values(record.guard.preflight ?? {}) : allCells(record.guard);
+  const byInput = inputRefused(record);
+  const cells = byInput ? allCells({ scans: record.guard.input?.scans ?? {} }) : refused ? Object.values(record.guard.preflight ?? {}) : allCells(record.guard);
   const state = worstState(cells.map((cell) => cell.state));
   if (state == null || state === "pending") return null;
-  return { state, letters: ruleLetters(cells.find((cell) => cell.state === state)?.result), title: `${refused ? "Pre-flight" : "Overall"}: ${state}` };
+  return { state, letters: ruleLetters(cells.find((cell) => cell.state === state)?.result), title: `${byInput ? "Input image" : refused ? "Pre-flight" : "Overall"}: ${state}` };
 }
 
 export interface FiredCell {
@@ -118,9 +137,10 @@ export interface FiredRule extends FiredCell {
 
 const CONTEXTS: readonly ScanContext[] = ["isolated", "with_prompt"];
 
-/** A record's `outcome_reason`, which joins every reason that applied ("default:A, minor-exposed"). */
+/** A record's `outcome_reason`, which joins every reason that applied ("default:A, minor-exposed"). An input refusal's prefix ("input image: ") is dropped; `inputRefused` says whose reasons they are. */
 export function reasonParts(reason: string | null | undefined): string[] {
-  return (reason ?? "")
+  const text = reason ?? "";
+  return (text.startsWith(INPUT_REFUSAL) ? text.slice(INPUT_REFUSAL.length) : text)
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
@@ -171,16 +191,15 @@ export interface RuleHit {
 /** The reasons a record can carry that are not a policy's rule. */
 export const REASON_WORDS: readonly string[] = ["minor-exposed", "unchecked", "sfw-exposed", "sfw-unchecked"];
 
-/** Every rule that fired on a record, in any cell: pre-flight or scan, enforcing or advisory. */
+/** Every rule that fired on a record, in any cell: pre-flight, the input image's scan or the output's, enforcing or advisory. */
 export function recordRules(record: Pick<GenerationRecord, "guard">): RuleHit[] {
-  const { preflight, scans } = record.guard;
-  const cells: [string, Cell | null][] = [
-    ...Object.entries(preflight ?? {}),
-    ...Object.entries(scans ?? {}).flatMap(([policy, pair]): [string, Cell | null][] => [
+  const { preflight, scans, input } = record.guard;
+  const pairs = (from: Record<string, RowPair> | undefined) =>
+    Object.entries(from ?? {}).flatMap(([policy, pair]): [string, Cell | null][] => [
       [policy, pair.isolated],
       [policy, pair.with_prompt],
-    ]),
-  ];
+    ]);
+  const cells: [string, Cell | null][] = [...Object.entries(preflight ?? {}), ...pairs(input?.scans), ...pairs(scans)];
   const hits = new Map<string, RuleHit>();
   for (const [policy, cell] of cells) {
     for (const rule of cell?.result?.rules ?? []) {

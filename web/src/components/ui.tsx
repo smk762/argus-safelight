@@ -73,9 +73,9 @@ export function Reasoning({ text }: { text: string }) {
 }
 
 /** A card that opens on its summary. Closed by default; its content stays in the DOM. */
-export function Collapsible({ title, children }: { title: ReactNode; children: ReactNode }) {
+export function Collapsible({ title, children, defaultOpen = false }: { title: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
   return (
-    <details className="group rounded-lg border border-base-600/60 bg-base-800">
+    <details open={defaultOpen || undefined} className="group rounded-lg border border-base-600/60 bg-base-800">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 [&::-webkit-details-marker]:hidden">
         <SectionTitle>{title}</SectionTitle>
         <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

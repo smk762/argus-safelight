@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
 import { ApiError, generate, preflight as runPreflight } from "@/lib/api";
-import { canExpand, defaultCompose, normaliseCompose, toRequest, type ComposeState } from "@/lib/compose";
+import { canExpand, defaultCompose, normaliseCompose, preflightKey, toRequest, withoutPixels, type ComposeState } from "@/lib/compose";
 import { IDLE, isRunning, liveReducer, type LiveState } from "@/lib/live";
 import type { Preflight } from "@/lib/types";
 
@@ -82,8 +82,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   );
 
   const check = useCallback(async () => {
-    const request = toRequest(compose, expandable, models);
-    const key = JSON.stringify(request);
+    // Darkroom's pre-flight judges the text alone, so the input image does not travel with it.
+    const request = withoutPixels(toRequest(compose, expandable, models));
+    const key = preflightKey(request);
     setPreflight({ state: "checking", result: null, error: null, forRequest: key });
     try {
       const result = await runPreflight(request);
@@ -102,7 +103,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     const request = toRequest(compose, expandable, models);
     const abort = new AbortController();
     controller.current = abort;
-    dispatch({ type: "start", request });
+    // The live view keeps the request without the input's pixels; only the stream carries them.
+    const input = compose.initImage && request.init_image ? { width: compose.initImage.width, height: compose.initImage.height, denoise: request.init_image.denoise, maskFraction: compose.mask?.fraction ?? null } : null;
+    dispatch({ type: "start", request: withoutPixels(request), input });
     setPreflight({ state: "idle", result: null, error: null, forRequest: null });
     setComposerOpen(false);
     router.push("/");
@@ -111,10 +114,11 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       {
         onPreflight: (result) => {
           dispatch({ type: "preflight", preflight: result });
-          setPreflight({ state: "done", result, error: null, forRequest: JSON.stringify(request) });
+          setPreflight({ state: "done", result, error: null, forRequest: preflightKey(request) });
         },
         onQueued: () => dispatch({ type: "queued" }),
         onProgress: (progress) => dispatch({ type: "progress", progress }),
+        onInputScan: (scan) => dispatch({ type: "input_scan", scan }),
         onScan: (scan) => dispatch({ type: "scan", scan }),
       },
       abort.signal,
@@ -140,7 +144,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const openComposer = useCallback(() => setComposerOpen(true), []);
   const closeComposer = useCallback(() => setComposerOpen(false), []);
 
-  const preflightCurrent = preflight.forRequest === JSON.stringify(toRequest(compose, expandable, models));
+  const preflightCurrent = preflight.forRequest === preflightKey(toRequest(compose, expandable, models));
 
   const value = useMemo<Compose>(
     () => ({ compose, ready, update, replace, preflight, check, preflightCurrent, live, running, start, stop, clearLive, composerOpen, openComposer, closeComposer }),
