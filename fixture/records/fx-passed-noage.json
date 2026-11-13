@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-passed-noage",
   "created_at": "2026-10-20T09:07:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "passed",
   "outcome_reason": null,
   "critical": false,
@@ -12,27 +12,30 @@
     "user_prompt": "a bowl of lemons on a wooden table, soft window light",
     "expanded_prompt": null,
     "final_prompt": "a bowl of lemons on a wooden table, soft window light",
-    "negative_prompt": "blurry, low quality, text, watermark",
+    "negative_prompt": "",
     "expansion": null,
     "seed": 1001,
     "sampling": {
       "sampler": "euler",
-      "scheduler": "normal",
+      "scheduler": "simple",
       "steps": 20,
-      "cfg": 5.5,
+      "cfg": 1.0,
+      "guidance": 3.5,
       "clip_skip": 1,
       "width": 512,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
-      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+      "name": "flux/argus-flux-dev.safetensors",
+      "sha256": "6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a"
     },
     "vae": null,
     "loras": [],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "flux",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "default",
@@ -46,9 +49,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "default",
+          "thinking": "fast"
         },
         "error": null
       }
@@ -62,9 +64,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -75,9 +76,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -89,7 +89,8 @@
       "threshold": 0.2,
       "blur": false
     },
-    "age": null
+    "age": null,
+    "input": null
   },
   "image": {
     "sha256": "3954fc108dc4c1887e76f9e8c99949d8548009ee533f29435deb9d30e7608159",

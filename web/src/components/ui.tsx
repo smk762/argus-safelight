@@ -1,4 +1,8 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+"use client";
+
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
+
+import { useEscapeDismiss } from "@/lib/useEscapeDismiss";
 
 type Tone = "primary" | "neutral" | "danger";
 
@@ -8,7 +12,7 @@ const BUTTON_TONE: Record<Tone, string> = {
   danger: "bg-error/15 text-error border border-error/40 hover:bg-error/25 disabled:hover:bg-error/15",
 };
 
-export function Button({ tone = "neutral", small = false, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone; small?: boolean }) {
+export function Button({ tone = "neutral", small = false, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone; small?: boolean; ref?: Ref<HTMLButtonElement> }) {
   const size = small ? "px-2.5 py-1 text-caption" : "px-3.5 py-2 text-small";
   return <button type="button" {...props} className={`inline-flex items-center gap-1.5 rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${size} ${BUTTON_TONE[tone]} ${className}`} />;
 }
@@ -24,10 +28,11 @@ export const ICON_NEUTRAL = `${ICON_BUTTON} ${ICON_TONE.neutral}`;
 
 /** A tooltip under one icon control, on hover and keyboard focus. The control has its own `aria-label`, so this is hidden from screen readers. */
 export function Tip({ label, children }: { label: string; children: ReactNode }) {
+  const { dismissed, bind } = useEscapeDismiss();
   return (
-    <span className="group relative inline-flex">
+    <span className="group relative inline-flex" {...bind}>
       {children}
-      <span aria-hidden="true" className="pointer-events-none absolute right-0 top-full z-30 mt-2 hidden whitespace-nowrap rounded-md border border-base-600 bg-base-700 px-2 py-1 text-caption text-text-primary shadow-soft group-focus-within:block group-hover:block">
+      <span aria-hidden="true" className={`pointer-events-none absolute right-0 top-full z-30 mt-2 hidden whitespace-nowrap rounded-md border border-base-600 bg-base-700 px-2 py-1 text-caption text-text-primary shadow-soft ${dismissed ? "" : "group-focus-within:block group-hover:block"}`}>
         {label}
       </span>
     </span>
@@ -68,9 +73,9 @@ export function Reasoning({ text }: { text: string }) {
 }
 
 /** A card that opens on its summary. Closed by default; its content stays in the DOM. */
-export function Collapsible({ title, children }: { title: ReactNode; children: ReactNode }) {
+export function Collapsible({ title, children, defaultOpen = false }: { title: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
   return (
-    <details className="group rounded-lg border border-base-600/60 bg-base-800">
+    <details open={defaultOpen || undefined} className="group rounded-lg border border-base-600/60 bg-base-800">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 [&::-webkit-details-marker]:hidden">
         <SectionTitle>{title}</SectionTitle>
         <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

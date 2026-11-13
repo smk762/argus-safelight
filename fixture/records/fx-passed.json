@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-passed",
   "created_at": "2026-10-20T09:00:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "passed",
   "outcome_reason": null,
   "critical": false,
@@ -23,12 +23,13 @@
       "scheduler": "karras",
       "steps": 28,
       "cfg": 5.5,
+      "guidance": null,
       "clip_skip": 1,
       "width": 512,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
+      "name": "sdxl/argus-base-v1.safetensors",
       "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
     },
     "vae": null,
@@ -36,12 +37,17 @@
       {
         "name": "argus-style-soft.safetensors",
         "sha256": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
-        "weight": 0.7
+        "weight": 0.7,
+        "trigger_words": [
+          "argus soft style"
+        ]
       }
     ],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+lora1",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "adult-granular",
@@ -57,9 +63,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "custom-641a2b290946",
+          "thinking": "fast"
         },
         "error": null
       },
@@ -70,9 +75,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "default",
+          "thinking": "fast"
         },
         "error": null
       }
@@ -86,9 +90,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "custom-641a2b290946",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -99,9 +102,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "custom-641a2b290946",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -114,9 +116,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -127,9 +128,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -157,7 +157,8 @@
         }
       ],
       "minor_exposed": false
-    }
+    },
+    "input": null
   },
   "image": {
     "sha256": "3954fc108dc4c1887e76f9e8c99949d8548009ee533f29435deb9d30e7608159",

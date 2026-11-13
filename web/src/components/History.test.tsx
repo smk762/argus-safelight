@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fixtureRecords } from "@/lib/fixture.test-util";
 import type { GenerationRecord, RecordPage } from "@/lib/types";
@@ -43,6 +43,16 @@ vi.mock("@/lib/api", () => ({
   purgeRecord: (id: string) => purgeRecord(id),
 }));
 
+beforeAll(() => {
+  // jsdom has no <dialog> implementation.
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+});
 beforeEach(() => {
   store = fixtureRecords();
   extra = 0;
@@ -112,10 +122,10 @@ describe("History", () => {
     fireEvent.click(screen.getByLabelText(`Select ${refused.request.user_prompt}`));
     expect((screen.getByRole("button", { name: "Remove 0 images" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("checkbox", { name: "1 selected" }));
-    fireEvent.click(screen.getByRole("button", { name: "Remove 4 images" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove 6 images" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Removed 0 of 4: darkroom is read-only"));
-    expect(await screen.findByText("4 selected")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Removed 0 of 6: darkroom is read-only"));
+    expect(await screen.findByText("6 selected")).toBeTruthy();
   });
 
   it("marks a record whose image was removed, with no img element, and filters to those", async () => {
@@ -168,6 +178,22 @@ describe("History", () => {
     input.focus();
     rerender(<History />);
     expect(document.activeElement).toBe(input);
+  });
+
+  it("opens the purge confirm as a native modal with the focus on Cancel, and Cancel closes it", async () => {
+    devmode = true;
+    render(<History />);
+    await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(store.length));
+    fireEvent.click(screen.getByRole("button", { name: "Purge all" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.tagName).toBe("DIALOG");
+    expect(dialog.hasAttribute("open")).toBe(true);
+    expect(dialog.getAttribute("aria-modal")).toBeNull();
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(document.activeElement).toBe(cancel);
+    fireEvent.click(cancel);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(purge).not.toHaveBeenCalled();
   });
 
   it("has no purge button in the DOM unless /health reports devmode", async () => {

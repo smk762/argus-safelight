@@ -103,7 +103,7 @@ describe("from a record", () => {
     expect(toRequest(state).seed).toBeNull();
   });
   it("takes what a refused record does hold: the seed and sampling the request sent", () => {
-    const sampling = { ...defaultCompose(health(), policies(), models).sampling, steps: 12 };
+    const sampling = { ...defaultCompose(health(), policies(), models).sampling, steps: 12, guidance: null };
     const record = fixtureRecord("fx-refused");
     const state = fromRecord({ ...record, request: { ...record.request, seed: 7, sampling } }, defaultCompose(health(), policies(), models));
     expect(state.seed).toBe(7);

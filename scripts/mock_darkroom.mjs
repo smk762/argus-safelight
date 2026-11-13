@@ -21,7 +21,21 @@
  *   [preflight-unchecked]  the pre-flight check fails                          -> refused, unchecked
  *   [fail]       ComfyUI fails mid-way                                         -> failed
  *
+ * With an input image (`init_image`, image-to-image or inpainting), the input gets its own scan first, one
+ * `input_scan` event per cell, and goes on only if it passes:
+ *
+ *   [input-exposed]  NudeNet 0.41 on the input                                 -> refused "input image: sfw-exposed" (SFW); passes under NSFW
+ *   [input-illegal]  the input's isolated scan hits an illegal rule            -> refused "input image: <policy>:<rule>", critical
+ *
  * Markers combine. `[illegal] [minor]` under an adult policy is deleted with both reasons in `outcome_reason`.
+ *
+ * Workflows are chosen as darkroom chooses them, by the checkpoint's family (its folder) and the LoRA count, from
+ * `workflows` in fixture/models.json. A generation darkroom would refuse is a 400 with darkroom's wording: a checkpoint
+ * with no template, a LoRA count none renders, or a negative prompt, guidance or clip skip above 2 with no slot.
+ * `/preflight` does not check, as darkroom's does not. An input image or mask that darkroom would not decode is a 400 too
+ * (format, 16 MiB, 4096 px, the mask's size, a mask with nothing white); the mock reads sizes from the file headers
+ * and ignores EXIF orientation. It decodes a PNG mask (8-bit, not interlaced) to measure it as darkroom does; any
+ * other mask gets a pretend `masked_fraction` of 0.5.
  *
  * Environment: MOCK_PORT (8106), MOCK_NSFW_ALLOWED (1), MOCK_DEVMODE (1),
  * MOCK_OLLAMA (1), MOCK_SINGGUARD (1), MOCK_NUDENET (1), MOCK_AGE (1),
@@ -46,7 +60,8 @@ const NUDENET = flag("MOCK_NUDENET");
 const AGE = flag("MOCK_AGE");
 const STEP_MS = Number(process.env.MOCK_STEP_MS || 60);
 const SCAN_MS = Number(process.env.MOCK_SCAN_MS || 350);
-const VERSION = "0.0.0+mock";
+// The darkroom version the fixture was recorded against (`make fixture`, from web/schema/pins.json).
+const VERSION = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixture", "darkroom.json"), "utf8")).version;
 const MODEL = "SingGuard-4b";
 const SIZE = 512;
 const MAX_PAGE = 200;
@@ -58,6 +73,146 @@ const DEFAULT_POLICY = NSFW_ALLOWED ? policyFile.default : "default";
 
 /** @type {Map<string, object>} */
 const records = new Map();
+
+const familyOf = (checkpoint) => {
+  const [head, ...rest] = String(checkpoint).split("/");
+  return rest.length > 0 && head ? head : null;
+};
+
+const MODE_KIND = { txt2img: "workflow", img2img: "image-to-image workflow", inpaint: "inpainting workflow" };
+const requestMode = (body) => (body.init_image ? (body.init_image.mask_base64 ? "inpaint" : "img2img") : "txt2img");
+
+/** The template darkroom's `WorkflowSet.select` picks, by family, LoRA count and mode, or the 400 it answers with. */
+function chooseWorkflow(body) {
+  const name = String(body.checkpoint ?? "");
+  if (!models.checkpoints.some((checkpoint) => checkpoint.name === name)) return { error: `checkpoint ${JSON.stringify(name)} not found under the models root` };
+  const family = familyOf(name);
+  const count = (body.loras ?? []).length;
+  const mode = requestMode(body);
+  const fits = models.workflows.filter((workflow) => (workflow.family === null || workflow.family === family) && (workflow.mode ?? "txt2img") === mode);
+  const workflow = fits.find((candidate) => candidate.loras === count);
+  if (!workflow) {
+    if (family === null && models.workflows.every((candidate) => candidate.family !== null)) {
+      return { error: `checkpoint ${JSON.stringify(name)} is not in a family folder (checkpoints/<family>/...), so no workflow can be chosen for it` };
+    }
+    const counts = [...new Set(fits.map((candidate) => candidate.loras))].sort((a, b) => a - b);
+    const offered = counts.length ? `it renders with ${counts.join(", ")} LoRA(s)` : `it has no ${MODE_KIND[mode]}`;
+    return { error: `no ${MODE_KIND[mode]} renders ${family ? `the '${family}' family` : "this checkpoint"} with ${count} LoRA(s): ${offered}` };
+  }
+  const slots = new Set(workflow.slots);
+  const sampling = body.sampling ?? {};
+  if (String(body.negative_prompt ?? "").trim() && !slots.has("$negative")) return { error: "this run has a negative prompt but the workflow has no $negative slot" };
+  if (sampling.guidance != null && !slots.has("$guidance")) return { error: "this run sets guidance but the workflow has no $guidance slot" };
+  if (sampling.guidance == null && slots.has("$guidance")) return { error: "the workflow uses $guidance but this run has no value for it" };
+  if (Number(sampling.clip_skip ?? 1) > 2 && !slots.has("$clip_skip")) return { error: "this run sets clip_skip above 2 but the workflow has no $clip_skip slot" };
+  return { workflow };
+}
+
+const MAX_INPUT_BYTES = 16 * 1024 * 1024;
+const MAX_INPUT_EDGE = 4096;
+
+/** Width and height from a PNG, JPEG or WebP header, or null when the bytes are none of those. */
+function imageSize(data) {
+  if (data.length >= 24 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+  if (data.length >= 4 && data[0] === 0xff && data[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < data.length) {
+      if (data[i] !== 0xff) return null;
+      const marker = data[i + 1];
+      const length = data.readUInt16BE(i + 2);
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { width: data.readUInt16BE(i + 7), height: data.readUInt16BE(i + 5) };
+      i += 2 + length;
+    }
+    return null;
+  }
+  if (data.length >= 30 && data.toString("ascii", 0, 4) === "RIFF" && data.toString("ascii", 8, 12) === "WEBP") {
+    const chunk = data.toString("ascii", 12, 16);
+    if (chunk === "VP8 ") return { width: data.readUInt16LE(26) & 0x3fff, height: data.readUInt16LE(28) & 0x3fff };
+    if (chunk === "VP8L") {
+      const bits = data.readUInt32LE(21);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+    }
+    if (chunk === "VP8X") return { width: 1 + data.readUIntLE(24, 3), height: 1 + data.readUIntLE(27, 3) };
+  }
+  return null;
+}
+
+/** The share of a PNG mask darkroom would repaint (grey at or above 128), or null when the mock cannot decode it. */
+function pngMaskFraction(data) {
+  if (data.length < 33 || data.readUInt32BE(8) !== 13) return null;
+  const width = data.readUInt32BE(16);
+  const height = data.readUInt32BE(20);
+  const [depth, colour, , , interlace] = data.subarray(24, 29);
+  const channels = { 0: 1, 2: 3, 4: 2, 6: 4 }[colour];
+  if (depth !== 8 || interlace !== 0 || !channels) return null;
+  const parts = [];
+  for (let at = 8; at + 8 <= data.length; ) {
+    const length = data.readUInt32BE(at);
+    if (data.toString("ascii", at + 4, at + 8) === "IDAT") parts.push(data.subarray(at + 8, at + 8 + length));
+    at += 12 + length;
+  }
+  let raw;
+  try {
+    raw = zlib.inflateSync(Buffer.concat(parts));
+  } catch {
+    return null;
+  }
+  const stride = width * channels;
+  let previous = Buffer.alloc(stride);
+  let masked = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const line = Buffer.from(raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1)));
+    for (let x = 0; x < stride; x++) {
+      const left = x >= channels ? line[x - channels] : 0;
+      const up = previous[x];
+      const corner = x >= channels ? previous[x - channels] : 0;
+      const p = left + up - corner;
+      const paeth = Math.abs(p - left) <= Math.abs(p - up) && Math.abs(p - left) <= Math.abs(p - corner) ? left : Math.abs(p - up) <= Math.abs(p - corner) ? up : corner;
+      line[x] = (line[x] + [0, left, up, (left + up) >> 1, paeth][filter]) & 0xff;
+    }
+    for (let x = 0; x < width; x++) {
+      const i = x * channels;
+      // Pillow's "L" conversion, rounded in fixed point.
+      const grey = channels >= 3 ? (line[i] * 19595 + line[i + 1] * 38470 + line[i + 2] * 7471 + 0x8000) >> 16 : line[i];
+      if (grey >= 128) masked += 1;
+    }
+    previous = line;
+  }
+  return masked / (width * height);
+}
+
+function decodeInput(base64, what) {
+  if (base64.length > 4 * Math.ceil(MAX_INPUT_BYTES / 3)) return { error: `${what} is over 16 MiB` };
+  const data = Buffer.from(base64, "base64");
+  if (data.length === 0) return { error: `${what} is empty` };
+  if (data.length > MAX_INPUT_BYTES) return { error: `${what} is over 16 MiB` };
+  const size = imageSize(data);
+  if (!size) return { error: `${what} cannot be decoded as PNG, JPEG or WebP` };
+  if (Math.max(size.width, size.height) > MAX_INPUT_EDGE) return { error: `${what} is ${size.width}x${size.height}; an edge may be ${MAX_INPUT_EDGE} at most` };
+  return { data, ...size };
+}
+
+/** The input image and mask as darkroom checks them before anything runs: `{error}` for a 400, or what the record keeps. */
+function checkInput(body) {
+  const init = body.init_image;
+  if (!init) return { input: null };
+  const denoise = init.denoise ?? 0.5;
+  if (typeof denoise !== "number" || denoise < 0.05 || denoise > 1) return { error: "init_image.denoise must be from 0.05 to 1" };
+  const image = decodeInput(String(init.data_base64 ?? ""), "the init image");
+  if (image.error) return image;
+  let mask = null;
+  if (init.mask_base64 != null) {
+    const read = decodeInput(String(init.mask_base64), "the mask");
+    if (read.error) return read;
+    if (read.width !== image.width || read.height !== image.height) return { error: `the mask is ${read.width}x${read.height} but the init image is ${image.width}x${image.height}: they must match` };
+    const fraction = imageSize(read.data) && read.data[0] === 0x89 ? pngMaskFraction(read.data) : null;
+    if (fraction === 0) return { error: "the mask masks nothing: paint the region to repaint white" };
+    mask = { sha256: sha256(read.data), source_sha256: sha256(read.data), masked_fraction: fraction == null ? 0.5 : Math.max(fraction, 1e-6) };
+  }
+  const digest = sha256(image.data);
+  return { input: { sha256: digest, phash: "f0f0e0e0c0c08080", width: image.width, height: image.height, source_sha256: digest, denoise, mask } };
+}
 /** @type {Map<string, Buffer>} */
 const images = new Map();
 let comfyHistory = 0;
@@ -89,16 +244,17 @@ const nonIllegalRule = (name) => (name === "default" ? "A. Sexual Content Risk" 
 /** `policy:letter`, as darkroom writes a rule into `outcome_reason`. */
 const ruleCode = (policy, rule) => `${policy}:${rule.slice(0, 1)}`;
 
-function guard(safe, rules, explanation, thinking, fast) {
-  const out = { safe, rules, explanation, model: MODEL, thinking };
-  if (fast != null) {
-    out.fast_verdict = fast;
-    out.fast_rule = fast === "unsafe" ? rules[0] ?? null : null;
-  }
-  return out;
-}
-const safeCell = (thinking) => ({ state: "safe", result: guard(true, [], "No rule matched.", thinking === "cascade" ? "fast" : thinking, thinking === "cascade" ? "safe" : null), error: null });
-const flaggedCell = (rule, why, thinking) => ({ state: "flagged", result: guard(false, [rule], why, thinking === "cascade" ? "slow" : thinking, thinking === "cascade" ? "unsafe" : null), error: null });
+/** How cortex's GuardResult names the policy it judged against: `default`, or `custom-` and a sha256 prefix of the text. */
+const policyName = (name) => {
+  const text = POLICIES.get(name)?.text;
+  return text == null ? "default" : `custom-${createHash("sha256").update(text.trim()).digest("hex").slice(0, 12)}`;
+};
+/** A cell as judged under `name`: its result carries that policy, as darkroom's records do. */
+const judgedBy = (name, cell) => (cell.result ? { ...cell, result: { ...cell.result, policy: policyName(name) } } : cell);
+
+const guard = (safe, rules, explanation, thinking) => ({ safe, rules, explanation, model: MODEL, policy: "default", thinking });
+const safeCell = (thinking) => ({ state: "safe", result: guard(true, [], "No rule matched.", thinking === "cascade" ? "fast" : thinking), error: null });
+const flaggedCell = (rule, why, thinking) => ({ state: "flagged", result: guard(false, [rule], why, thinking === "cascade" ? "slow" : thinking), error: null });
 const illegalCell = (rule, why, thinking) => ({ ...flaggedCell(rule, why, thinking), state: "illegal" });
 const uncheckedCell = (error) => ({ state: "unchecked", result: null, error });
 
@@ -141,6 +297,7 @@ function preflight(body) {
     } else {
       results[name] = safeCell(thinking);
     }
+    results[name] = judgedBy(name, results[name]);
   }
   let outcome = "ok";
   let refusal = null;
@@ -238,7 +395,8 @@ const newId = () => `gen-${Date.now().toString(36)}-${Math.random().toString(36)
 
 function requestBlock(body, pre, seed) {
   const sampling = body.sampling ?? {};
-  const checkpoint = models.checkpoints.find((c) => c.name === body.checkpoint) ?? models.checkpoints[0];
+  const known = models.checkpoints.find((c) => c.name === body.checkpoint) ?? models.checkpoints[0];
+  const checkpoint = { name: known.name, sha256: known.sha256 };
   const loras = (body.loras ?? []).flatMap((l) => {
     const ref = models.loras.find((m) => m.name === l.name);
     return ref ? [{ name: ref.name, sha256: ref.sha256, weight: Number(l.weight ?? 1), trigger_words: l.trigger_words ?? [] }] : [];
@@ -256,6 +414,7 @@ function requestBlock(body, pre, seed) {
       scheduler: sampling.scheduler ?? "karras",
       steps: Number(sampling.steps ?? 28),
       cfg: Number(sampling.cfg ?? 5.5),
+      guidance: sampling.guidance == null ? null : Number(sampling.guidance),
       clip_skip: Number(sampling.clip_skip ?? 1),
       width: Number(sampling.width ?? SIZE),
       height: Number(sampling.height ?? SIZE),
@@ -264,6 +423,7 @@ function requestBlock(body, pre, seed) {
     vae: null,
     loras,
     workflow_sha256: "5b".repeat(32),
+    workflow: chooseWorkflow(body).workflow?.name ?? null,
     engine: "comfyui",
     engine_version: "0.3.60",
   };
@@ -292,26 +452,65 @@ function baseRecord(id, outcome, reason, critical, request, guardBlock, image) {
   };
 }
 
-async function generate(body, send) {
+async function generate(body, send, input = null) {
   const pre = preflight(body);
   const enforcing = pre.enforcing_policy;
   const names = [enforcing, ...pre.advisory_policies];
   const thinking = pre.thinking;
   const seed = Number.isInteger(body.seed) && body.seed >= 0 ? body.seed : Math.floor(Math.random() * 2 ** 32);
   const nsfwThreshold = typeof body.nsfw_threshold === "number" ? body.nsfw_threshold : 0.2;
-  const request = requestBlock(body, pre, seed);
-  const guardBase = { enforcing_policy: enforcing, advisory_policies: pre.advisory_policies, thinking, preflight: pre.results, scans: {}, nudenet: null, age: null };
+  const request = { ...requestBlock(body, pre, seed), init_image: input };
+  const guardBase = { enforcing_policy: enforcing, advisory_policies: pre.advisory_policies, thinking, preflight: pre.results, scans: {}, nudenet: null, age: null, input: null };
   const id = newId();
   const user = pre.user_prompt;
 
   send("preflight", pre);
   if (pre.outcome === "refused") {
     // Nothing was resolved or hashed, and the seed and sampling are only what the request sent.
-    const unresolved = { ...request, seed: Number.isInteger(body.seed) ? body.seed : null, sampling: body.sampling ? request.sampling : null, checkpoint: null, vae: null, loras: [], workflow_sha256: null, engine_version: null };
+    // The input image was not scanned: the record names it by its hashes only.
+    const unresolved = { ...request, seed: Number.isInteger(body.seed) ? body.seed : null, sampling: body.sampling ? request.sampling : null, checkpoint: null, vae: null, loras: [], workflow_sha256: null, workflow: null, engine_version: null };
     const record = baseRecord(id, "refused", refusalReason(pre), false, unresolved, guardBase, null);
     records.set(id, record);
     send("complete", { record });
     return;
+  }
+
+  // Image-to-image: the input gets an output's checks first, and goes on only if it passes outright.
+  let inputBlock = null;
+  if (input) {
+    const inputScans = {};
+    for (const name of names) {
+      inputScans[name] = { isolated: null, with_prompt: null };
+      for (const context of ["isolated", "with_prompt"]) {
+        await sleep(SCAN_MS);
+        let cell = SINGGUARD ? safeCell(thinking) : uncheckedCell("SingGuard unreachable");
+        const rule = firstIllegal(name);
+        if (user.includes("[input-illegal]") && context === "isolated" && rule) cell = illegalCell(rule, `[Step 1] The input image alone matches rule ${rule.slice(0, 1)} under this policy.`, thinking);
+        cell = judgedBy(name, cell);
+        inputScans[name][context] = cell;
+        send("input_scan", { policy: name, context, cell });
+      }
+    }
+    const exposedInput = user.includes("[input-exposed]") ? 0.41 : 0.0;
+    const inputNude = { exposed_score: exposedInput, labels: exposedInput >= 0.2 ? { FEMALE_BREAST_EXPOSED: exposedInput } : {}, threshold: nsfwThreshold, blur: false };
+    const illegalCodes = Object.entries(inputScans).flatMap(([name, pair]) => [pair.isolated, pair.with_prompt].filter((c) => c.state === "illegal").map((c) => ruleCode(name, c.result.rules[0])));
+    const uncheckedInput = inputScans[enforcing].isolated.state === "unchecked" || inputScans[enforcing].with_prompt.state === "unchecked";
+    let inputOutcome = "passed";
+    let inputReason = null;
+    if (illegalCodes.length > 0 || uncheckedInput) {
+      inputOutcome = "deleted";
+      inputReason = [...new Set(illegalCodes), ...(uncheckedInput ? ["unchecked"] : [])].join(", ");
+    } else if (pre.mode === "sfw" && exposedInput >= 0.2) {
+      inputOutcome = "omitted";
+      inputReason = "sfw-exposed";
+    }
+    inputBlock = { scans: inputScans, nudenet: inputNude, age: null, outcome: inputOutcome, reason: inputReason };
+    if (inputOutcome !== "passed") {
+      const record = baseRecord(id, "refused", `input image: ${inputReason}`, illegalCodes.length > 0, request, { ...guardBase, input: inputBlock }, null);
+      records.set(id, record);
+      send("complete", { record });
+      return;
+    }
   }
 
   await sleep(STEP_MS * 3);
@@ -355,7 +554,7 @@ async function generate(body, send) {
   for (const name of names) {
     for (const context of ["isolated", "with_prompt"]) {
       await sleep(SCAN_MS);
-      const cell = cellFor(name, context);
+      const cell = judgedBy(name, cellFor(name, context));
       scans[name][context] = cell;
       send("scan", { policy: name, context, cell });
     }
@@ -403,7 +602,7 @@ async function generate(body, send) {
     images.set(id, png);
     image.path = `${id}.png`;
   }
-  const record = baseRecord(id, outcome, reason, critical, request, { ...guardBase, scans, nudenet, age: ageBlock }, image);
+  const record = baseRecord(id, outcome, reason, critical, request, { ...guardBase, scans, nudenet, age: ageBlock, input: inputBlock }, image);
   records.set(id, record);
   send("complete", { record });
 }
@@ -506,6 +705,8 @@ const server = createServer(async (req, res) => {
         thinking: "cascade",
         nsfw_allowed: NSFW_ALLOWED,
         sfw_available: NUDENET,
+        workflow_loaded: true,
+        workflows: models.workflows.map((workflow) => workflow.name),
         devmode: DEVMODE,
         generating,
       });
@@ -522,6 +723,7 @@ const server = createServer(async (req, res) => {
       const enforcing = body.enforcing_policy || DEFAULT_POLICY;
       if (!POLICIES.has(enforcing)) return json(res, 400, { detail: `unknown policy ${enforcing}` });
       if (modeOf(enforcing) === "nsfw" && !NSFW_ALLOWED) return json(res, 400, { detail: `${enforcing} is an NSFW policy and the server was not started with --allow-nsfw` });
+      // No workflow check here: darkroom chooses the template when a generation begins, so pre-flight accepts any.
       // Darkroom's /preflight never expands: an expansion differs per run, so it judges the prompt as written.
       return json(res, 200, { ...preflight({ ...body, expand: false }), expansion_applied: false });
     }
@@ -531,13 +733,17 @@ const server = createServer(async (req, res) => {
       if (!POLICIES.has(enforcing)) return json(res, 400, { detail: `unknown policy ${enforcing}` });
       if (modeOf(enforcing) === "nsfw" && !NSFW_ALLOWED) return json(res, 400, { detail: `${enforcing} is an NSFW policy and the server was not started with --allow-nsfw` });
       if (modeOf(enforcing) === "sfw" && !NUDENET) return json(res, 400, { detail: "SFW generation needs a NudeNet server (NUDENET_URL is empty)" });
+      const chosen = chooseWorkflow(body);
+      if (chosen.error) return json(res, 400, { detail: chosen.error });
+      const checked = checkInput(body);
+      if (checked.error) return json(res, 400, { detail: checked.error });
       if (!SINGGUARD) return json(res, 503, { detail: "SingGuard is unreachable; darkroom never runs unguarded" });
       if (generating) return json(res, 409, { detail: "a generation is already running" });
       generating = true;
       res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
       const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       try {
-        await generate(body, send);
+        await generate(body, send, checked.input);
       } catch (error) {
         send("error", { detail: String(error?.message ?? error) });
       } finally {

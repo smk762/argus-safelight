@@ -1,7 +1,9 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 import { BACKENDS } from "@/lib/health";
-import { darkroomUrl } from "@/lib/types";
+import { DARKROOM_URL, darkroomUrl } from "@/lib/types";
 
 import { useDarkroom } from "./DarkroomProvider";
 import { Button, Card, SectionTitle, Spinner } from "./ui";
@@ -9,13 +11,16 @@ import { Button, Card, SectionTitle, Spinner } from "./ui";
 /** What `/health` says about darkroom and the servers behind it. */
 export function HealthCard({ className = "" }: { className?: string }) {
   const { health, error, loading, reload } = useDarkroom();
+  // The server cannot see the page's host, so it renders the configured URL and the browser swaps in the one it calls
+  // after hydration. Rendering `darkroomUrl()` straight away mismatched on any page not opened as localhost.
+  const url = useSyncExternalStore(noSubscribe, () => darkroomUrl(), () => DARKROOM_URL);
   return (
     <Card className={className}>
       <div className="flex items-center justify-between gap-2">
         <SectionTitle>Darkroom</SectionTitle>
         {loading ? <Spinner /> : <Button small onClick={reload}>Refresh</Button>}
       </div>
-      <p className="mt-1 break-all font-mono text-caption text-text-muted">{darkroomUrl()}</p>
+      <p className="mt-1 break-all font-mono text-caption text-text-muted">{url}</p>
       {error ? (
         <p role="alert" className="mt-2 text-small text-error">
           Not reachable: {error}
@@ -50,3 +55,5 @@ export function HealthCard({ className = "" }: { className?: string }) {
     </Card>
   );
 }
+
+const noSubscribe = () => () => {};

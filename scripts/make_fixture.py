@@ -28,7 +28,9 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1] / "fixture"
 SIZE = 512
 T0 = datetime(2026, 10, 20, 9, 0, tzinfo=UTC)
-VERSION = "0.0.0+fixture"
+# The darkroom the fixture is recorded against: the sync record's commit and version (darkroom's `dev` HEAD).
+PIN = json.loads((ROOT.parent / "web" / "schema" / "pins.json").read_text())["darkroom"]
+VERSION = PIN["version"]
 MODEL = "SingGuard-4b"
 
 # ---------------------------------------------------------------------------
@@ -180,53 +182,128 @@ POLICIES: list[dict[str, Any]] = [
     },
 ]
 
+# Darkroom's example workflow directory, as `GET /models` describes it: a template per checkpoint family and LoRA count.
+# `slots` are the scalar placeholders each fills; a request that sets a value with no slot is a 400.
+_SDXL_SLOTS = ["$base_checkpoint", "$cfg", "$clip_skip", "$height", "$negative", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_FLUX_SLOTS = ["$base_checkpoint", "$cfg", "$guidance", "$height", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_KLEIN_SLOTS = ["$base_checkpoint", "$cfg", "$height", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+_SDXL_IMG2IMG_SLOTS = sorted([*_SDXL_SLOTS, "$denoise", "$init_image"])
+_SDXL_INPAINT_SLOTS = sorted([*_SDXL_IMG2IMG_SLOTS, "$init_mask"])
+_SD35_SLOTS = ["$base_checkpoint", "$cfg", "$height", "$negative", "$positive", "$sampler", "$scheduler", "$seed", "$steps", "$width"]
+def _workflow(name: str, family: str, loras: int, slots: list[str], mode: str = "txt2img") -> dict:
+    return {"name": name, "family": family, "loras": loras, "mode": mode, "img2img": mode == "img2img", "slots": slots}
+
+
+# Image-to-image and inpainting: SDXL only, with 0 or 1 LoRA, as darkroom's examples ship them.
+WORKFLOWS = [
+    _workflow("flux", "flux", 0, _FLUX_SLOTS),
+    _workflow("flux+lora1", "flux", 1, _FLUX_SLOTS),
+    _workflow("flux+lora2", "flux", 2, _FLUX_SLOTS),
+    _workflow("flux-klein", "flux-klein", 0, _KLEIN_SLOTS),
+    _workflow("sd35", "sd35", 0, _SD35_SLOTS),
+    _workflow("sdxl", "sdxl", 0, _SDXL_SLOTS),
+    _workflow("sdxl+lora1", "sdxl", 1, _SDXL_SLOTS),
+    _workflow("sdxl+lora2", "sdxl", 2, _SDXL_SLOTS),
+    _workflow("sdxl+img2img", "sdxl", 0, _SDXL_IMG2IMG_SLOTS, "img2img"),
+    _workflow("sdxl+lora1+img2img", "sdxl", 1, _SDXL_IMG2IMG_SLOTS, "img2img"),
+    _workflow("sdxl+inpaint", "sdxl", 0, _SDXL_INPAINT_SLOTS, "inpaint"),
+    _workflow("sdxl+lora1+inpaint", "sdxl", 1, _SDXL_INPAINT_SLOTS, "inpaint"),
+]
+
+
+def _checkpoint(name: str, sha: str) -> dict:
+    """A `/models` checkpoint: its family is its top-level folder, and its LoRA counts are the templates for that family."""
+    family = name.split("/", 1)[0] if "/" in name else None
+
+    def counts(mode: str) -> list[int]:
+        return sorted({w["loras"] for w in WORKFLOWS if w["family"] in (None, family) and w["mode"] == mode}) if family else []
+
+    return {
+        "name": name,
+        "sha256": sha * 32,
+        "family": family,
+        "lora_counts": counts("txt2img"),
+        "img2img_lora_counts": counts("img2img"),
+        "inpaint_lora_counts": counts("inpaint"),
+    }
+
+
 MODELS = {
     "checkpoints": [
-        {"name": "argus-base-v1.safetensors", "sha256": "1f" * 32},
-        {"name": "argus-photo-v2.safetensors", "sha256": "2e" * 32},
+        _checkpoint("sdxl/argus-base-v1.safetensors", "1f"),
+        _checkpoint("sdxl/argus-photo-v2.safetensors", "2e"),
+        _checkpoint("flux/argus-flux-dev.safetensors", "6a"),
+        _checkpoint("flux-klein/argus-klein-4b.safetensors", "7b"),
+        _checkpoint("sd35/argus-sd35-medium.safetensors", "8c"),
+        # A folder with no template: listed, never renderable.
+        _checkpoint("pony/argus-pony-v1.safetensors", "9d"),
     ],
-    "default_checkpoint": "argus-photo-v2.safetensors",
+    "default_checkpoint": "sdxl/argus-photo-v2.safetensors",
     "loras": [
         {"name": "argus-style-soft.safetensors", "sha256": "3d" * 32, "trigger_words": ["argus soft style"]},
         {"name": "argus-light-studio.safetensors", "sha256": "4c" * 32, "trigger_words": ["studio lighting"]},
     ],
     "vaes": [],
+    "workflows": WORKFLOWS,
     "samplers": ["euler", "euler_ancestral", "dpmpp_2m", "dpmpp_2m_sde", "ddim"],
-    "schedulers": ["normal", "karras", "exponential", "sgm_uniform"],
+    "schedulers": ["normal", "karras", "exponential", "sgm_uniform", "simple"],
 }
+
+
+def checkpoint_ref(index: int) -> dict:
+    """A record's checkpoint: the name and hash darkroom resolved, not the `/models` entry."""
+    ref = MODELS["checkpoints"][index]
+    return {"name": ref["name"], "sha256": ref["sha256"]}
 
 # ---------------------------------------------------------------------------
 # Helpers that write the record shape darkroom's spec describes.
 
 
-def guard(safe: bool, rules: list[str] | None = None, explanation: str = "", thinking: str = "cascade", fast: str | None = None) -> dict:
-    out: dict[str, Any] = {
+def guard(safe: bool, rules: list[str] | None = None, explanation: str = "", thinking: str = "cascade") -> dict:
+    """A SingGuard result. `policy` is stamped per policy by `stamp_policies` once the record is built."""
+    return {
         "safe": safe,
         "rules": rules or [],
         "explanation": explanation or ("No rule matched." if safe else ""),
         "model": MODEL,
+        "policy": "default",
         "thinking": thinking,
     }
-    if fast is not None:
-        out["fast_verdict"] = fast
-        out["fast_rule"] = (rules or [None])[0] if fast == "unsafe" else None
-    return out
+
+
+def policy_name(name: str) -> str:
+    """cortex's `policy_name`: `default`, or `custom-` and a sha256 prefix of the policy text."""
+    text = next(p["text"] for p in POLICIES if p["name"] == name)
+    return "default" if text is None else "custom-" + hashlib.sha256(text.strip().encode()).hexdigest()[:12]
+
+
+def stamp_policies(rec: dict) -> dict:
+    """Each result names the policy it was judged against, as cortex's GuardResult does."""
+    g = rec["guard"]
+    cells = [(name, c) for name, c in g["preflight"].items()]
+    for block in (g, g.get("input") or {"scans": {}}):
+        cells += [(name, c) for name, pair in block["scans"].items() for c in pair.values()]
+    for name, c in cells:
+        if c["result"] is not None:
+            c["result"]["policy"] = policy_name(name)
+    return rec
 
 
 def cell(state: str, result: dict | None = None, error: str | None = None) -> dict:
     return {"state": state, "result": result, "error": error}
 
 
-def safe_cell(fast: str | None = "safe") -> dict:
-    return cell("safe", guard(True, fast=fast, thinking="fast" if fast == "safe" else "cascade"))
+def safe_cell() -> dict:
+    """The cascade's fast pass answers a clean image; the slow pass judges a flagged one."""
+    return cell("safe", guard(True, thinking="fast"))
 
 
 def flagged_cell(rule: str, why: str) -> dict:
-    return cell("flagged", guard(False, [rule], why, thinking="slow", fast="unsafe"))
+    return cell("flagged", guard(False, [rule], why, thinking="slow"))
 
 
 def illegal_cell(rule: str, why: str) -> dict:
-    return cell("illegal", guard(False, [rule], why, thinking="slow", fast="unsafe"))
+    return cell("illegal", guard(False, [rule], why, thinking="slow"))
 
 
 def unchecked_cell(error: str) -> dict:
@@ -234,7 +311,7 @@ def unchecked_cell(error: str) -> dict:
 
 
 def sampling(**over: Any) -> dict:
-    base = {"sampler": "dpmpp_2m", "scheduler": "karras", "steps": 28, "cfg": 5.5, "clip_skip": 1, "width": 512, "height": 512}
+    base = {"sampler": "dpmpp_2m", "scheduler": "karras", "steps": 28, "cfg": 5.5, "guidance": None, "clip_skip": 1, "width": 512, "height": 512}
     base.update(over)
     return base
 
@@ -248,9 +325,16 @@ def request(
     seed: int,
     loras: list[dict] | None = None,
     checkpoint: dict | None = None,
+    init_image: dict | None = None,
     **sampling_over: Any,
 ) -> dict:
     loras = loras or []
+    checkpoint = checkpoint or checkpoint_ref(0)
+    # Darkroom's choice: the checkpoint's family, the LoRA count, and whether there is an input image and a mask.
+    family = checkpoint["name"].split("/", 1)[0]
+    workflow = family if not loras else f"{family}+lora{len(loras)}"
+    if init_image is not None:
+        workflow += "+inpaint" if init_image.get("mask") else "+img2img"
     triggers = [MODELS["loras"][0]["trigger_words"][0] for lora in loras if lora["name"] == MODELS["loras"][0]["name"]]
     final = ", ".join([expanded or prompt, *triggers])
     return {
@@ -262,24 +346,40 @@ def request(
         "expansion": {"model": "qwen2.5:7b", "system_prompt_sha256": "ab" * 32} if expanded else None,
         "seed": seed,
         "sampling": sampling(**sampling_over),
-        "checkpoint": checkpoint or MODELS["checkpoints"][0],
+        "checkpoint": checkpoint,
         "vae": None,
         "loras": loras,
         "workflow_sha256": "5b" * 32,
+        "workflow": workflow,
         "engine": "comfyui",
         "engine_version": "0.3.60",
+        "init_image": init_image,
     }
 
 
 def refused(req: dict) -> dict:
     """*req* as a record refused in pre-flight keeps it: nothing was resolved or hashed, and no seed was drawn."""
-    unresolved = ("seed", "sampling", "checkpoint", "vae", "workflow_sha256", "engine_version")
+    unresolved = ("seed", "sampling", "checkpoint", "vae", "workflow_sha256", "workflow", "engine_version")
     return {**req, **dict.fromkeys(unresolved), "loras": []}
+
+
+def init_image(seed: int, denoise: float = 0.5, mask_fraction: float | None = None) -> dict:
+    """An image-to-image input as darkroom records it: hashes, size and denoise, never the pixels."""
+    hexed = f"{seed:02x}"[-2:]
+    mask = None if mask_fraction is None else {"sha256": "c1" * 32, "source_sha256": "c2" * 32, "masked_fraction": mask_fraction}
+    return {"sha256": hexed * 32, "phash": "f0f0e0e0c0c08080", "width": 512, "height": 512, "source_sha256": "a7" * 32, "denoise": denoise, "mask": mask}
+
+
+def input_scan(outcome: str, reason: str | None, scan_cells: dict, nude: dict, ages: dict | None = None) -> dict:
+    """The input image's own scan (`guard.input`): an output's checks, before anything renders."""
+    return {"scans": scan_cells, "nudenet": nude, "age": ages, "outcome": outcome, "reason": reason}
 
 
 def lora(index: int, weight: float) -> dict:
     ref = MODELS["loras"][index]
-    return {"name": ref["name"], "sha256": ref["sha256"], "weight": weight}
+    # The words the request supplied; darkroom appended them to the final prompt (see `request`).
+    words = ref["trigger_words"][:1] if index == 0 else []
+    return {"name": ref["name"], "sha256": ref["sha256"], "weight": weight, "trigger_words": words}
 
 
 def nudenet(score: float | None, threshold: float = 0.2, blur: bool = False, labels: dict[str, float] | None = None) -> dict | None:
@@ -365,6 +465,7 @@ def record(
     ages: dict | None,
     label: str | None,
     thinking: str = "cascade",
+    input_block: dict | None = None,
 ) -> tuple[dict, bytes | None]:
     served = outcome in {"passed", "review"}
     data = render(label, COLOURS[outcome]) if label else None
@@ -387,6 +488,7 @@ def record(
                 "scans": scan_cells or {},
                 "nudenet": nude,
                 "age": ages,
+                "input": input_block,
             },
             "image": image_block(data, served, rid) if data else None,
         },
@@ -424,7 +526,19 @@ def build() -> list[tuple[dict, bytes | None]]:
             "passed",
             reason=None,
             critical=False,
-            req=request("sfw", "a bowl of lemons on a wooden table, soft window light", seed=1001, steps=20, sampler="euler", scheduler="normal"),
+            # Flux: no negative prompt slot, and guidance in place of a high CFG.
+            req=request(
+                "sfw",
+                "a bowl of lemons on a wooden table, soft window light",
+                negative="",
+                seed=1001,
+                checkpoint=checkpoint_ref(2),
+                steps=20,
+                sampler="euler",
+                scheduler="simple",
+                cfg=1.0,
+                guidance=3.5,
+            ),
             enforcing="default",
             advisory=[],
             preflight=preflight_ok("default"),
@@ -641,6 +755,64 @@ def build() -> list[tuple[dict, bytes | None]]:
             label=None,
         )
     )
+    # Image-to-image: the input passed its own scan, then the output passed.
+    out.append(
+        record(
+            "fx-img2img-passed",
+            70,
+            "passed",
+            reason=None,
+            critical=False,
+            req=request("sfw", "the same field, repainted in autumn colours", seed=2024, init_image=init_image(2024, denoise=0.55)),
+            enforcing="default",
+            advisory=[],
+            preflight=preflight_ok("default"),
+            scan_cells=scans(default=(safe_cell(), safe_cell())),
+            nude=nudenet(0.0),
+            ages=None,
+            label="img2img sample",
+            input_block=input_scan("passed", None, scans(default=(safe_cell(), safe_cell())), nudenet(0.0)),
+        )
+    )
+    # Inpainting: a quarter of the input repainted; the mask is not scanned.
+    out.append(
+        record(
+            "fx-inpaint-passed",
+            75,
+            "passed",
+            reason=None,
+            critical=False,
+            req=request("sfw", "a small sailing boat on the water", seed=3030, init_image=init_image(3030, denoise=0.9, mask_fraction=0.25)),
+            enforcing="default",
+            advisory=["adult-granular"],
+            preflight=preflight_ok("default", "adult-granular"),
+            scan_cells=scans(default=(safe_cell(), safe_cell()), **{"adult-granular": (safe_cell(), safe_cell())}),
+            nude=nudenet(0.0),
+            ages=None,
+            label="inpaint sample",
+            input_block=input_scan("passed", None, scans(default=(safe_cell(), safe_cell()), **{"adult-granular": (safe_cell(), safe_cell())}), nudenet(0.0)),
+        )
+    )
+    # The input refused the attempt: NudeNet reported exposure in it under an SFW policy. Nothing was generated, and
+    # darkroom keeps no pixels of the input, so the record has no image of either.
+    out.append(
+        record(
+            "fx-refused-input",
+            80,
+            "refused",
+            reason="input image: sfw-exposed",
+            critical=False,
+            req=request("sfw", "a portrait in a garden", seed=4040, init_image=init_image(4040)),
+            enforcing="default",
+            advisory=[],
+            preflight=preflight_ok("default"),
+            scan_cells=None,
+            nude=None,
+            ages=None,
+            label=None,
+            input_block=input_scan("omitted", "sfw-exposed", scans(default=(safe_cell(), safe_cell())), nudenet(0.41, labels={"FEMALE_BREAST_EXPOSED": 0.41})),
+        )
+    )
     return out
 
 
@@ -649,11 +821,14 @@ def main() -> None:
         shutil.rmtree(ROOT / sub, ignore_errors=True)
         (ROOT / sub).mkdir(parents=True)
     for rec, data in build():
+        stamp_policies(rec)
         (ROOT / "records" / f"{rec['id']}.json").write_text(json.dumps(rec, indent=2) + "\n")
         if data is not None:
             (ROOT / "images" / f"{rec['id']}.png").write_bytes(data)
     (ROOT / "policies.json").write_text(json.dumps({"default": "adult-granular", "policies": POLICIES}, indent=2) + "\n")
     (ROOT / "models.json").write_text(json.dumps(MODELS, indent=2) + "\n")
+    recorded = {"repo": PIN["repo"], "commit": PIN["commit"], "version": VERSION}
+    (ROOT / "darkroom.json").write_text(json.dumps(recorded, indent=2) + "\n")
     print(f"wrote {len(list((ROOT / 'records').iterdir()))} records and {len(list((ROOT / 'images').iterdir()))} images under {ROOT}")
 
 

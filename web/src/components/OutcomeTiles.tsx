@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 import { imageUrl } from "@/lib/api";
-import { deletedSummary, omittedSummary } from "@/lib/outcome";
-import { ruleLetters } from "@/lib/shields";
+import { deletedSummary, inputRefusalSummary, omittedSummary } from "@/lib/outcome";
+import { inputGuard, inputRefused, ruleLetters } from "@/lib/shields";
 import type { Cell, GenerationRecord } from "@/lib/types";
 
-import { PreflightColumn } from "./ShieldGrid";
+import { PreflightColumn, ShieldGrid } from "./ShieldGrid";
 import { Badge, Button, Notice, Reasoning } from "./ui";
 
 const TILE = "min-h-[320px] w-full rounded-lg";
@@ -27,6 +27,8 @@ export function ImageTile({ record }: { record: GenerationRecord }) {
         alt={`Image for record ${record.id}: ${record.request.user_prompt}`}
         width={record.image?.width}
         height={record.image?.height}
+        // The record's main image is the page's largest paint; it never shares a page with another one.
+        fetchPriority="high"
         className={`h-full w-full object-contain transition-[filter] ${hidden ? "scale-105 blur-2xl" : ""}`}
         draggable={false}
       />
@@ -104,8 +106,45 @@ export function refusingCell(record: GenerationRecord): { policy: string; cell: 
   return null;
 }
 
+/**
+ * A record refused by its input image: the text passed pre-flight, then the input got an output's checks and did not
+ * pass outright. Says which check, on the input, and shows the input's grid. No picture of the input: darkroom keeps none.
+ */
+function InputRefusedPanel({ record }: { record: GenerationRecord }) {
+  const summary = inputRefusalSummary(record);
+  const input = inputGuard(record);
+  return (
+    <div role="group" aria-label="Refused at the input image" className="space-y-4 rounded-lg border-2 border-error/60 bg-error/5 p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="border-error/60 text-error">refused</Badge>
+        {record.critical ? <Badge className="border-error/60 text-error">critical</Badge> : null}
+        <span className="text-small text-text-secondary">{summary.headline}</span>
+      </div>
+      <Notice tone="error">
+        <span className="font-mono">{record.outcome_reason}</span>
+        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+          {summary.lines.map((line, index) => (
+            <li key={index}>{line}</li>
+          ))}
+        </ul>
+      </Notice>
+      {input ? (
+        <div>
+          <p className="text-caption uppercase tracking-wide text-text-muted">The input image&apos;s scans</p>
+          <div className="mt-1 overflow-x-auto">
+            <ShieldGrid guard={input} />
+          </div>
+        </div>
+      ) : null}
+      <p className="text-caption text-text-muted">The prompt passed pre-flight. Darkroom keeps no pixels of the input; the record names it by its hashes.</p>
+      <PreflightColumn results={record.guard.preflight} enforcing={record.guard.enforcing_policy} />
+    </div>
+  );
+}
+
 /** The pre-flight panel for a refused record: which rule fired, under which policy, in SingGuard's own words, and the prompt that was judged. */
 export function RefusedPanel({ record }: { record: GenerationRecord }) {
+  if (inputRefused(record)) return <InputRefusedPanel record={record} />;
   const refusing = refusingCell(record);
   const result = refusing?.cell.result;
   return (

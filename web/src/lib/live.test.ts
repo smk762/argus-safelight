@@ -18,8 +18,8 @@ const request: GenerateRequest = {
   nsfw_threshold: 0.2,
 };
 
-const safe: Cell = { state: "safe", result: { safe: true, rules: [], explanation: null, model: null, thinking: "fast" }, error: null };
-const flagged: Cell = { state: "flagged", result: { safe: false, rules: ["B. Crimes"], explanation: "why", model: null, thinking: "slow" }, error: null };
+const safe: Cell = { state: "safe", result: { safe: true, rules: [], explanation: null, model: null, policy: "default", thinking: "fast" }, error: null };
+const flagged: Cell = { state: "flagged", result: { safe: false, rules: ["B. Crimes"], explanation: "why", model: null, policy: "default", thinking: "slow" }, error: null };
 
 const preflight = (outcome: Preflight["outcome"]): Preflight => ({
   mode: "nsfw",
@@ -73,5 +73,30 @@ describe("live reducer", () => {
     expect(state.phase).toBe("error");
     expect(state.error).toBe("boom");
     expect(liveReducer(state, { type: "reset" })).toEqual(IDLE);
+  });
+});
+
+describe("the input image in the live view", () => {
+  const input = { width: 512, height: 512, denoise: 0.5, maskFraction: null };
+
+  it("adds the input's stage only when the request carried one, and fills its cells before queued", () => {
+    let state = liveReducer(IDLE, { type: "start", request, input });
+    expect(Object.keys(state.inputCells)).toEqual(["adult-granular", "default"]);
+    state = liveReducer(state, { type: "preflight", preflight: preflight("ok") });
+    expect(state.phase).toBe("input");
+    state = liveReducer(state, { type: "input_scan", scan: { policy: "default", context: "isolated", cell: flagged } });
+    expect(state.inputCells.default.isolated).toEqual(flagged);
+    expect(state.cells.default.isolated).toBeNull();
+    expect(scannedCount(state, "inputCells")).toEqual({ done: 1, total: 4 });
+    expect(isRunning(state)).toBe(true);
+    state = liveReducer(state, { type: "queued" });
+    expect(state.phase).toBe("queued");
+  });
+
+  it("goes straight to queued for text-to-image", () => {
+    const state = liveReducer(liveReducer(IDLE, { type: "start", request }), { type: "preflight", preflight: preflight("ok") });
+    expect(state.phase).toBe("queued");
+    expect(state.input).toBeNull();
+    expect(state.inputCells).toEqual({});
   });
 });

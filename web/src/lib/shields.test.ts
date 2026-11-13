@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { fixtureRecord, fixtureRecords } from "./fixture.test-util";
-import { firedCell, matchesRule, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, recordRules, rowDisagrees, rowVerdict, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
+import { firedCell, inputRefused, matchesRule, overallState, policyRows, promptChangedVerdict, promptTurned, reasonParts, recordRules, rowDisagrees, rowVerdict, ruleLetter, ruleLetters, shieldLabel, shieldMark, uncheckedCell, worstState } from "./shields";
 import type { Cell, ScanPair } from "./types";
 
 const cell = (state: Cell["state"], rules: string[] = []): Cell => ({
   state,
-  result: state === "unchecked" ? null : { safe: state === "safe", rules, explanation: null, model: null, thinking: "fast" },
+  result: state === "unchecked" ? null : { safe: state === "safe", rules, explanation: null, model: null, policy: "default", thinking: "fast" },
   error: state === "unchecked" ? "timeout" : null,
 });
 const pair = (isolated: Cell, with_prompt: Cell): ScanPair => ({ isolated, with_prompt });
@@ -171,5 +171,27 @@ describe("reason parts", () => {
   it("is empty when there is no reason", () => {
     expect(reasonParts(null)).toEqual([]);
     expect(reasonParts("")).toEqual([]);
+  });
+});
+
+describe("the input image's scan", () => {
+  it("tells an input refusal from a pre-flight one by guard.input, and drops the reason's prefix", () => {
+    expect(inputRefused(fixtureRecord("fx-refused-input"))).toBe(true);
+    expect(inputRefused(fixtureRecord("fx-refused"))).toBe(false);
+    expect(inputRefused(fixtureRecord("fx-img2img-passed"))).toBe(false);
+    expect(reasonParts("input image: default:A, minor-exposed")).toEqual(["default:A", "minor-exposed"]);
+    expect(matchesRule(fixtureRecord("fx-refused-input"), "sfw-exposed")).toBe(true);
+  });
+
+  it("puts the input's worst cell on a history row it refused", () => {
+    const record = fixtureRecord("fx-refused-input");
+    expect(rowVerdict(record)?.title).toBe("Input image: safe");
+  });
+
+  it("counts rules that fired on the input among a record's rules", () => {
+    const base = fixtureRecord("fx-img2img-passed");
+    const input = base.guard.input!;
+    const record = { ...base, guard: { ...base.guard, input: { ...input, scans: { default: pair(cell("flagged", ["B. Crimes"]), cell("safe")) } } } };
+    expect(recordRules(record).map((hit) => hit.code)).toContain("default:B");
   });
 });

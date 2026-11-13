@@ -9,9 +9,8 @@ import { Shield } from "./Shield";
 
 /**
  * One shield with its detail on hover, focus or tap: the rule, SingGuard's
- * explanation, the thinking mode that judged it, and the cascade's fast
- * verdict when there was one. The state and the words come from the cell;
- * nothing is reclassified here.
+ * explanation and the thinking mode that judged it. The state and the words
+ * come from the cell; nothing is reclassified here.
  */
 export function ShieldCell({
   cell,
@@ -44,6 +43,23 @@ export function ShieldCell({
     if (show && node && typeof node.showPopover === "function") node.showPopover();
   }, [show]);
 
+  // Escape closes it however it opened (hover, focus or a click), without moving the pointer or the focus: WCAG 1.4.13.
+  // It closes only this: preventing the default stops the same Escape closing the compose dialog the shield sits in.
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // A shield pinned on the page under a modal (the compose dialog opened over a record) leaves that Escape alone.
+      const modal = [...document.querySelectorAll("dialog[open]")].find((dialog) => !dialog.contains(button.current));
+      if (modal) return;
+      event.preventDefault();
+      setOpen(false);
+      setPinned(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [show]);
+
   useEffect(() => {
     if (!show) return;
     const place = () => {
@@ -69,9 +85,6 @@ export function ShieldCell({
         onClick={() => setPinned((value) => !value)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") setPinned(false);
-        }}
         className={`rounded-md px-2 py-1 transition-colors hover:bg-base-700/70 ${outlined ? "outline-dashed outline-2 outline-offset-1 outline-warning/80" : ""}`}
       >
         <Shield state={state} letters={letters} size={size} withLabel={withLabel} labelBelow={labelBelow} />
@@ -132,15 +145,6 @@ export function ShieldDetail({ cell, heading }: { cell: Cell | null; heading: st
             <dt className="inline text-text-muted">Judged in: </dt>
             <dd className="inline">{result.thinking ?? "unknown mode"}</dd>
           </div>
-          {result.fast_verdict ? (
-            <div>
-              <dt className="inline text-text-muted">Cascade fast pass: </dt>
-              <dd className="inline">
-                {result.fast_verdict}
-                {result.fast_rule ? ` (${result.fast_rule})` : ""}
-              </dd>
-            </div>
-          ) : null}
         </dl>
       ) : null}
     </>

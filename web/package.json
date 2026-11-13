@@ -1,6 +1,6 @@
 {
   "name": "argus-safelight",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,12 +8,19 @@
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "darkroom:types": "node scripts/darkroom-sync.mjs",
+    "darkroom:check": "node scripts/darkroom-sync.mjs --check",
+    "darkroom:pull": "node scripts/darkroom-sync.mjs --pull"
   },
   "dependencies": {
     "next": "16.4.5",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,9 +29,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "ajv": "^8.20.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "jsdom": "^26",
+    "json-schema-to-typescript": "^15.0.4",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "4.1.11"

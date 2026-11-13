@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { enforceBlock, policyByName } from "@/lib/compose";
+import { DOCS } from "@/lib/docsLinks";
 import type { Policies, PolicyInfo } from "@/lib/types";
 
 import { CloseIcon } from "./icons";
+import { DocsLink } from "./links";
 import { Badge, IconButton, Notice } from "./ui";
 
 export function ModeBadge({ mode }: { mode: "sfw" | "nsfw" }) {
@@ -38,7 +40,16 @@ export function PolicyPicker({
     <div className="space-y-3">
       <fieldset>
         <legend className="text-caption uppercase tracking-wide text-text-muted">Enforcing policy</legend>
-        <p className="mb-1.5 text-caption text-text-muted">Its verdict decides pre-flight and its name sets the mode. Server default: <span className="font-mono">{policies.default}</span>.</p>
+        <p className="mb-1.5 text-caption text-text-muted">Its verdict decides pre-flight and its name sets the mode. Server default: <span className="font-mono">{policies.default}</span>.{" "}
+          <DocsLink href={DOCS.policies} newTab>
+            Policies
+          </DocsLink>
+          ,{" "}
+          <DocsLink href={DOCS.mode} newTab>
+            what SFW and NSFW change
+          </DocsLink>
+          .
+        </p>
         <ul className="space-y-1">
           {policies.policies.map((policy) => {
             const block = enforceBlock(policy);
@@ -72,7 +83,11 @@ export function PolicyPicker({
       {own?.mode === "nsfw" ? (
         <Notice tone="warning">
           <span className="font-mono">{own.name}</span> is an NSFW policy. Non-illegal pre-flight flags warn instead of blocking, and NudeNet exposure blurs the image instead of withholding it. Illegal content is still refused at pre-flight and deleted after
-          generation.
+          generation.{" "}
+          <DocsLink href={DOCS.mode} newTab>
+            The mode table
+          </DocsLink>
+          .
         </Notice>
       ) : null}
       <fieldset>
@@ -109,6 +124,7 @@ export function PolicyPicker({
 /** The policy's text and its illegal rules, as `GET /policies` serves them. */
 export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   return (
     <dialog
       ref={(node) => {
@@ -119,10 +135,11 @@ export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose:
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
+      aria-labelledby={titleId}
       className="m-auto w-[min(720px,92vw)] rounded-lg border border-base-600 bg-base-800 p-0 text-text-primary shadow-soft backdrop:bg-base-900/70"
     >
       <div className="flex items-center justify-between gap-3 border-b border-base-600/60 px-5 py-3">
-        <h2 className="font-display text-subheading font-semibold">
+        <h2 id={titleId} className="font-display text-subheading font-semibold">
           <span className="font-mono">{policy.name}</span> <ModeBadge mode={policy.mode} />
         </h2>
         <IconButton label="Close" onClick={onClose}>
@@ -144,7 +161,13 @@ export function PolicyDialog({ policy, onClose }: { policy: PolicyInfo; onClose:
               ))}
             </ul>
           )}
-          <p className="mt-1 text-caption text-text-muted">Every other rule means review. The table lives in argus-cortex beside the text, so they cannot drift apart.</p>
+          <p className="mt-1 text-caption text-text-muted">
+            Every other rule means review. The table lives in argus-cortex beside the text, so they cannot drift apart.{" "}
+            <DocsLink href={DOCS.illegalRules} newTab>
+              Every policy&apos;s table
+            </DocsLink>
+            .
+          </p>
         </div>
         <div>
           <h3 className="text-caption uppercase tracking-wide text-text-muted">Wording sent to SingGuard</h3>

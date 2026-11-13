@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useCompose } from "./ComposeProvider";
-import { ComposeIcon, HistoryIcon } from "./icons";
+import { DOCS } from "@/lib/docsLinks";
+
+import { ComposeIcon, DocsIcon, HistoryIcon } from "./icons";
 import { StatusMenu } from "./StatusMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { ICON_NEUTRAL, IconButton, Spinner, Tip } from "./ui";
@@ -15,6 +17,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { openComposer, running } = useCompose();
   const inHistory = pathname.startsWith("/history");
+  const inDocs = pathname.startsWith("/docs");
   return (
     <div className="mx-auto flex min-h-dvh max-w-[1500px] flex-col">
       <header className="relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-base-600/60 px-4 py-3 sm:px-6">
@@ -43,6 +46,11 @@ export function Shell({ children }: { children: ReactNode }) {
               <HistoryIcon />
             </Link>
           </Tip>
+          <Tip label="Docs: argus-darkroom">
+            <Link href={DOCS.home} aria-label="Docs" aria-current={inDocs ? "page" : undefined} className={`${ICON_NEUTRAL} ${inDocs ? "bg-base-700 text-text-primary" : ""}`}>
+              <DocsIcon />
+            </Link>
+          </Tip>
           <StatusMenu />
           <ThemeToggle />
         </nav>
@@ -57,7 +65,11 @@ export function Shell({ children }: { children: ReactNode }) {
         <a href="https://github.com/smk762/argus-cull" className="underline decoration-base-600 underline-offset-2 hover:text-text-secondary">
           cull
         </a>{" "}
-        for argus-curator. Safelight shows the verdicts darkroom recorded and decides nothing itself.
+        for argus-curator. Safelight shows the verdicts darkroom recorded and decides nothing itself.{" "}
+        <Link href={DOCS.home} className="underline decoration-base-600 underline-offset-2 hover:text-text-secondary">
+          Docs: argus-darkroom
+        </Link>
+        .
       </footer>
     </div>
   );

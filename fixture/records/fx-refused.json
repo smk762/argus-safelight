@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-refused",
   "created_at": "2026-10-20T10:10:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "refused",
   "outcome_reason": "default:A",
   "critical": false,
@@ -20,8 +20,10 @@
     "vae": null,
     "loras": [],
     "workflow_sha256": null,
+    "workflow": null,
     "engine": "comfyui",
-    "engine_version": null
+    "engine_version": null,
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "default",
@@ -39,9 +41,8 @@
           ],
           "explanation": "The request is for boudoir photography, which the default rules count as sexual content. Rule A.",
           "model": "SingGuard-4b",
-          "thinking": "slow",
-          "fast_verdict": "unsafe",
-          "fast_rule": "A. Sexual Content Risk"
+          "policy": "default",
+          "thinking": "slow"
         },
         "error": null
       },
@@ -52,16 +53,16 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "custom-641a2b290946",
+          "thinking": "fast"
         },
         "error": null
       }
     },
     "scans": {},
     "nudenet": null,
-    "age": null
+    "age": null,
+    "input": null
   },
   "image": null
 }

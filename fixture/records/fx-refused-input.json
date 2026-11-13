@@ -1,0 +1,112 @@
+{
+  "record_version": "1.0",
+  "id": "fx-refused-input",
+  "created_at": "2026-10-20T10:20:00Z",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
+  "outcome": "refused",
+  "outcome_reason": "input image: sfw-exposed",
+  "critical": false,
+  "removed_at": null,
+  "request": {
+    "mode": "sfw",
+    "user_prompt": "a portrait in a garden",
+    "expanded_prompt": null,
+    "final_prompt": "a portrait in a garden",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 4040,
+    "sampling": {
+      "sampler": "dpmpp_2m",
+      "scheduler": "karras",
+      "steps": 28,
+      "cfg": 5.5,
+      "guidance": null,
+      "clip_skip": 1,
+      "width": 512,
+      "height": 512
+    },
+    "checkpoint": {
+      "name": "sdxl/argus-base-v1.safetensors",
+      "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+img2img",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": {
+      "sha256": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "phash": "f0f0e0e0c0c08080",
+      "width": 512,
+      "height": 512,
+      "source_sha256": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+      "denoise": 0.5,
+      "mask": null
+    }
+  },
+  "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+      "default": {
+        "state": "safe",
+        "result": {
+          "safe": true,
+          "rules": [],
+          "explanation": "No rule matched.",
+          "model": "SingGuard-4b",
+          "policy": "default",
+          "thinking": "fast"
+        },
+        "error": null
+      }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null,
+    "input": {
+      "scans": {
+        "default": {
+          "isolated": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "policy": "default",
+              "thinking": "fast"
+            },
+            "error": null
+          },
+          "with_prompt": {
+            "state": "safe",
+            "result": {
+              "safe": true,
+              "rules": [],
+              "explanation": "No rule matched.",
+              "model": "SingGuard-4b",
+              "policy": "default",
+              "thinking": "fast"
+            },
+            "error": null
+          }
+        }
+      },
+      "nudenet": {
+        "exposed_score": 0.41,
+        "labels": {
+          "FEMALE_BREAST_EXPOSED": 0.41
+        },
+        "threshold": 0.2,
+        "blur": false
+      },
+      "age": null,
+      "outcome": "omitted",
+      "reason": "sfw-exposed"
+    }
+  },
+  "image": null
+}

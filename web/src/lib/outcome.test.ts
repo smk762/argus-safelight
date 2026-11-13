@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ageEstimateLines, minorExposedText } from "./age";
 import { fixtureRecord, fixtureRecords } from "./fixture.test-util";
-import { deletedSummary, hasImage, omittedSummary } from "./outcome";
+import { deletedSummary, hasImage, inputRefusalSummary, omittedSummary } from "./outcome";
 
 describe("age estimate wording", () => {
   it("names the tool on every line and never a bare age", () => {
@@ -67,7 +67,31 @@ describe("hasImage", () => {
       .filter((record) => hasImage(record))
       .map((record) => record.id)
       .sort();
-    expect(withImage).toEqual(["fx-passed", "fx-passed-noage", "fx-review-agree", "fx-review-disagree"]);
+    expect(withImage).toEqual(["fx-img2img-passed", "fx-inpaint-passed", "fx-passed", "fx-passed-noage", "fx-review-agree", "fx-review-disagree"]);
     expect(hasImage({ ...fixtureRecord("fx-passed"), removed_at: "2026-10-21T00:00:00Z" })).toBe(false);
+  });
+});
+
+describe("an input image's refusal", () => {
+  it("reads each reason against the input's scan, not an output's", () => {
+    const record = fixtureRecord("fx-refused-input");
+    const summary = inputRefusalSummary(record);
+    expect(summary.headline).toBe("The input image was refused. Nothing was generated.");
+    expect(summary.lines).toEqual(["NudeNet reported exposure in the input image (score 0.41), which an SFW policy does not allow."]);
+    expect(hasImage(record)).toBe(false);
+  });
+
+  it("names the rule and the input's scan context for an illegal input, and an MiVOLO estimate for minor-exposed", () => {
+    const base = fixtureRecord("fx-refused-input");
+    const input = base.guard.input!;
+    const illegal = { state: "illegal" as const, result: { safe: false, rules: ["A. Illegal Sexual Content"], explanation: null, model: null, policy: "default", thinking: "fast" }, error: null };
+    const record = {
+      ...base,
+      outcome_reason: "input image: default:A, minor-exposed",
+      guard: { ...base.guard, input: { ...input, outcome: "deleted" as const, reason: "default:A, minor-exposed", scans: { default: { ...input.scans.default, isolated: illegal } }, age: { source: "mivolo" as const, faces: [], minor_exposed: true } } },
+    };
+    const lines = inputRefusalSummary(record).lines;
+    expect(lines[0]).toBe("Rule A. Illegal Sexual Content fired under default, in the isolated scan of the input image.");
+    expect(lines[1]).toContain("MiVOLO age estimate under 18 together with NudeNet exposure");
   });
 });

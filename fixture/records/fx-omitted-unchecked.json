@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-omitted-unchecked",
   "created_at": "2026-10-20T10:03:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "omitted",
   "outcome_reason": "sfw-unchecked",
   "critical": false,
@@ -20,19 +20,22 @@
       "scheduler": "karras",
       "steps": 28,
       "cfg": 5.5,
+      "guidance": null,
       "clip_skip": 1,
       "width": 512,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
+      "name": "sdxl/argus-base-v1.safetensors",
       "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
     },
     "vae": null,
     "loras": [],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "default",
@@ -46,9 +49,8 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "default",
+          "thinking": "fast"
         },
         "error": null
       }
@@ -62,9 +64,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         },
@@ -75,9 +76,8 @@
             "rules": [],
             "explanation": "No rule matched.",
             "model": "SingGuard-4b",
-            "thinking": "fast",
-            "fast_verdict": "safe",
-            "fast_rule": null
+            "policy": "default",
+            "thinking": "fast"
           },
           "error": null
         }
@@ -98,7 +98,8 @@
         }
       ],
       "minor_exposed": false
-    }
+    },
+    "input": null
   },
   "image": {
     "sha256": "b37e7bc6ec33b43b51194f5a702d7324e422adb07a5a7bf7ed1a2b753a0b918a",

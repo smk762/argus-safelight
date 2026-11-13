@@ -39,131 +39,47 @@ export const SCAN_CONTEXTS: readonly ScanContext[] = ["isolated", "with_prompt"]
 export type ThinkingMode = "fast" | "fast-slow" | "slow" | "cascade";
 export const THINKING_MODES: readonly ThinkingMode[] = ["fast", "fast-slow", "slow", "cascade"];
 
-export type CellState = "safe" | "flagged" | "illegal" | "unchecked";
+export type CellState = Cell["state"];
 
-/** SingGuard's verdict, as argus-cortex records it, plus the cascade's fast pass when the server reports one. */
-export interface GuardResult {
-  safe: boolean;
-  /** The rules that fired, as the policy names them ("H. Non-Consensual Sexual Content"); empty when safe. */
-  rules: string[];
-  explanation: string | null;
-  model: string | null;
-  thinking: ThinkingMode | string | null;
-  fast_verdict?: "safe" | "unsafe" | null;
-  fast_rule?: string | null;
-}
+/*
+ * The record, as darkroom serializes it: generated from darkroom's wire schema at the commit in `schema/pins.json`
+ * (`npm run darkroom:types`), never edited by hand. Re-exported under the names the app uses. The rest of this file
+ * (health, policies, models, requests, pre-flight, stream events) is not in darkroom's schema yet and is written
+ * against its README.
+ */
+import type {
+  AgeRecord,
+  Cell,
+  FaceAge,
+  GenerationRecord,
+  GuardRecord,
+  GuardResult,
+  ImageRecord,
+  InitImageRef,
+  InputScanRecord,
+  LoRARef,
+  MaskRef,
+  ModelRef,
+  NudeNetRecord,
+  RequestRecord,
+  SamplingParams,
+  ScanCells,
+} from "./generated/darkroom";
 
-/** One policy × one context. The state is darkroom's classification; the browser does not redo it. */
-export interface Cell {
-  state: CellState;
-  result: GuardResult | null;
-  error: string | null;
-}
-
-export interface ScanPair {
-  isolated: Cell;
-  with_prompt: Cell;
-}
-
-export interface ModelRef {
-  name: string;
-  sha256: string;
-}
-
-export interface LoRARef extends ModelRef {
-  weight: number;
-  /** The words the request supplied for this LoRA, already in the final prompt. Older records have none. */
-  trigger_words?: string[];
-}
-
-export interface SamplingParams {
-  sampler: string;
-  scheduler: string;
-  steps: number;
-  cfg: number;
-  clip_skip: number;
-  width: number;
-  height: number;
-}
-
-export interface RecordRequest {
-  mode: Mode;
-  user_prompt: string;
-  expanded_prompt: string | null;
-  final_prompt: string;
-  negative_prompt: string;
-  expansion: { model: string; system_prompt_sha256: string } | null;
-  /** Null on a record refused in pre-flight unless the request held a seed: none was drawn. */
-  seed: number | null;
-  /** This and the fields below are null on a record refused in pre-flight: nothing was resolved or hashed. `loras` is empty. */
-  sampling: SamplingParams | null;
-  checkpoint: ModelRef | null;
-  vae: ModelRef | null;
-  loras: LoRARef[];
-  workflow_sha256: string | null;
-  engine: string;
-  engine_version: string | null;
-}
-
-export interface NudeNetBlock {
-  /** Null when NudeNet did not answer (an NSFW record keeps the block with blur on). */
-  exposed_score: number | null;
-  labels: Record<string, number>;
-  threshold: number;
-  blur: boolean;
-}
-
+export type { Cell, GenerationRecord, GuardResult, InitImageRef, LoRARef, MaskRef, ModelRef, SamplingParams };
+export type ScanPair = ScanCells;
+export type RecordRequest = RequestRecord;
+export type NudeNetBlock = NudeNetRecord;
 /** A tool's estimate from a face. Shown only as "MiVOLO estimate", never as an age. */
-export interface AgeFace {
-  age_estimate_years: number;
-  bbox: [number, number, number, number];
-}
+export type AgeFace = FaceAge;
+export type AgeBlock = AgeRecord;
+export type GuardBlock = GuardRecord;
+/** An input image gets an output's checks and goes on only when `outcome` is "passed"; anything else refuses the attempt ("input image: …"). */
+export type InputScanBlock = InputScanRecord;
+export type ImageBlock = ImageRecord;
 
-export interface AgeBlock {
-  source: "mivolo" | string;
-  faces: AgeFace[];
-  minor_exposed: boolean;
-}
-
-export interface GuardBlock {
-  enforcing_policy: string;
-  advisory_policies: string[];
-  thinking: ThinkingMode | string;
-  preflight: Record<string, Cell>;
-  /** Empty for refused and failed records. */
-  scans: Record<string, ScanPair>;
-  nudenet: NudeNetBlock | null;
-  age: AgeBlock | null;
-}
-
-export interface ImageBlock {
-  sha256: string;
-  phash: string;
-  width: number;
-  height: number;
-  /** Only when passed or review and not removed by the user. The browser never uses it; images load by id. */
-  path: string | null;
-}
-
-export interface GenerationRecord {
-  record_version: string;
-  id: string;
-  created_at: string;
-  darkroom_version: string;
-  outcome: Outcome;
-  /**
-   * Refused, deleted and review records join every reason with ", ": `policy:letter` codes, and for a deletion
-   * "minor-exposed" and "unchecked" ("adult-granular:A, minor-exposed"). Read those with `reasonParts`. Otherwise
-   * "unchecked", "sfw-exposed", "sfw-unchecked", the generation error, or null.
-   */
-  outcome_reason: string | null;
-  critical: boolean;
-  removed_at: string | null;
-  request: RecordRequest;
-  guard: GuardBlock;
-  /** Null for refused and failed records: nothing was rendered. */
-  image: ImageBlock | null;
-}
+/** Sampling as a request sends it: `guidance` only for a workflow with a `$guidance` slot, since darkroom 400s a value with no slot. */
+export type RequestSampling = Omit<SamplingParams, "guidance"> & { guidance?: number | null };
 
 export interface Health {
   version: string;
@@ -180,6 +96,8 @@ export interface Health {
   expansion_enabled?: boolean;
   age_unavailable?: string | null;
   workflow_loaded?: boolean;
+  /** Real darkroom only. The workflow templates it loaded, by name. */
+  workflows?: string[];
   /** Real darkroom only. True when the server refuses every write, pre-flight included, with a 403. */
   read_only?: boolean;
 }
@@ -216,12 +134,38 @@ export interface ModelOption {
   trigger_words?: string[];
 }
 
+export interface CheckpointOption extends ModelOption {
+  /** Its top-level folder under `checkpoints/` (`sdxl`, `flux`, …). Null for a file at the top. */
+  family: string | null;
+  /** The LoRA counts a workflow renders it with. Empty: no workflow fits it, so darkroom refuses it. */
+  lora_counts: number[];
+  /** The LoRA counts an image-to-image workflow renders it with. Empty (or absent, before darkroom's img2img): no img2img. */
+  img2img_lora_counts?: number[];
+  /** The LoRA counts an inpainting workflow renders it with. Empty (or absent, before darkroom's inpainting): no masks. */
+  inpaint_lora_counts?: number[];
+}
+
+/** A workflow template darkroom loaded. Darkroom picks one per request: the checkpoint's family and the LoRA count. */
+export interface WorkflowInfo {
+  name: string;
+  /** Null: a single template used for every checkpoint. */
+  family: string | null;
+  loras: number;
+  /** `txt2img`, `img2img` or `inpaint` (`<family>[+lora<N>][+img2img|+inpaint]`). Absent before darkroom's img2img. */
+  mode?: "txt2img" | "img2img" | "inpaint";
+  /** True for a plain image-to-image template only (false for inpaint). Prefer `mode`. */
+  img2img?: boolean;
+  /** The scalar placeholders it fills (`$negative`, `$guidance`, `$clip_skip`, `$vae`, …). Darkroom 400s a request that sets a value with no slot. */
+  slots: string[];
+}
+
 export interface Models {
-  checkpoints: ModelOption[];
+  checkpoints: CheckpointOption[];
   /** The one a form starts on, resolved by darkroom. Null when its setting matches nothing. */
   default_checkpoint: string | null;
   loras: ModelOption[];
   vaes: ModelOption[];
+  workflows: WorkflowInfo[];
   samplers: string[];
   schedulers: string[];
 }
@@ -251,8 +195,15 @@ export interface GenerateRequest {
   checkpoint: string;
   loras: LoRAChoice[];
   seed: number | null;
-  sampling: SamplingParams;
+  sampling: RequestSampling;
   nsfw_threshold: number;
+  /** Image-to-image: the input as base64 (PNG, JPEG or WebP, at most 16 MiB and 4096 px a side) and the denoise (0.05 to 1). */
+  init_image?: {
+    data_base64: string;
+    denoise: number;
+    /** Inpainting: a mask the input's size, white repaints (base64 PNG, JPEG or WebP). Selects an inpaint template. */
+    mask_base64?: string;
+  };
 }
 
 export interface PreflightRefusal {
@@ -296,6 +247,9 @@ export interface ScanEvent {
   context: ScanContext;
   cell: Cell;
 }
+
+/** The stream's `input_scan` event: one cell of the image-to-image input's scan, sent before `queued`. Same shape as `scan`. */
+export type InputScanEvent = ScanEvent;
 
 /** `POST /purge/{id}`, devmode only. */
 export interface RecordPurgeResult {

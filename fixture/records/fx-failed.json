@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-failed",
   "created_at": "2026-10-20T10:25:00Z",
-  "darkroom_version": "0.0.0+fixture",
+  "darkroom_version": "0.1.4.dev18+g3cf0818",
   "outcome": "failed",
   "outcome_reason": "ComfyUI: websocket closed before the image arrived",
   "critical": false,
@@ -20,19 +20,22 @@
       "scheduler": "karras",
       "steps": 40,
       "cfg": 5.5,
+      "guidance": null,
       "clip_skip": 1,
       "width": 768,
       "height": 512
     },
     "checkpoint": {
-      "name": "argus-base-v1.safetensors",
+      "name": "sdxl/argus-base-v1.safetensors",
       "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
     },
     "vae": null,
     "loras": [],
     "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
     "engine": "comfyui",
-    "engine_version": "0.3.60"
+    "engine_version": "0.3.60",
+    "init_image": null
   },
   "guard": {
     "enforcing_policy": "adult-granular",
@@ -46,16 +49,16 @@
           "rules": [],
           "explanation": "No rule matched.",
           "model": "SingGuard-4b",
-          "thinking": "fast",
-          "fast_verdict": "safe",
-          "fast_rule": null
+          "policy": "custom-641a2b290946",
+          "thinking": "fast"
         },
         "error": null
       }
     },
     "scans": {},
     "nudenet": null,
-    "age": null
+    "age": null,
+    "input": null
   },
   "image": null
 }

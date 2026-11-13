@@ -104,6 +104,8 @@ export interface GenerateHandlers {
   onPreflight: (preflight: Preflight) => void;
   onQueued: () => void;
   onProgress: (progress: ProgressEvent) => void;
+  /** Image-to-image: one cell of the input image's own scan, before `queued`. */
+  onInputScan: (scan: ScanEvent) => void;
   onScan: (scan: ScanEvent) => void;
 }
 
@@ -125,6 +127,7 @@ export async function generate(request: GenerateRequest, handlers: GenerateHandl
     if (event === "preflight") handlers.onPreflight(data as Preflight);
     else if (event === "queued") handlers.onQueued();
     else if (event === "progress") handlers.onProgress(data as ProgressEvent);
+    else if (event === "input_scan") handlers.onInputScan(data as ScanEvent);
     else if (event === "scan") handlers.onScan(data as ScanEvent);
     else if (event === "complete") record = (data as { record: GenerationRecord }).record;
     else if (event === "error") failure = (data as { detail?: string }).detail || "Darkroom reported an error.";
