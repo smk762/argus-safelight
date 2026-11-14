@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-refused-input",
   "created_at": "2026-10-20T10:20:00Z",
-  "darkroom_version": "0.1.4.dev18+g3cf0818",
+  "darkroom_version": "0.1.4.dev29+g4c5591b",
   "outcome": "refused",
   "outcome_reason": "input image: sfw-exposed",
   "critical": false,
