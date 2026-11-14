@@ -15,6 +15,9 @@ const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 export const metadata: Metadata = {
   title: "Argus Safelight",
   description: "Guarded image generation with argus-darkroom: the pre-flight verdict, then what each guard said about the output.",
+  // Favicons: argus-cortex brand/packages/darkroom/favicon/, copied unchanged. favicon.ico, icon.svg and
+  // apple-icon.png sit in src/app/ and Next emits their tags; icon-192/512 in public/ are for the manifest.
+  manifest: "/site.webmanifest",
 };
 
 // Runs before paint so a saved theme does not flash the system one first. Inline, so it carries the request's CSP
