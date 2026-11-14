@@ -36,6 +36,8 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
 
 ## Running it
 
+What this UI needs live, what its mock or recording stands in for, and the no-GPU command are in [What to run for which UI](https://studio.dragonhound.dev/docs/setup/which-services/#safelight). Each external service it depends on has a setup page under the suite's [Setup and services](https://studio.dragonhound.dev/docs/setup/).
+
 ```
 browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             compose, shields,     preflight, generate (SSE),
