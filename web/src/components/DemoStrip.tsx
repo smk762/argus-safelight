@@ -1,10 +1,10 @@
 // The Dragonhound Labs family bar, rendered natively from the vendored source (vendor/dh/dh-strip.mjs,
-// dh-shared 1.2.4): links, labels and mark come from there, so a re-sync updates it with no hand copy.
+// dh-shared 1.2.5): links, labels and mark come from there, so a re-sync updates it with no hand copy.
 // Styles are vendor/dh/dh-strip.css (imported by globals.css). No JS. src/lib/shared.test.ts checks the
 // rendered markup against the module's own stripHtml(). Only the static demo build carries it.
 //
-// dh-shared 1.2.4 has no Safelight link yet, so no link is marked current; the nav still says which site this is
-// (data-dh-site="safelight"). When a later dh-shared adds the link, a re-sync marks it with no change here.
+// dh-shared 1.2.5 lists Safelight, so its link is marked current (and data-dh-site="safelight" on the nav says
+// the same for dh-strip.css). On phones the link list scrolls sideways; dh-theme.js scrolls the current link into view.
 import { strip } from "../../vendor/dh/dh-strip.mjs";
 
 export const STRIP_SITE = "safelight";

@@ -16,7 +16,7 @@ const squash = (html: string) =>
     .replace(/>\s+</g, "><")
     .replace(/<(path)([^>]*)\/>/g, "<$1$2></$1>")
     .trim();
-// dh-shared 1.2.4: the static strip carries every label suffix (data-dh-label picks one); the JSX renders the default only.
+// dh-shared 1.2.4+: the static strip carries every label suffix (data-dh-label picks one); the JSX renders the default only.
 const defaultSuffixOnly = (html: string) =>
   html
     .replace(/<span class="dh-strip-more" data-dh-label="[a-z]+" hidden>[^<]*<\/span>/g, "")
@@ -31,7 +31,8 @@ describe("dh-strip", () => {
   });
 
   it("matches the vendored static strip", () => {
-    expect(rendered()).toBe(defaultSuffixOnly(squash(read("vendor/dh/dh-strip.html"))));
+    // The pasted strip marks no link (dh-strip.css and dh-theme.js do it from data-dh-site); the JSX sets aria-current itself.
+    expect(rendered().replace(' aria-current="page"', "")).toBe(defaultSuffixOnly(squash(read("vendor/dh/dh-strip.html"))));
   });
 
   it("says this is safelight on the nav, with the default recorded-output label", () => {
@@ -39,10 +40,9 @@ describe("dh-strip", () => {
     expect(html).toContain('<nav class="dh-strip" aria-label="Dragonhound Labs demos" data-dh-site="safelight">');
     expect(html).toContain(`<span class="dh-strip-more">${strip.labelMore}</span>`);
     expect(strip.defaultLabel).toBe("recorded");
-    // 1.2.4 has no Safelight link yet; when a re-sync adds one, it is the only link marked current.
+    // dh-shared 1.2.5 lists Safelight: its link, and only that one, is marked current.
     const current = html.match(/<a [^>]*aria-current="page"[^>]*>/g) ?? [];
-    const listed = strip.links.some((link) => (link.site as string) === "safelight");
-    expect(current).toEqual(listed ? [expect.stringContaining('data-dh-site="safelight"')] : []);
+    expect(current).toEqual([expect.stringContaining('data-dh-site="safelight"')]);
   });
 
   it("links the family in the same tab", () => {
