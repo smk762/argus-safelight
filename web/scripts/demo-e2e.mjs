@@ -150,14 +150,17 @@ for (const width of [1440, 390]) {
     await page.waitForLoadState("networkidle");
     check(!files.some((file) => !served(file.id)), `${tag}: the replay fetched a file of an unserved record`);
 
-    // A blocked take replays as metadata only.
-    files.length = 0;
-    await page.getByRole("button", { name: "Compose" }).click();
-    await page.locator("select#take").selectOption("fx-deleted-minor");
-    await page.getByRole("button", { name: "Generate", exact: true }).click();
-    await page.waitForURL(/\/record\/fx-deleted-minor\/?$/, { timeout: 30_000 });
-    await page.waitForLoadState("networkidle");
-    check(files.length === 0, `${tag}: the blocked replay requested ${files.map((f) => f.kind).join(",")}`);
+    // An unserved take (the sample's blocked one, or a recorded refusal) replays as metadata only.
+    const unserved = tape.takes.includes("fx-deleted-minor") ? "fx-deleted-minor" : tape.takes.find((id) => !served(id));
+    if (unserved) {
+      files.length = 0;
+      await page.getByRole("button", { name: "Compose" }).click();
+      await page.locator("select#take").selectOption(unserved);
+      await page.getByRole("button", { name: "Generate", exact: true }).click();
+      await page.waitForURL(new RegExp(`/record/${unserved}/?$`), { timeout: 30_000 });
+      await page.waitForLoadState("networkidle");
+      check(files.length === 0, `${tag}: the unserved replay requested ${files.map((f) => f.kind).join(",")}`);
+    }
 
     // Docs render from the build, with no request beyond the site.
     await page.goto(`${origin}/docs/`);

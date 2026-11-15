@@ -8,7 +8,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import * as api from "./api";
 import type { GenerationRecord } from "./types";
 
-const DIR = join(__dirname, "..", "..", "public", "data-tape");
+// The fixture's sample tape (fixture/sample-tape), served here under /data-tape.
+const DIR = join(__dirname, "..", "..", "..", "fixture", "sample-tape");
 const requested: string[] = [];
 
 beforeAll(() => {

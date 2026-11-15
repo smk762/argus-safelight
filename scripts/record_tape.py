@@ -461,6 +461,28 @@ def stream(base: str, request: dict, pause_on: str | None = None, message: str =
     return events
 
 
+def public_models(models: dict, records: list[dict]) -> dict:
+    """/models cut down to what the recorded takes used: the tape is public, the server's model shelf is not."""
+    def name(ref: Any) -> Any:
+        # A record names a model as {"name", "sha256"}; /models lists it by name.
+        return ref.get("name") if isinstance(ref, dict) else ref
+
+    requests = [record.get("request") or {} for record in records]
+    used = {name(request.get("checkpoint")) for request in requests}
+    loras = {name(lora.get("model") or lora) for request in requests for lora in request.get("loras") or []}
+    vaes = {name(request.get("vae")) for request in requests}
+    checkpoints = [c for c in models.get("checkpoints", []) if c.get("name") in used]
+    families = {c.get("family") for c in checkpoints}
+    return {
+        **models,
+        "checkpoints": checkpoints,
+        "default_checkpoint": checkpoints[0]["name"] if checkpoints else None,
+        "loras": [lora for lora in models.get("loras", []) if lora.get("name") in loras],
+        "vaes": [vae for vae in models.get("vaes", []) if name(vae) in vaes],
+        "workflows": [w for w in models.get("workflows", []) if w.get("family") in families],
+    }
+
+
 def live(args: argparse.Namespace) -> None:
     base = args.darkroom.rstrip("/")
     requests = json.loads(Path(args.takes).read_text())
@@ -511,7 +533,8 @@ def live(args: argparse.Namespace) -> None:
         with http("GET", f"{base}/image/{record['id']}") as response:
             return response.read()
 
-    health = {key: value for key, value in health.items() if key not in ("generating",)}
+    # A tape has no live server: nothing to purge (devmode) and nothing in flight (generating).
+    health = {**{key: value for key, value in health.items() if key not in ("generating",)}, "devmode": False}
     illustrative = [json.loads((FIXTURE / "records" / f"{rid}.json").read_text()) for rid in args.illustrative.split(",") if rid]
     write_tape(
         Path(args.out).resolve(),
@@ -521,7 +544,7 @@ def live(args: argparse.Namespace) -> None:
         note=args.note,
         health=health,
         policies=policies,
-        models=models,
+        models=public_models(models, [record for record, _, _ in takes]),
         takes=takes,
         image_bytes=image_bytes,
         replayable=lambda record: True,
@@ -543,7 +566,7 @@ def main() -> None:
     sub.choices["live"].add_argument("--allow-mock", action="store_true")
     sub.choices["live"].add_argument(
         "--illustrative",
-        default="fx-deleted-illegal,fx-deleted-minor,fx-refused-illegal",
+        default="fx-deleted-illegal,fx-deleted-minor,fx-refused-illegal,fx-deleted-unchecked,fx-omitted-unchecked,fx-failed",
         help="fixture record ids to add as hand-written, never-generated records (labelled Sample data); '' for none",
     )
     sub.choices["live"].set_defaults(run=live)

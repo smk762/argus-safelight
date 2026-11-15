@@ -109,7 +109,7 @@ Safelight tracks argus-darkroom's `dev` HEAD, never an old release. One sync rec
 
 ## The hosted demo
 
-[safelight.dragonhound.dev](https://safelight.dragonhound.dev/) is a static export of this app (`make pages`) that replays a recorded data tape instead of calling darkroom. Until the demo set is recorded (the plan and its prompts are in [docs/demo-recording.md](docs/demo-recording.md)), the tape is the fixture (`make tape-sample`) and the header says **Sample data**.
+[safelight.dragonhound.dev](https://safelight.dragonhound.dev/) is a static export of this app (`make pages`) that replays a recorded data tape instead of calling darkroom. The tape is a real recording on FLUX.1 [schnell], synthetic adults only (how it was made, and what was left out, is in [docs/demo-recording.md](docs/demo-recording.md)); the header says **Recorded**. Outcomes that could not or must not be produced for real are the fixture's hand-written records, each labelled **Sample data**. `make tape-sample` swaps the fixture's sample tape back in.
 
 - History, every record, the docs, Regenerate and Copy record work as they do live.
 - Compose lists the tape's **recorded prompts**. Check shows the pre-flight darkroom recorded for the chosen one, and Generate replays its recorded stream. A prompt or policies the tape does not hold have nothing to replay, and the form says so.
@@ -119,6 +119,7 @@ Safelight tracks argus-darkroom's `dev` HEAD, never an old release. One sync rec
 
 ```bash
 make tape-sample   # the fixture as a tape, in web/public/data-tape (needs Pillow)
+make sample-tape   # the same tape's JSON in fixture/sample-tape, which the unit tests read
 make pages         # static export to web/out, hash CSP on every page, then check-static
 make browser-check PLAYWRIGHT_DIR=<dir with node_modules/playwright> SHOTS=<dir>
 ```
