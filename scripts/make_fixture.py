@@ -596,6 +596,8 @@ def build() -> list[tuple[dict, bytes | None]]:
             label="review sample",
         )
     )
+    # Fixture: render deleted after the with-prompt scan matched rule H (non-consent).
+    # A synthetic negative test; its prompts are withheld as the demo tape withholds them.
     out.append(
         record(
             "fx-deleted-illegal",
@@ -603,7 +605,7 @@ def build() -> list[tuple[dict, bytes | None]]:
             "deleted",
             reason="adult-granular:H",
             critical=True,
-            req=request("nsfw", "sleeping figure, bedroom, candid", expanded="a figure asleep in a dim bedroom, candid, shot from the doorway", seed=31337),
+            req=request("nsfw", "[withheld: adult-granular:H]", expanded="[withheld: adult-granular:H]", seed=31337),
             enforcing="adult-granular",
             advisory=["default"],
             preflight=preflight_ok("adult-granular", "default"),
@@ -611,13 +613,9 @@ def build() -> list[tuple[dict, bytes | None]]:
                 **{
                     "adult-granular": (
                         safe_cell(),
-                        illegal_cell(
-                            "H. Non-Consensual Sexual Content",
-                            "[Step 1] Alone, the image is a person asleep. [Step 2] The prompt frames it as candid and taken from the doorway, "
-                            "which with the exposure NudeNet reports reads as sexual content of someone unable to consent. Rule H matches.",
-                        ),
+                        illegal_cell("H. Non-Consensual Sexual Content", "Rule H matched in context; the image alone was safe."),
                     ),
-                    "default": (safe_cell(), flagged_cell("A. Sexual Content Risk", "Sexual content; the default rules do not separate consent.")),
+                    "default": (safe_cell(), flagged_cell("A. Sexual Content Risk", "Rule A (Sexual Content Risk) matched in context.")),
                 }
             ),
             nude=nudenet(0.52, blur=True, labels={"FEMALE_BREAST_EXPOSED": 0.52}),
@@ -637,7 +635,7 @@ def build() -> list[tuple[dict, bytes | None]]:
             advisory=[],
             preflight=preflight_ok("adult-granular"),
             scan_cells=scans(**{"adult-granular": (safe_cell(), safe_cell())}),
-            nude=nudenet(0.45, blur=True, labels={"BUTTOCKS_EXPOSED": 0.45}),
+            nude=nudenet(0.45, blur=True, labels={"BELLY_EXPOSED": 0.45}),
             ages=age(24, 17, 26, minor_exposed=True),
             label="deleted sample",
         )
@@ -718,6 +716,8 @@ def build() -> list[tuple[dict, bytes | None]]:
             label=None,
         )
     )
+    # Fixture: a request pairing a minor with sexual content; refused at preflight under rule A.
+    # A synthetic negative test; its prompt is withheld as the demo tape withholds it.
     out.append(
         record(
             "fx-refused-illegal",
@@ -725,12 +725,12 @@ def build() -> list[tuple[dict, bytes | None]]:
             "refused",
             reason="adult-granular:A",
             critical=False,
-            req=refused(request("nsfw", "schoolgirl in uniform, suggestive pose", seed=6666)),
+            req=refused(request("nsfw", "[withheld: adult-granular:A]", seed=6666)),
             enforcing="adult-granular",
             advisory=["default"],
             preflight={
-                "adult-granular": illegal_cell("A. Minors", "The request asks for sexualised content of someone presented as a child. Rule A, Minors."),
-                "default": flagged_cell("A. Sexual Content Risk", "Sexual content is requested. Rule A."),
+                "adult-granular": illegal_cell("A. Minors", "Rule A (Minors) matched."),
+                "default": flagged_cell("A. Sexual Content Risk", "Rule A (Sexual Content Risk) matched."),
             },
             scan_cells=None,
             nude=None,

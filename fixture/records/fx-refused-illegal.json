@@ -9,9 +9,9 @@
   "removed_at": null,
   "request": {
     "mode": "nsfw",
-    "user_prompt": "schoolgirl in uniform, suggestive pose",
+    "user_prompt": "[withheld: adult-granular:A]",
     "expanded_prompt": null,
-    "final_prompt": "schoolgirl in uniform, suggestive pose",
+    "final_prompt": "[withheld: adult-granular:A]",
     "negative_prompt": "blurry, low quality, text, watermark",
     "expansion": null,
     "seed": null,
@@ -39,7 +39,7 @@
           "rules": [
             "A. Minors"
           ],
-          "explanation": "The request asks for sexualised content of someone presented as a child. Rule A, Minors.",
+          "explanation": "Rule A (Minors) matched.",
           "model": "SingGuard-4b",
           "policy": "custom-641a2b290946",
           "thinking": "slow"
@@ -53,7 +53,7 @@
           "rules": [
             "A. Sexual Content Risk"
           ],
-          "explanation": "Sexual content is requested. Rule A.",
+          "explanation": "Rule A (Sexual Content Risk) matched.",
           "model": "SingGuard-4b",
           "policy": "default",
           "thinking": "slow"

@@ -84,7 +84,7 @@ describe("from a record", () => {
     const state = fromRecord(record, defaultCompose(health(), policies(), models));
     expect(state.seed).toBe(31337);
     expect(state.seedLocked).toBe(true);
-    expect(state.userPrompt).toBe("sleeping figure, bedroom, candid");
+    expect(state.userPrompt).toBe("[withheld: adult-granular:H]");
     expect(state.expand).toBe(true);
     expect(state.sampling).toEqual(record.request.sampling);
     expect(state.enforcingPolicy).toBe("adult-granular");

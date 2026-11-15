@@ -142,7 +142,7 @@ describe("History", () => {
     search = "?rule=adult-granular:A";
     render(<History />);
     await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(1));
-    expect(screen.getByRole("link", { name: /schoolgirl/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /withheld: adult-granular:A/ })).toBeTruthy();
     const select = screen.getByLabelText("Rule") as HTMLSelectElement;
     expect(select.value).toBe("adult-granular:A");
     expect([...select.querySelectorAll("optgroup")].map((group) => group.label)).toEqual(["adult-granular", "default", "Other reasons"]);
@@ -155,7 +155,7 @@ describe("History", () => {
     render(<History />);
     const expected = ["fx-deleted-illegal", "fx-review-disagree"];
     await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(expected.length));
-    for (const id of expected) expect(screen.getByRole("link", { name: new RegExp(store.find((r) => r.id === id)!.request.user_prompt) })).toBeTruthy();
+    for (const id of expected) expect(screen.getByRole("link", { name: new RegExp(store.find((r) => r.id === id)!.request.user_prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) })).toBeTruthy();
     expect((screen.getByLabelText(/Prompt changed the verdict/) as HTMLInputElement).checked).toBe(true);
   });
 
