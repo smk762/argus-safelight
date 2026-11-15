@@ -542,7 +542,7 @@ async function generate(body, send, input = null) {
     if (user.includes("[illegal]") && context === "with_prompt") {
       const rule = firstIllegal(name);
       if (rule) return illegalCell(rule, `[Step 1] Alone the image is unremarkable. [Step 2] Read with the prompt it matches rule ${rule.slice(0, 1)} under this policy.`, thinking);
-      return flaggedCell(nonIllegalRule(name), "Sexual content; the default rules do not separate consent.", thinking);
+      return flaggedCell(nonIllegalRule(name), `Rule ${nonIllegalRule(name).slice(0, 1)} matched in context.`, thinking);
     }
     if (user.includes("[unchecked]") && own && context === "with_prompt") return uncheckedCell("SingGuard timed out after 90s");
     if (user.includes("[flag-both]") && own) return flaggedCell(nonIllegalRule(name), `Rule ${nonIllegalRule(name).slice(0, 1)} matches with or without the prompt.`, thinking);
