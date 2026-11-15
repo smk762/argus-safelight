@@ -14,7 +14,11 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 - **The recorded tape.** The demo now replays a real run of argus-darkroom (`0.1.4.dev36+gc9794888b`) on FLUX.1 [schnell] (Apache-2.0; SDXL 1.0 base, the plan's first choice, is not installed): 20 takes, 18 with real images (2 veiled for review), 2 refused at pre-flight, plus the fixture's six hand-written records, labelled Sample data, for outcomes that need a backend stopped mid-run or must never be generated. Every candidate was reviewed by eye; rejected renders were deleted and purged, several prompts were reworded (age cues, no crowds, waist-up catalogue framing), and two plan takes were dropped. `docs/demo-recording.md` says which and why; `docs/demo-takes.json` pins each take's seed and approved image hash.
 - **The Dragonhound shared layer** (dh-shared 1.2.5) vendored in `web/vendor/dh`, with a CI job that fails on local edits or drift from the published manifest. The static demo carries the family strip (`data-dh-site="safelight"`, default "recorded output" label, Safelight's own link marked current since 1.2.5) and the demo-state badge.
 
+- **Previous / Next on a record page**, stepping through History's list in its order and under the filter the record was opened from (History's links now carry it), with the position ("3 of 26"). The ends are disabled rather than wrapping; ← and → step too, except in a form field or an open dialog. The links are real hrefs, so the static export reaches its prerendered pages.
+
 ### Changed
+
+- **The static demo shows when a record was recorded, in UTC** ("2026-11-15 10:12 UTC"), on the record page and in History, instead of a relative time that rots on a recording. The live app keeps "5 min ago".
 
 - **The recorded tape's `/models` lists only what the takes used**, and its `/health` reports `devmode: false` (`record_tape.py live`): a public tape no longer carries the server's whole model shelf, and the static page no longer offers Purge all.
 - **Unit tests read the fixture's sample tape** (`fixture/sample-tape`, `make sample-tape`) instead of the published one, which now gets its own invariant checks (files for served records only, blocked words withheld, every take ending in its record). `make browser-check` replays an unserved take from whichever tape is published.

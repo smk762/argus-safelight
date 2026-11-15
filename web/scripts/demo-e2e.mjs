@@ -6,6 +6,7 @@
 //     under the tape maps to a passed or review record), and no request leaves this origin
 //   - a veiled frame loads its veil only; its thumbnail and full view are requested only after Reveal
 //   - Compose replays a recorded take: Check shows the recorded verdict, Generate fills the grid and lands on the record
+//   - a record page steps through History's order with Previous / Next (real hrefs, ends disabled) and ← / →
 //
 //   make pages && PLAYWRIGHT_DIR=<dir with node_modules/playwright> node web/scripts/demo-e2e.mjs [web/out]
 //
@@ -120,6 +121,33 @@ for (const width of [1440, 390]) {
       check(files.some((file) => file.kind === "images" && file.id === veiled), `${tag}: Reveal did not load the image`);
     }
 
+    // Previous / Next in history order: real hrefs to prerendered pages, the position, ends disabled, ← and → step.
+    {
+      const order = [...tape.records].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((record) => record.id);
+      await page.goto(`${origin}/record/${order[1]}/`);
+      const nav = page.getByRole("navigation", { name: "Records in history order" });
+      await nav.getByText(`2 of ${order.length}`).waitFor();
+      const hrefs = await nav.locator("a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+      check(hrefs.length === 2 && hrefs[0] === `/record/${order[0]}/` && hrefs[1] === `/record/${order[2]}/`, `${tag}: record nav links ${hrefs.join(", ")}`);
+      for (const href of hrefs) check((await page.request.get(`${origin}${href}`)).status() === 200, `${tag}: ${href} is not a prerendered page`);
+      check(!/\bago\b/.test(await page.locator("article header").innerText()), `${tag}: the record header shows a relative time`);
+      check(/\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/.test(await page.locator("article header time").innerText()), `${tag}: the record header has no UTC time`);
+      await shot("record-nav");
+      await page.keyboard.press("ArrowRight");
+      await page.waitForURL(new RegExp(`/record/${order[2]}/?$`), { waitUntil: "commit" });
+      await nav.getByText(`3 of ${order.length}`).waitFor();
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForURL(new RegExp(`/record/${order[1]}/?$`), { waitUntil: "commit" });
+      await nav.getByText(`2 of ${order.length}`).waitFor();
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForURL(new RegExp(`/record/${order[0]}/?$`), { waitUntil: "commit" });
+      await nav.getByText(`1 of ${order.length}`).waitFor();
+      check((await nav.locator("a[href]").count()) === 1 && (await nav.locator("a[aria-disabled=true]").count()) === 1, `${tag}: the first record's Previous is not disabled`);
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForTimeout(300);
+      check(new URL(page.url()).pathname.replace(/\/$/, "") === `/record/${order[0]}`, `${tag}: Previous wrapped from the first record`);
+    }
+
     // Blocked records: metadata only, no image element and no file request.
     for (const id of tape.records.filter((record) => !served(record.id)).map((record) => record.id)) {
       files.length = 0;
@@ -159,7 +187,9 @@ for (const width of [1440, 390]) {
       await page.getByRole("button", { name: "Generate", exact: true }).click();
       await page.waitForURL(new RegExp(`/record/${unserved}/?$`), { timeout: 30_000 });
       await page.waitForLoadState("networkidle");
-      check(files.length === 0, `${tag}: the unserved replay requested ${files.map((f) => f.kind).join(",")}`);
+      // A served frame still loading from the page before is not this replay's; only an unserved record's file is.
+      const leaked = files.filter((file) => file.id === unserved || !served(file.id));
+      check(leaked.length === 0, `${tag}: the unserved replay requested ${leaked.map((f) => `${f.kind}:${f.id}`).join(",")}`);
     }
 
     // Docs render from the build, with no request beyond the site.
