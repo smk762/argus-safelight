@@ -20,6 +20,28 @@ function blocked(record: GenerationRecord): boolean {
   return record.critical || reasons.includes("minor-exposed") || cells.some((cell) => cell?.state === "illegal");
 }
 
+/**
+ * Every piece of free text in a fixture record that the tape must not carry for a blocked request: its prompts,
+ * SingGuard's explanations and NudeNet's label names. A fixture field that is already a withheld marker holds no
+ * words (the tape writes the same marker), so it is left out rather than matched against itself.
+ */
+function wordsOf(record: GenerationRecord): string[] {
+  const guard = record.guard;
+  const pairs = [...Object.values(guard.scans), ...Object.values(guard.input?.scans ?? {})];
+  const cells = [...Object.values(guard.preflight), ...pairs.flatMap((pair) => [pair.isolated, pair.with_prompt])];
+  const { user_prompt, expanded_prompt, final_prompt, negative_prompt } = record.request;
+  const words = [
+    user_prompt,
+    expanded_prompt,
+    final_prompt,
+    negative_prompt,
+    ...cells.map((cell) => cell?.result?.explanation),
+    ...Object.keys(guard.nudenet?.labels ?? {}),
+    ...Object.keys(guard.input?.nudenet?.labels ?? {}),
+  ];
+  return [...new Set(words.filter((text): text is string => !!text && !isWithheld(text) && text !== "[withheld]"))];
+}
+
 describe("the committed tape", () => {
   it("holds every fixture record, labelled sample data", () => {
     expect(tape.provenance.kind).toBe("sample");
@@ -42,7 +64,8 @@ describe("the committed tape", () => {
       // Verdict, rule, reason, timestamps and state stay.
       expect([record.outcome, record.outcome_reason, record.created_at, record.critical]).toEqual([original.outcome, original.outcome_reason, original.created_at, original.critical]);
       const text = JSON.stringify(record) + JSON.stringify(take(record.id));
-      expect(text).not.toContain(original.request.user_prompt);
+      expect(wordsOf(original).length, record.id).toBeGreaterThan(0);
+      for (const words of wordsOf(original)) expect(text, `${record.id} leaks ${JSON.stringify(words)}`).not.toContain(words);
       for (const cell of Object.values(record.guard.preflight)) if (cell.result) expect(cell.result.explanation).toBe("[withheld]");
     }
   });
