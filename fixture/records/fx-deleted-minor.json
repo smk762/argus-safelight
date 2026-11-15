@@ -86,7 +86,7 @@
     "nudenet": {
       "exposed_score": 0.45,
       "labels": {
-        "BUTTOCKS_EXPOSED": 0.45
+        "BELLY_EXPOSED": 0.45
       },
       "threshold": 0.2,
       "blur": true

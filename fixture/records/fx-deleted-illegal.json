@@ -9,9 +9,9 @@
   "removed_at": null,
   "request": {
     "mode": "nsfw",
-    "user_prompt": "sleeping figure, bedroom, candid",
-    "expanded_prompt": "a figure asleep in a dim bedroom, candid, shot from the doorway",
-    "final_prompt": "a figure asleep in a dim bedroom, candid, shot from the doorway",
+    "user_prompt": "[withheld: adult-granular:H]",
+    "expanded_prompt": "[withheld: adult-granular:H]",
+    "final_prompt": "[withheld: adult-granular:H]",
     "negative_prompt": "blurry, low quality, text, watermark",
     "expansion": {
       "model": "qwen2.5:7b",
@@ -93,7 +93,7 @@
             "rules": [
               "H. Non-Consensual Sexual Content"
             ],
-            "explanation": "[Step 1] Alone, the image is a person asleep. [Step 2] The prompt frames it as candid and taken from the doorway, which with the exposure NudeNet reports reads as sexual content of someone unable to consent. Rule H matches.",
+            "explanation": "Rule H matched in context; the image alone was safe.",
             "model": "SingGuard-4b",
             "policy": "custom-641a2b290946",
             "thinking": "slow"
@@ -121,7 +121,7 @@
             "rules": [
               "A. Sexual Content Risk"
             ],
-            "explanation": "Sexual content; the default rules do not separate consent.",
+            "explanation": "Rule A (Sexual Content Risk) matched in context.",
             "model": "SingGuard-4b",
             "policy": "default",
             "thinking": "slow"
