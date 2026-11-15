@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { imageUrl } from "@/lib/api";
+import { staticDemo } from "@/lib/demo";
+import { isVeiled, veilUrl } from "@/lib/staticApi";
 import { deletedSummary, inputRefusalSummary, omittedSummary } from "@/lib/outcome";
 import { inputGuard, inputRefused, ruleLetters } from "@/lib/shields";
 import type { Cell, GenerationRecord } from "@/lib/types";
@@ -14,33 +16,48 @@ const TILE = "min-h-[320px] w-full rounded-lg";
 /** Square, but never taller than the window leaves room for: the image letterboxes in a wide column. */
 const IMAGE_TILE = "aspect-square max-h-[calc(100dvh-21rem)] min-h-[320px] w-full rounded-lg";
 
-/** A served image. Blurred when darkroom set `blur`, until the user reveals it; the img stays in the DOM. */
+/**
+ * A served image. Blurred when darkroom set `blur`, until the user reveals it; the img stays in the DOM.
+ *
+ * The static demo goes further, as Cull's veil does: a veiled frame (darkroom's blur, or a policy flag) shows only the
+ * tape's mosaic, a few dozen averaged pixels, and its real image is not even requested until Reveal.
+ */
 export function ImageTile({ record }: { record: GenerationRecord }) {
-  const blur = record.guard.nudenet?.blur ?? false;
+  const veiled = staticDemo() ? isVeiled(record.id) : false;
+  const blur = (record.guard.nudenet?.blur ?? false) || veiled;
   const [revealed, setRevealed] = useState(false);
   const hidden = blur && !revealed;
+  const veilOnly = veiled && hidden;
+  const why = record.guard.nudenet?.blur ? "NudeNet scored exposure at or above the threshold." : "a policy flagged this output for review.";
   return (
     <figure className={`relative overflow-hidden border border-base-600/60 bg-base-700 ${IMAGE_TILE}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- loaded by record id from darkroom, not a static asset */}
-      <img
-        src={imageUrl(record.id)}
-        alt={`Image for record ${record.id}: ${record.request.user_prompt}`}
-        width={record.image?.width}
-        height={record.image?.height}
-        // The record's main image is the page's largest paint; it never shares a page with another one.
-        fetchPriority="high"
-        className={`h-full w-full object-contain transition-[filter] ${hidden ? "scale-105 blur-2xl" : ""}`}
-        draggable={false}
-      />
+      {veilOnly ? (
+        // eslint-disable-next-line @next/next/no-img-element -- the tape's veil: a tiny mosaic, scaled up square-edged
+        <img src={veilUrl(record.id)} alt={`Veiled image for record ${record.id}`} className="veil h-full w-full object-contain" draggable={false} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- loaded by record id from darkroom, not a static asset
+        <img
+          src={imageUrl(record.id)}
+          alt={`Image for record ${record.id}: ${record.request.user_prompt}`}
+          width={record.image?.width}
+          height={record.image?.height}
+          // The record's main image is the page's largest paint; it never shares a page with another one.
+          fetchPriority="high"
+          className={`h-full w-full object-contain transition-[filter] ${hidden ? "scale-105 blur-2xl" : ""}`}
+          draggable={false}
+        />
+      )}
       {hidden ? (
         <figcaption className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-base-900/40 p-4 text-center">
-          <p className="text-small text-text-primary">Blurred: NudeNet scored exposure at or above the threshold.</p>
+          <p className="text-small text-text-primary">
+            {veiled ? "Veiled" : "Blurred"}: {why}
+          </p>
           <Button onClick={() => setRevealed(true)}>Reveal</Button>
         </figcaption>
       ) : blur ? (
         <figcaption className="absolute bottom-2 right-2">
           <Button small onClick={() => setRevealed(false)}>
-            Blur again
+            {veiled ? "Veil again" : "Blur again"}
           </Button>
         </figcaption>
       ) : null}

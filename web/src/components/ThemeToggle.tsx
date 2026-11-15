@@ -2,23 +2,36 @@
 
 import { useSyncExternalStore } from "react";
 
-import { applyTheme, nextTheme, readTheme, serverTheme, subscribeTheme, type Theme } from "@/lib/theme";
+import { effectiveScheme, serverScheme, subscribeScheme } from "@/lib/theme";
 
-import { MoonIcon, SunIcon, SystemIcon } from "./icons";
-import { IconButton } from "./ui";
+import { MoonIcon, SunIcon } from "./icons";
+import { ICON_NEUTRAL, Tip } from "./ui";
 
-const LABEL: Record<Theme, string> = { system: "System theme", light: "Light theme", dark: "Dark theme" };
-const ICON: Record<Theme, () => React.ReactNode> = { system: SystemIcon, light: SunIcon, dark: MoonIcon };
-
-/** Cycles system → light → dark. The layout's boot script applies a saved choice before paint. */
+/**
+ * The family's two-state theme toggle. public/dh-theme.js handles clicks on any `[data-dh-theme-toggle]`, stores the
+ * choice in the shared cookie and keeps `aria-pressed` (pressed = dark) in step, so React renders it once and leaves
+ * it alone. Both icons are in the markup and globals.css shows the right one from the first paint.
+ */
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, serverTheme);
-  const next = nextTheme(theme);
-  const title = `${LABEL[theme]}. Switch to ${LABEL[next].toLowerCase()}.`;
-  const Current = ICON[theme];
+  const dark = useSyncExternalStore(subscribeScheme, effectiveScheme, serverScheme) === "dark";
   return (
-    <IconButton label={title} onClick={() => applyTheme(next)}>
-      <Current />
-    </IconButton>
+    <Tip label={dark ? "Dark theme on" : "Dark theme off"}>
+      <button
+        type="button"
+        data-dh-theme-toggle=""
+        aria-label="Dark theme"
+        // Owned by dh-theme.js, which corrects it before hydration; React never updates it.
+        aria-pressed="false"
+        suppressHydrationWarning
+        className={ICON_NEUTRAL}
+      >
+        <span className="theme-icon-moon">
+          <MoonIcon />
+        </span>
+        <span className="theme-icon-sun">
+          <SunIcon />
+        </span>
+      </button>
+    </Tip>
   );
 }

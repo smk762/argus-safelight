@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { removeImage } from "@/lib/api";
 import { fromRecord } from "@/lib/compose";
+import { staticDemo } from "@/lib/demo";
 import { hasImage } from "@/lib/outcome";
 import type { GenerationRecord } from "@/lib/types";
 
@@ -68,7 +69,8 @@ export function RecordActions({ record, onRemoved }: { record: GenerationRecord;
       <span className="sr-only" aria-live="polite">
         {copy === "idle" ? "" : copyLabel}
       </span>
-      {hasImage(record) ? (
+      {/* The demo removes nothing: a recording's images stay. */}
+      {hasImage(record) && !staticDemo() ? (
         confirming ? (
           <span role="group" aria-label="Confirm removing the image" className="inline-flex flex-wrap items-center gap-2 text-small text-text-secondary">
             <span>Delete the image file? The record stays.</span>

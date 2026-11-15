@@ -7,7 +7,7 @@ import { useEscapeDismiss } from "@/lib/useEscapeDismiss";
 type Tone = "primary" | "neutral" | "danger";
 
 const BUTTON_TONE: Record<Tone, string> = {
-  primary: "bg-interactive text-white hover:bg-interactive-hover disabled:hover:bg-interactive",
+  primary: "bg-interactive text-on-accent hover:bg-interactive-hover disabled:hover:bg-interactive",
   neutral: "bg-base-700 text-text-primary hover:bg-base-600 disabled:hover:bg-base-700",
   danger: "bg-error/15 text-error border border-error/40 hover:bg-error/25 disabled:hover:bg-error/15",
 };
@@ -20,7 +20,7 @@ export function Button({ tone = "neutral", small = false, className = "", ...pro
 /** A square icon control. Its name goes in `aria-label`; `Tip` shows it to the pointer. */
 export const ICON_BUTTON = "inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 const ICON_TONE: Record<Tone, string> = {
-  primary: "bg-interactive text-white hover:bg-interactive-hover disabled:hover:bg-interactive",
+  primary: "bg-interactive text-on-accent hover:bg-interactive-hover disabled:hover:bg-interactive",
   neutral: "text-text-secondary hover:bg-base-700 hover:text-text-primary disabled:hover:bg-transparent",
   danger: "text-error hover:bg-error/15 disabled:hover:bg-transparent",
 };

@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useCompose } from "./ComposeProvider";
+import { useDarkroom } from "./DarkroomProvider";
+import { DemoBadge } from "./DemoBadge";
+import { staticDemo } from "@/lib/demo";
 import { DOCS } from "@/lib/docsLinks";
+import type { Tape } from "@/lib/tape";
 
 import { ComposeIcon, DocsIcon, HistoryIcon } from "./icons";
 import { StatusMenu } from "./StatusMenu";
@@ -16,6 +20,7 @@ import { ICON_NEUTRAL, IconButton, Spinner, Tip } from "./ui";
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { openComposer, running } = useCompose();
+  const { tape } = useDarkroom();
   const inHistory = pathname.startsWith("/history");
   const inDocs = pathname.startsWith("/docs");
   return (
@@ -30,6 +35,7 @@ export function Shell({ children }: { children: ReactNode }) {
             argus-darkroom
           </a>
         </span>
+        {staticDemo() && tape ? <TapeBadge tape={tape} /> : null}
         <nav aria-label="Pages" className="ml-auto flex items-center gap-1">
           {running ? (
             <Tip label="Generation running">
@@ -51,11 +57,12 @@ export function Shell({ children }: { children: ReactNode }) {
               <DocsIcon />
             </Link>
           </Tip>
-          <StatusMenu />
+          {/* A recording has no live server to report on: the status icon is for a running darkroom. */}
+          {staticDemo() ? null : <StatusMenu />}
           <ThemeToggle />
         </nav>
       </header>
-      <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
+      <main id="main" className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       <footer className="border-t border-base-600/60 px-4 py-3 text-caption text-text-muted sm:px-6">
         Captions, curation and training live elsewhere:{" "}
         <a href="https://github.com/smk762/argus-lightbox" className="underline decoration-base-600 underline-offset-2 hover:text-text-secondary">
@@ -73,4 +80,13 @@ export function Shell({ children }: { children: ReactNode }) {
       </footer>
     </div>
   );
+}
+
+/** What the static demo replays: a real recording, or the fixture standing in for one. The note is the tooltip. */
+function TapeBadge({ tape }: { tape: Tape }) {
+  const sample = tape.provenance.kind === "sample";
+  const what = sample
+    ? "Sample data: the repo's fixture records with hand-written verdicts and flat-colour placeholder images, standing in until the demo set is recorded."
+    : `Recorded from argus-darkroom ${tape.provenance.darkroom.version ?? ""}; no model runs while you browse.`;
+  return <DemoBadge state={sample ? "sample" : "recorded"} title={`${what} Generate replays the recorded run for a prompt on the tape.`} />;
 }

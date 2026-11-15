@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "SAFELIGHT_STATIC=1 next build && SAFELIGHT_STATIC=1 node scripts/csp.mjs out && node scripts/check-static.mjs out",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

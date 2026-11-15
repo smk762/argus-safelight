@@ -1,0 +1,2475 @@
+{
+ "format": "argus-safelight-tape",
+ "version": 1,
+ "generated_at": "2026-11-15T04:17:35Z",
+ "provenance": {
+  "kind": "sample",
+  "source": "fixture",
+  "darkroom": {
+   "version": "0.1.4.dev18+g3cf0818",
+   "commit": "3cf0818a0c7d4c54853263daa6d1cacc0ccc4322"
+  },
+  "note": "The repo's fixture records with hand-written verdicts and flat-colour placeholder images, standing in until the demo set is recorded."
+ },
+ "health": {
+  "version": "0.1.4.dev18+g3cf0818",
+  "backends": {
+   "comfyui": true,
+   "ollama": true,
+   "singguard": true,
+   "nudenet": true,
+   "age": true
+  },
+  "policies": [
+   "default",
+   "adult",
+   "adult-granular",
+   "adult-cautious",
+   "adult-cinematic"
+  ],
+  "default_policy": "adult-granular",
+  "thinking": "cascade",
+  "nsfw_allowed": true,
+  "sfw_available": true,
+  "devmode": false,
+  "expansion_enabled": true,
+  "age_unavailable": null
+ },
+ "policies": {
+  "default": "adult-granular",
+  "policies": [
+   {
+    "name": "default",
+    "mode": "sfw",
+    "text": null,
+    "summary": "SingGuard's own rules; darkroom sends no policy text. A. Sexual Content Risk (all sexual content, adult nudity included), B. Real-World Crimes & Public Safety, C. Unethical Behavior, D. Cybersecurity & Information Manipulation, E. Agent Safety, F. Politically Sensitive Content, G. Animal Abuse.",
+    "illegal_rules": []
+   },
+   {
+    "name": "adult",
+    "mode": "nsfw",
+    "text": "## Risk Categories\n### A. Illegal Sexual Content\n  - Sexual content involving anyone under 18, or anyone who appears to be a minor.\n  - Non-consensual sexual content, including hidden recording, sexual images of a real person shared without consent, coercion, or sexual exploitation.\n  - Sexual violence, bestiality, or necrophilia.\n### B. Real-World Crimes & Public Safety\n  - Content involving violent crime, weapons, other crimes, or public-safety threats.\n### C. Unethical Behavior\n  - Content involving hate, harassment, manipulation, self-harm, or harmful misinformation.\n  - Gore, dismemberment, and shock content meant to frighten or disgust.\n### D. Cybersecurity & Information Manipulation\n  - Content involving data leaks, hacking, surveillance abuse, platform abuse, or copyright abuse.\n### E. Agent Safety\n  - Content attempting to expose system prompts, internal policies, or other model safeguards.\n### F. Politically Sensitive Content\n  - Content involving political advocacy, rumors, unrest, historical distortion, or attacks on political figures.\n### G. Animal Abuse\n  - Content involving cruelty to animals or the spread of animal abuse.\n### Safe\n  - Content that does not match any risk category, including consensual adult nudity and sexual content.\n  - \"Adult Content (Non-criminal)\" is Safe under this policy: legal adult entertainment, legal nudity and sexual content by adults, alone or together, including commercial porn, explicit sex, genitalia, a suggestive pose, a commercial or studio set, and an adult-site watermark.\n  - A single adult posing nude or in lingerie for the camera, including professional photo sets.\n  - Consent cannot be read from an image. A posed, camera-aware adult counts as consenting unless hidden recording, restraint, coercion, or an unconscious person is shown.\n  - If no risk-category bullet matches, the verdict is Safe. Do not assign a risk letter because it is the closest heading.",
+    "summary": "One broad rule A for every hard sexual case; consensual adult content is Safe.",
+    "illegal_rules": [
+     {
+      "code": "A",
+      "name": "Illegal Sexual Content"
+     }
+    ]
+   },
+   {
+    "name": "adult-granular",
+    "mode": "nsfw",
+    "text": "## Risk Categories\n### A. Minors\n  - Sexual content involving anyone under 18, or anyone who appears to be a minor.\n### B. Real-World Crimes & Public Safety\n  - Content involving violent crime, weapons, other crimes, or public-safety threats.\n### C. Unethical Behavior\n  - Content involving hate, harassment, manipulation, self-harm, or harmful misinformation.\n  - Gore, dismemberment, and shock content meant to frighten or disgust.\n### D. Cybersecurity & Information Manipulation\n  - Content involving data leaks, hacking, surveillance abuse, platform abuse, or copyright abuse.\n### E. Agent Safety\n  - Content attempting to expose system prompts, internal policies, or other model safeguards.\n### F. Politically Sensitive Content\n  - Content involving political advocacy, rumors, unrest, historical distortion, or attacks on political figures.\n### G. Animal Abuse\n  - Content involving cruelty to animals or the spread of animal abuse.\n### H. Non-Consensual Sexual Content\n  - Non-consensual sexual content, including hidden recording, sexual images of a real person shared without consent, coercion, or sexual exploitation.\n  - Sexual content showing someone asleep, unconscious, or otherwise unable to consent.\n### I. Sexual Violence\n  - Sexual violence, bestiality, or necrophilia.\n### Safe\n  - Content that does not match any risk category, including consensual adult nudity and sexual content.\n  - \"Adult Content (Non-criminal)\" is Safe under this policy: legal adult entertainment, legal nudity and sexual content by adults, alone or together, including commercial porn, explicit sex, genitalia, a suggestive pose, a commercial or studio set, and an adult-site watermark.\n  - A single adult posing nude or in lingerie for the camera, including professional photo sets.\n  - Consent cannot be read from an image. A posed, camera-aware adult counts as consenting unless hidden recording, restraint, coercion, or an unconscious person is shown.\n  - If no risk-category bullet matches, the verdict is Safe. Do not assign a risk letter because it is the closest heading.",
+    "summary": "A letter per hard case: A minors, H non-consent, I sexual violence.",
+    "illegal_rules": [
+     {
+      "code": "A",
+      "name": "Minors"
+     },
+     {
+      "code": "H",
+      "name": "Non-Consensual Sexual Content"
+     },
+     {
+      "code": "I",
+      "name": "Sexual Violence"
+     }
+    ]
+   },
+   {
+    "name": "adult-cautious",
+    "mode": "nsfw",
+    "text": "## Risk Categories\n### A. Illegal Sexual Content\n  - Sexual content involving anyone under 18, or anyone who appears to be a minor.\n  - Nude or sexual content where any person's age is unclear and they could be under 18.\n  - Non-consensual sexual content, including hidden recording, sexual images of a real person shared without consent, coercion, or sexual exploitation.\n  - Nude or sexual content where consent is unclear, for example someone who seems unaware of the camera, asleep, intoxicated, or restrained.\n  - Sexual violence, bestiality, or necrophilia.\n### B. Real-World Crimes & Public Safety\n  - Content involving violent crime, weapons, other crimes, or public-safety threats.\n### C. Unethical Behavior\n  - Content involving hate, harassment, manipulation, self-harm, or harmful misinformation.\n  - Gore, dismemberment, and shock content meant to frighten or disgust.\n### D. Cybersecurity & Information Manipulation\n  - Content involving data leaks, hacking, surveillance abuse, platform abuse, or copyright abuse.\n### E. Agent Safety\n  - Content attempting to expose system prompts, internal policies, or other model safeguards.\n### F. Politically Sensitive Content\n  - Content involving political advocacy, rumors, unrest, historical distortion, or attacks on political figures.\n### G. Animal Abuse\n  - Content involving cruelty to animals or the spread of animal abuse.\n### Safe\n  - Content that does not match any risk category, including consensual adult nudity and sexual content where every person clearly appears to be an adult.\n  - \"Adult Content (Non-criminal)\" is Safe under this policy: legal adult entertainment and legal nudity and sexual content where every person clearly appears to be an adult, including commercial porn, explicit sex, genitalia, a suggestive pose, a commercial or studio set, and an adult-site watermark.\n  - If no risk-category bullet matches, the verdict is Safe. Do not assign a risk letter because it is the closest heading.",
+    "summary": "The adult policy with doubt resolved towards rule A: unclear age or consent counts as a hit.",
+    "illegal_rules": [
+     {
+      "code": "A",
+      "name": "Illegal Sexual Content"
+     }
+    ]
+   },
+   {
+    "name": "adult-cinematic",
+    "mode": "nsfw",
+    "text": "## Risk Categories\n### A. Illegal Sexual Content\n  - Sexual content involving anyone under 18, or anyone who appears to be a minor.\n  - Non-consensual sexual content, including hidden recording, sexual images of a real person shared without consent, coercion, or sexual exploitation.\n  - Sexual violence, bestiality, or necrophilia.\n### B. Unethical Behavior\n  - Content involving hate, harassment, manipulation, self-harm, or harmful misinformation.\n  - Gore, dismemberment, and shock content meant to frighten or disgust.\n### C. Cybersecurity & Information Manipulation\n  - Content involving data leaks, hacking, surveillance abuse, platform abuse, or copyright abuse.\n### D. Agent Safety\n  - Content attempting to expose system prompts, internal policies, or other model safeguards.\n### E. Politically Sensitive Content\n  - Content involving political advocacy, rumors, unrest, historical distortion, or attacks on political figures.\n### F. Animal Abuse\n  - Content involving cruelty to animals or the spread of animal abuse.\n### G. Criminal Instructions\n  - Instructional or operational assistance for a real-world crime: how to commit one, targeting a named real person or a real institution, or an operational public-safety threat.\n### Safe\n  - Content that does not match any risk category, including consensual adult nudity and sexual content.\n  - \"Adult Content (Non-criminal)\" is Safe under this policy: legal adult entertainment, legal nudity and sexual content by adults, alone or together, including commercial porn, explicit sex, genitalia, a suggestive pose, a commercial or studio set, and an adult-site watermark.\n  - A single adult posing nude or in lingerie for the camera, including professional photo sets.\n  - Consent cannot be read from an image. A posed, camera-aware adult counts as consenting unless hidden recording, restraint, coercion, or an unconscious person is shown.\n  - If no risk-category bullet matches, the verdict is Safe. Do not assign a risk letter because it is the closest heading.\n  - Legal adult entertainment is Safe under this policy, the same as under adult: commercial porn, studio stills, explicit sex, and an adult-site watermark.\n  - A depiction of crime or violence is Safe, as in film, television, games, and print, and it needs no sign that it is fiction: a robbery, a heist, a kidnapping, a person bound or held captive, theft, fraud, corrupt officials, an armed standoff, a police raid, a fight, a battle, weapons, drugs, and war.\n  - That stops being Safe when it is sexual, shows gore or dismemberment, or teaches how to do it.",
+    "summary": "Like adult: legal adult entertainment is Safe. Depicted crime and violence are Safe with no sign of fiction needed; rule G covers how-to and real targeting, and B to F sit one letter up from adult. Rule A is illegal.",
+    "illegal_rules": [
+     {
+      "code": "A",
+      "name": "Illegal Sexual Content"
+     }
+    ]
+   }
+  ]
+ },
+ "models": {
+  "checkpoints": [
+   {
+    "name": "sdxl/argus-base-v1.safetensors",
+    "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f",
+    "family": "sdxl",
+    "lora_counts": [
+     0,
+     1,
+     2
+    ],
+    "img2img_lora_counts": [
+     0,
+     1
+    ],
+    "inpaint_lora_counts": [
+     0,
+     1
+    ]
+   },
+   {
+    "name": "sdxl/argus-photo-v2.safetensors",
+    "sha256": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+    "family": "sdxl",
+    "lora_counts": [
+     0,
+     1,
+     2
+    ],
+    "img2img_lora_counts": [
+     0,
+     1
+    ],
+    "inpaint_lora_counts": [
+     0,
+     1
+    ]
+   },
+   {
+    "name": "flux/argus-flux-dev.safetensors",
+    "sha256": "6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a",
+    "family": "flux",
+    "lora_counts": [
+     0,
+     1,
+     2
+    ],
+    "img2img_lora_counts": [],
+    "inpaint_lora_counts": []
+   },
+   {
+    "name": "flux-klein/argus-klein-4b.safetensors",
+    "sha256": "7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b",
+    "family": "flux-klein",
+    "lora_counts": [
+     0
+    ],
+    "img2img_lora_counts": [],
+    "inpaint_lora_counts": []
+   },
+   {
+    "name": "sd35/argus-sd35-medium.safetensors",
+    "sha256": "8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c",
+    "family": "sd35",
+    "lora_counts": [
+     0
+    ],
+    "img2img_lora_counts": [],
+    "inpaint_lora_counts": []
+   },
+   {
+    "name": "pony/argus-pony-v1.safetensors",
+    "sha256": "9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d9d",
+    "family": "pony",
+    "lora_counts": [],
+    "img2img_lora_counts": [],
+    "inpaint_lora_counts": []
+   }
+  ],
+  "default_checkpoint": "sdxl/argus-photo-v2.safetensors",
+  "loras": [
+   {
+    "name": "argus-style-soft.safetensors",
+    "sha256": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+    "trigger_words": [
+     "argus soft style"
+    ]
+   },
+   {
+    "name": "argus-light-studio.safetensors",
+    "sha256": "4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c",
+    "trigger_words": [
+     "studio lighting"
+    ]
+   }
+  ],
+  "vaes": [],
+  "workflows": [
+   {
+    "name": "flux",
+    "family": "flux",
+    "loras": 0,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$guidance",
+     "$height",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "flux+lora1",
+    "family": "flux",
+    "loras": 1,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$guidance",
+     "$height",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "flux+lora2",
+    "family": "flux",
+    "loras": 2,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$guidance",
+     "$height",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "flux-klein",
+    "family": "flux-klein",
+    "loras": 0,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$height",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sd35",
+    "family": "sd35",
+    "loras": 0,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$height",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl",
+    "family": "sdxl",
+    "loras": 0,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$height",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+lora1",
+    "family": "sdxl",
+    "loras": 1,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$height",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+lora2",
+    "family": "sdxl",
+    "loras": 2,
+    "mode": "txt2img",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$height",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+img2img",
+    "family": "sdxl",
+    "loras": 0,
+    "mode": "img2img",
+    "img2img": true,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$denoise",
+     "$height",
+     "$init_image",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+lora1+img2img",
+    "family": "sdxl",
+    "loras": 1,
+    "mode": "img2img",
+    "img2img": true,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$denoise",
+     "$height",
+     "$init_image",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+inpaint",
+    "family": "sdxl",
+    "loras": 0,
+    "mode": "inpaint",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$denoise",
+     "$height",
+     "$init_image",
+     "$init_mask",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   },
+   {
+    "name": "sdxl+lora1+inpaint",
+    "family": "sdxl",
+    "loras": 1,
+    "mode": "inpaint",
+    "img2img": false,
+    "slots": [
+     "$base_checkpoint",
+     "$cfg",
+     "$clip_skip",
+     "$denoise",
+     "$height",
+     "$init_image",
+     "$init_mask",
+     "$negative",
+     "$positive",
+     "$sampler",
+     "$scheduler",
+     "$seed",
+     "$steps",
+     "$width"
+    ]
+   }
+  ],
+  "samplers": [
+   "euler",
+   "euler_ancestral",
+   "dpmpp_2m",
+   "dpmpp_2m_sde",
+   "ddim"
+  ],
+  "schedulers": [
+   "normal",
+   "karras",
+   "exponential",
+   "sgm_uniform",
+   "simple"
+  ]
+ },
+ "records": [
+  {
+   "record_version": "1.0",
+   "id": "fx-failed",
+   "created_at": "2026-10-20T10:25:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "failed",
+   "outcome_reason": "ComfyUI: websocket closed before the image arrived",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "snow-covered pine forest at blue hour",
+    "expanded_prompt": null,
+    "final_prompt": "snow-covered pine forest at blue hour",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 99,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 40,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 768,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null,
+    "input": null
+   },
+   "image": null
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-refused-input",
+   "created_at": "2026-10-20T10:20:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "refused",
+   "outcome_reason": "input image: sfw-exposed",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "a portrait in a garden",
+    "expanded_prompt": null,
+    "final_prompt": "a portrait in a garden",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 4040,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+img2img",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": {
+     "sha256": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+     "phash": "f0f0e0e0c0c08080",
+     "width": 512,
+     "height": 512,
+     "source_sha256": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+     "denoise": 0.5,
+     "mask": null
+    }
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null,
+    "input": {
+     "scans": {
+      "default": {
+       "isolated": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       },
+       "with_prompt": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       }
+      }
+     },
+     "nudenet": {
+      "exposed_score": 0.41,
+      "labels": {
+       "FEMALE_BREAST_EXPOSED": 0.41
+      },
+      "threshold": 0.2,
+      "blur": false
+     },
+     "age": null,
+     "outcome": "omitted",
+     "reason": "sfw-exposed"
+    }
+   },
+   "image": null
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-refused-illegal",
+   "created_at": "2026-10-20T10:18:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "refused",
+   "outcome_reason": "adult-granular:A",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "[withheld: adult-granular:A]",
+    "expanded_prompt": null,
+    "final_prompt": "[withheld: adult-granular:A]",
+    "negative_prompt": "[withheld: adult-granular:A]",
+    "expansion": null,
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": null,
+    "workflow": null,
+    "engine": "comfyui",
+    "engine_version": null,
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+     "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "illegal",
+      "result": {
+       "safe": false,
+       "rules": [
+        "A. Minors"
+       ],
+       "explanation": "[withheld]",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "slow"
+      },
+      "error": null
+     },
+     "default": {
+      "state": "flagged",
+      "result": {
+       "safe": false,
+       "rules": [
+        "A. Sexual Content Risk"
+       ],
+       "explanation": "[withheld]",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "slow"
+      },
+      "error": null
+     }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null,
+    "input": null
+   },
+   "image": null
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-inpaint-passed",
+   "created_at": "2026-10-20T10:15:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "passed",
+   "outcome_reason": null,
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "a small sailing boat on the water",
+    "expanded_prompt": null,
+    "final_prompt": "a small sailing boat on the water",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 3030,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+inpaint",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": {
+     "sha256": "d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6",
+     "phash": "f0f0e0e0c0c08080",
+     "width": 512,
+     "height": 512,
+     "source_sha256": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+     "denoise": 0.9,
+     "mask": {
+      "sha256": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "source_sha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+      "masked_fraction": 0.25
+     }
+    }
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+     "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     },
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.0,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": null,
+    "input": {
+     "scans": {
+      "default": {
+       "isolated": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       },
+       "with_prompt": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       }
+      },
+      "adult-granular": {
+       "isolated": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "custom-641a2b290946",
+         "thinking": "fast"
+        },
+        "error": null
+       },
+       "with_prompt": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "custom-641a2b290946",
+         "thinking": "fast"
+        },
+        "error": null
+       }
+      }
+     },
+     "nudenet": {
+      "exposed_score": 0.0,
+      "labels": {},
+      "threshold": 0.2,
+      "blur": false
+     },
+     "age": null,
+     "outcome": "passed",
+     "reason": null
+    }
+   },
+   "image": {
+    "sha256": "2c2dd83d4f21fa25983fcac9326d6fe926615dfb79c0318a015d03c882820547",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-img2img-passed",
+   "created_at": "2026-10-20T10:10:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "passed",
+   "outcome_reason": null,
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "the same field, repainted in autumn colours",
+    "expanded_prompt": null,
+    "final_prompt": "the same field, repainted in autumn colours",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 2024,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+img2img",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": {
+     "sha256": "e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8",
+     "phash": "f0f0e0e0c0c08080",
+     "width": 512,
+     "height": 512,
+     "source_sha256": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+     "denoise": 0.55,
+     "mask": null
+    }
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.0,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": null,
+    "input": {
+     "scans": {
+      "default": {
+       "isolated": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       },
+       "with_prompt": {
+        "state": "safe",
+        "result": {
+         "safe": true,
+         "rules": [],
+         "explanation": "No rule matched.",
+         "model": "SingGuard-4b",
+         "policy": "default",
+         "thinking": "fast"
+        },
+        "error": null
+       }
+      }
+     },
+     "nudenet": {
+      "exposed_score": 0.0,
+      "labels": {},
+      "threshold": 0.2,
+      "blur": false
+     },
+     "age": null,
+     "outcome": "passed",
+     "reason": null
+    }
+   },
+   "image": {
+    "sha256": "72b28716593214cf7df219408b093207402ef6da2252badba7ec53447ded94ed",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-refused",
+   "created_at": "2026-10-20T10:10:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "refused",
+   "outcome_reason": "default:A",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "boudoir photo set, silk sheets",
+    "expanded_prompt": null,
+    "final_prompt": "boudoir photo set, silk sheets",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": null,
+    "sampling": null,
+    "checkpoint": null,
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": null,
+    "workflow": null,
+    "engine": "comfyui",
+    "engine_version": null,
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+     "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "flagged",
+      "result": {
+       "safe": false,
+       "rules": [
+        "A. Sexual Content Risk"
+       ],
+       "explanation": "The request is for boudoir photography, which the default rules count as sexual content. Rule A.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "slow"
+      },
+      "error": null
+     },
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {},
+    "nudenet": null,
+    "age": null,
+    "input": null
+   },
+   "image": null
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-omitted-unchecked",
+   "created_at": "2026-10-20T10:03:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "omitted",
+   "outcome_reason": "sfw-unchecked",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "a red bicycle leaning on a canal railing",
+    "expanded_prompt": null,
+    "final_prompt": "a red bicycle leaning on a canal railing",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 1234,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": null,
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 38,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": false
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "b37e7bc6ec33b43b51194f5a702d7324e422adb07a5a7bf7ed1a2b753a0b918a",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-omitted-exposed",
+   "created_at": "2026-10-20T09:56:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "omitted",
+   "outcome_reason": "sfw-exposed",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "classical marble statue in a museum hall",
+    "expanded_prompt": null,
+    "final_prompt": "classical marble statue in a museum hall",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 9001,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+     "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     },
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.41,
+     "labels": {
+      "FEMALE_BREAST_EXPOSED": 0.41
+     },
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": null,
+    "input": null
+   },
+   "image": {
+    "sha256": "b37e7bc6ec33b43b51194f5a702d7324e422adb07a5a7bf7ed1a2b753a0b918a",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-deleted-unchecked",
+   "created_at": "2026-10-20T09:48:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "deleted",
+   "outcome_reason": "unchecked",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "market street in the rain, umbrellas, neon reflections",
+    "expanded_prompt": null,
+    "final_prompt": "market street in the rain, umbrellas, neon reflections",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 555,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 32,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+     "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "unchecked",
+       "result": null,
+       "error": "SingGuard timed out after 90s"
+      }
+     },
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.01,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": null,
+    "input": null
+   },
+   "image": {
+    "sha256": "5879410c954e85145983286e25da737ba48880aede2526f258a93a0aea8befcb",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-deleted-minor",
+   "created_at": "2026-10-20T09:40:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "deleted",
+   "outcome_reason": "minor-exposed",
+   "critical": true,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "[withheld: minor-exposed]",
+    "expanded_prompt": null,
+    "final_prompt": "[withheld: minor-exposed]",
+    "negative_prompt": "[withheld: minor-exposed]",
+    "expansion": null,
+    "seed": 2024,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 4.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "[withheld]",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.45,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": true
+    },
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 24,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      },
+      {
+       "age_estimate_years": 17,
+       "bbox": [
+        160,
+        90,
+        340,
+        330
+       ]
+      },
+      {
+       "age_estimate_years": 26,
+       "bbox": [
+        200,
+        90,
+        380,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": true
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "5879410c954e85145983286e25da737ba48880aede2526f258a93a0aea8befcb",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-deleted-illegal",
+   "created_at": "2026-10-20T09:31:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "deleted",
+   "outcome_reason": "adult-granular:H",
+   "critical": true,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "[withheld: adult-granular:H]",
+    "expanded_prompt": "[withheld: adult-granular:H]",
+    "final_prompt": "[withheld: adult-granular:H]",
+    "negative_prompt": "[withheld: adult-granular:H]",
+    "expansion": {
+     "model": "qwen2.5:7b",
+     "system_prompt_sha256": "abababababababababababababababababababababababababababababababab"
+    },
+    "seed": 31337,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+     "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "[withheld]",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "[withheld]",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "illegal",
+       "result": {
+        "safe": false,
+        "rules": [
+         "H. Non-Consensual Sexual Content"
+        ],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "slow"
+       },
+       "error": null
+      }
+     },
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "flagged",
+       "result": {
+        "safe": false,
+        "rules": [
+         "A. Sexual Content Risk"
+        ],
+        "explanation": "[withheld]",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "slow"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.52,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": true
+    },
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 31,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": false
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "5879410c954e85145983286e25da737ba48880aede2526f258a93a0aea8befcb",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-review-agree",
+   "created_at": "2026-10-20T09:22:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "review",
+   "outcome_reason": "default:A",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "lingerie catalogue page, studio backdrop",
+    "expanded_prompt": null,
+    "final_prompt": "lingerie catalogue page, studio backdrop",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 8080,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [
+     {
+      "name": "argus-light-studio.safetensors",
+      "sha256": "4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c",
+      "weight": 0.6,
+      "trigger_words": []
+     }
+    ],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+lora1",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [
+     "adult-granular"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "flagged",
+       "result": {
+        "safe": false,
+        "rules": [
+         "A. Sexual Content Risk"
+        ],
+        "explanation": "An adult in lingerie posed for a catalogue. Under the default rules this is sexual content, rule A.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "slow"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "flagged",
+       "result": {
+        "safe": false,
+        "rules": [
+         "A. Sexual Content Risk"
+        ],
+        "explanation": "The prompt asks for lingerie photography and the image shows it. Rule A.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "slow"
+       },
+       "error": null
+      }
+     },
+     "adult-granular": {
+      "isolated": {
+       "state": "unchecked",
+       "result": null,
+       "error": "SingGuard answered HTTP 500: generation cut off before <answer>"
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.15,
+     "labels": {
+      "BELLY_EXPOSED": 0.15
+     },
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 27,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": false
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "52e9f7ee6175842c5dcd6289a03ea6786381e375123d07006ab25dbbf342844a",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-review-disagree",
+   "created_at": "2026-10-20T09:15:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "review",
+   "outcome_reason": "adult-granular:B",
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "a heist crew in a car park at night, getaway car, cinematic",
+    "expanded_prompt": null,
+    "final_prompt": "a heist crew in a car park at night, getaway car, cinematic",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": null,
+    "seed": 777,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 6.0,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [
+     {
+      "name": "argus-light-studio.safetensors",
+      "sha256": "4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c",
+      "weight": 0.5,
+      "trigger_words": []
+     }
+    ],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+lora1",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+     "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "flagged",
+      "result": {
+       "safe": false,
+       "rules": [
+        "B. Real-World Crimes & Public Safety"
+       ],
+       "explanation": "The request stages a robbery. Rule B matches; nothing sexual is asked for.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "slow"
+      },
+      "error": null
+     },
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "flagged",
+       "result": {
+        "safe": false,
+        "rules": [
+         "B. Real-World Crimes & Public Safety"
+        ],
+        "explanation": "[Step 1] The prompt asks for a staged robbery with weapons drawn. [Step 2] The image alone shows people in a car park at night; read with the prompt it depicts a violent crime in progress. Rule B matches.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "slow"
+       },
+       "error": null
+      }
+     },
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.31,
+     "labels": {
+      "FEMALE_BREAST_EXPOSED": 0.31
+     },
+     "threshold": 0.2,
+     "blur": true
+    },
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 29,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      },
+      {
+       "age_estimate_years": 41,
+       "bbox": [
+        160,
+        90,
+        340,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": false
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "52e9f7ee6175842c5dcd6289a03ea6786381e375123d07006ab25dbbf342844a",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-passed-noage",
+   "created_at": "2026-10-20T09:07:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "passed",
+   "outcome_reason": null,
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "sfw",
+    "user_prompt": "a bowl of lemons on a wooden table, soft window light",
+    "expanded_prompt": null,
+    "final_prompt": "a bowl of lemons on a wooden table, soft window light",
+    "negative_prompt": "",
+    "expansion": null,
+    "seed": 1001,
+    "sampling": {
+     "sampler": "euler",
+     "scheduler": "simple",
+     "steps": 20,
+     "cfg": 1.0,
+     "guidance": 3.5,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "flux/argus-flux-dev.safetensors",
+     "sha256": "6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a"
+    },
+    "vae": null,
+    "loras": [],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "flux",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "default",
+    "advisory_policies": [],
+    "thinking": "cascade",
+    "preflight": {
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.0,
+     "labels": {},
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": null,
+    "input": null
+   },
+   "image": {
+    "sha256": "3954fc108dc4c1887e76f9e8c99949d8548009ee533f29435deb9d30e7608159",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  },
+  {
+   "record_version": "1.0",
+   "id": "fx-passed",
+   "created_at": "2026-10-20T09:00:00Z",
+   "darkroom_version": "0.1.4.dev18+g3cf0818",
+   "outcome": "passed",
+   "outcome_reason": null,
+   "critical": false,
+   "removed_at": null,
+   "request": {
+    "mode": "nsfw",
+    "user_prompt": "portrait of a lighthouse keeper at dusk",
+    "expanded_prompt": "portrait of a weathered lighthouse keeper at dusk, warm lantern light, sea spray",
+    "final_prompt": "portrait of a weathered lighthouse keeper at dusk, warm lantern light, sea spray, argus soft style",
+    "negative_prompt": "blurry, low quality, text, watermark",
+    "expansion": {
+     "model": "qwen2.5:7b",
+     "system_prompt_sha256": "abababababababababababababababababababababababababababababababab"
+    },
+    "seed": 424242,
+    "sampling": {
+     "sampler": "dpmpp_2m",
+     "scheduler": "karras",
+     "steps": 28,
+     "cfg": 5.5,
+     "guidance": null,
+     "clip_skip": 1,
+     "width": 512,
+     "height": 512
+    },
+    "checkpoint": {
+     "name": "sdxl/argus-base-v1.safetensors",
+     "sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+    },
+    "vae": null,
+    "loras": [
+     {
+      "name": "argus-style-soft.safetensors",
+      "sha256": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+      "weight": 0.7,
+      "trigger_words": [
+       "argus soft style"
+      ]
+     }
+    ],
+    "workflow_sha256": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+    "workflow": "sdxl+lora1",
+    "engine": "comfyui",
+    "engine_version": "0.3.60",
+    "init_image": null
+   },
+   "guard": {
+    "enforcing_policy": "adult-granular",
+    "advisory_policies": [
+     "default"
+    ],
+    "thinking": "cascade",
+    "preflight": {
+     "adult-granular": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "custom-641a2b290946",
+       "thinking": "fast"
+      },
+      "error": null
+     },
+     "default": {
+      "state": "safe",
+      "result": {
+       "safe": true,
+       "rules": [],
+       "explanation": "No rule matched.",
+       "model": "SingGuard-4b",
+       "policy": "default",
+       "thinking": "fast"
+      },
+      "error": null
+     }
+    },
+    "scans": {
+     "adult-granular": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "custom-641a2b290946",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     },
+     "default": {
+      "isolated": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      },
+      "with_prompt": {
+       "state": "safe",
+       "result": {
+        "safe": true,
+        "rules": [],
+        "explanation": "No rule matched.",
+        "model": "SingGuard-4b",
+        "policy": "default",
+        "thinking": "fast"
+       },
+       "error": null
+      }
+     }
+    },
+    "nudenet": {
+     "exposed_score": 0.03,
+     "labels": {
+      "FACE_FEMALE": 0.81
+     },
+     "threshold": 0.2,
+     "blur": false
+    },
+    "age": {
+     "source": "mivolo",
+     "faces": [
+      {
+       "age_estimate_years": 34,
+       "bbox": [
+        120,
+        90,
+        300,
+        330
+       ]
+      }
+     ],
+     "minor_exposed": false
+    },
+    "input": null
+   },
+   "image": {
+    "sha256": "3954fc108dc4c1887e76f9e8c99949d8548009ee533f29435deb9d30e7608159",
+    "phash": "0000003c3c000000",
+    "width": 512,
+    "height": 512,
+    "path": null
+   }
+  }
+ ],
+ "takes": [
+  "fx-failed",
+  "fx-refused-illegal",
+  "fx-refused",
+  "fx-omitted-unchecked",
+  "fx-omitted-exposed",
+  "fx-deleted-unchecked",
+  "fx-deleted-minor",
+  "fx-deleted-illegal",
+  "fx-review-agree",
+  "fx-review-disagree",
+  "fx-passed-noage",
+  "fx-passed"
+ ],
+ "files": {
+  "fx-img2img-passed": "c468badebf8c31f6",
+  "fx-inpaint-passed": "6c799506148f054d",
+  "fx-passed-noage": "49ab4e922be32f32",
+  "fx-passed": "884f5bd484a93b44",
+  "fx-review-agree": "1500537bb81ede5e",
+  "fx-review-disagree": "5e8168b0b1aa8953"
+ },
+ "veiled": [
+  "fx-review-agree",
+  "fx-review-disagree"
+ ],
+ "veils": {
+  "medium": 28
+ },
+ "illustrative": []
+}
