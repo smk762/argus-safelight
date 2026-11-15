@@ -4,6 +4,20 @@ Each release has a `## [x.y.z]` section here. The release workflow uses that sec
 
 Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schema/pins.json`), not a darkroom release. Each section names the darkroom commit it was checked against.
 
+## [Unreleased]
+
+### Added
+
+- **A hosted static demo** for safelight.dragonhound.dev (`make pages`, `SAFELIGHT_STATIC=1`): a pure static export that replays a recorded data tape (`web/public/data-tape`) and never calls darkroom. Every page gets a hash-based CSP with a Trusted Types policy (`web/scripts/csp.mjs`, as in Cull), and `_headers` carries `frame-ancestors`. History, records, docs, Regenerate and Copy record work as live. Compose offers the tape's **recorded prompts**: Check shows the pre-flight darkroom recorded for it, and Generate replays the recorded stream, so the grid fills cell by cell and lands on the record. Writes (Remove image, row selection, purge) and the input-image field are left out, and the status icon too: a recording has no live server.
+- **The tape**, written by `scripts/record_tape.py`: `sample` from `fixture/` (labelled **Sample data**, the current tape), or `live` from a running darkroom and a take list. Only passed and review records get image files; a deleted, omitted, refused or failed record is its metadata alone. A blocked request (critical, judged illegal, or minor-exposed) keeps its verdict, rule, reason, timestamps and state, but its prompts and SingGuard's explanations are replaced by `[withheld: <reason>]`. Borderline frames (review, or darkroom's blur) load only a 28-cell **veil** until Reveal. `web/scripts/check-static.mjs` fails the build if any of that is not so, and `web/scripts/demo-e2e.mjs` (`make browser-check`) checks it in Chromium at 1440 and 390 px, light and dark.
+- **The recording plan**, `docs/demo-recording.md`, with the 26 proposed takes in `docs/demo-takes.json`. Nothing has been recorded: it waits for the maintainer's approval.
+- **The Dragonhound shared layer** (dh-shared 1.2.4) vendored in `web/vendor/dh`, with a CI job that fails on local edits or drift from the published manifest. The static demo carries the family strip (`data-dh-site="safelight"`, default "recorded output" label) and the demo-state badge.
+
+### Changed
+
+- **Theme and type follow the family.** The colours map onto the shared `--dh-*` tokens, the fonts are the system stack (no webfonts), and light/dark is `dh-theme.js`: two states, following the system until toggled, and shared across `*.dragonhound.dev` by cookie. The old three-state toggle and its `localStorage` key are gone.
+- The proxy is `src/proxy.live.ts` and the record route has a live and a static page (`page.live.tsx`, `page.static.tsx`); each build's `pageExtensions` picks its own.
+
 ## [0.2.0] - 2026-11-13
 
 Checked against argus-darkroom `dev` @ `3cf0818` (`0.1.4.dev18+g3cf0818`).

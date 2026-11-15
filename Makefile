@@ -12,7 +12,7 @@ UV ?= uv
 PORT ?= 3097
 MOCK_PORT ?= 8106
 
-.PHONY: help install dev mock fixture sync wire build test lint check clean
+.PHONY: help install dev mock fixture sync wire build test lint check clean tape-sample tape pages shared-check browser-check
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -46,6 +46,33 @@ lint:  ## eslint + tsc + the darkroom sync record (docs, wire types, fixture ver
 	cd web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run darkroom:check
 
 check: lint test build  ## Everything CI runs
+
+# ---- Static demo (safelight.dragonhound.dev): a recorded tape, served without darkroom.
+
+PYTHON ?= python3
+# Where the tape is written; the page reads it at NEXT_PUBLIC_SAFELIGHT_TAPE_URL (/data-tape by default).
+TAPE_DIR ?= web/public/data-tape
+DARKROOM_URL ?= http://localhost:8106
+TAKES ?= docs/demo-takes.json
+DARKROOM_COMMIT ?=
+NOTE ?=
+
+tape-sample:  ## The stand-in tape: fixture/ records and placeholders, labelled Sample data (needs Pillow)
+	$(PYTHON) scripts/record_tape.py sample --out $(TAPE_DIR) \
+		--note "The repo's fixture records with hand-written verdicts and flat-colour placeholder images, standing in until the demo set is recorded."
+
+tape:  ## Record TAKES against the darkroom at DARKROOM_URL (GPU host; only once the take list is approved)
+	$(PYTHON) scripts/record_tape.py live --darkroom $(DARKROOM_URL) --takes $(TAKES) --out $(TAPE_DIR) \
+		$(if $(DARKROOM_COMMIT),--darkroom-commit $(DARKROOM_COMMIT)) $(if $(NOTE),--note "$(NOTE)")
+
+pages:  ## Static export (SAFELIGHT_STATIC=1) of the tape to web/out/, with a hash CSP on every page
+	cd web && NEXT_PUBLIC_SAFELIGHT_TAPE_URL=/$(patsubst web/public/%,%,$(TAPE_DIR)) $(NPM) run build:pages
+
+shared-check:  ## The vendored Dragonhound shared layer is unedited and matches the published v1 manifest
+	node web/vendor/dh/sync-shared.mjs --check . --against https://dragonhound.dev/brand/v1/manifest.json --allow-outdated
+
+browser-check:  ## Browser check of web/out at 1440 and 390, light and dark (needs PLAYWRIGHT_DIR; SHOTS=dir for screenshots)
+	$(if $(SHOTS),SHOTS=$(SHOTS)) node web/scripts/demo-e2e.mjs web/out
 
 clean:  ## Remove build output and dependencies
 	rm -rf web/node_modules web/.next web/out

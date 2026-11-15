@@ -6,12 +6,18 @@ import { allCells, overallState, ruleLetters } from "@/lib/shields";
 import { ago, formatWhen } from "@/lib/time";
 import type { GenerationRecord } from "@/lib/types";
 
+import { staticDemo } from "@/lib/demo";
+import { isIllustrative } from "@/lib/staticApi";
+
+import { DemoBadge } from "./DemoBadge";
 import { DeletedTile, FailedTile, ImageTile, OmittedTile, RefusedPanel } from "./OutcomeTiles";
 import { DocsLink } from "./links";
 import { ChecksCard, InputImageCard, ParametersCard, PromptsCard, RecordJson } from "./RecordDetails";
 import { Shield } from "./Shield";
 import { ShieldGrid } from "./ShieldGrid";
 import { Badge, Card, SectionTitle } from "./ui";
+
+export const ILLUSTRATIVE = "Illustrative record: written by hand to show this outcome, never generated. No image of it ever existed.";
 
 /** One record, whatever its outcome. Pixels only for passed and review; the others show their record. */
 export function ResultView({ record, actions }: { record: GenerationRecord; actions?: React.ReactNode }) {
@@ -27,6 +33,7 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
         <Badge className={OUTCOME_TONE[record.outcome]}>{record.outcome}</Badge>
         <Badge className={record.request.mode === "nsfw" ? "border-warm-primary/60 text-warm-primary" : "border-base-600 text-text-secondary"}>{record.request.mode}</Badge>
         {record.critical ? <Badge className="border-error/60 text-error">critical</Badge> : null}
+        {staticDemo() && isIllustrative(record.id) ? <DemoBadge state="sample" title={ILLUSTRATIVE} /> : null}
         {record.removed_at ? <Badge className="border-base-600 text-text-secondary" title={`Removed by the user ${formatWhen(record.removed_at)}`}>image removed</Badge> : null}
         <span className="text-small text-text-secondary" title={formatWhen(record.created_at)}>
           {ago(record.created_at)}

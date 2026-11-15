@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
 import { ApiError, generate, preflight as runPreflight } from "@/lib/api";
+import { staticDemo } from "@/lib/demo";
 import { canExpand, defaultCompose, normaliseCompose, preflightKey, toRequest, withoutPixels, type ComposeState } from "@/lib/compose";
 import { IDLE, isRunning, liveReducer, type LiveState } from "@/lib/live";
 import type { Preflight } from "@/lib/types";
@@ -128,7 +129,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         router.replace(`/record/${encodeURIComponent(record.id)}`);
       })
       .catch((caught: unknown) => {
-        if (abort.signal.aborted) dispatch({ type: "error", error: "Stopped. Darkroom finishes the generation on its own; its record will appear in the history." });
+        if (abort.signal.aborted) dispatch({ type: "error", error: staticDemo() ? "Stopped the replay. The recorded record is in the history." : "Stopped. Darkroom finishes the generation on its own; its record will appear in the history." });
         else dispatch({ type: "error", error: caught instanceof Error ? caught.message : String(caught) });
       })
       .finally(() => {

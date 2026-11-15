@@ -1,47 +1,40 @@
-export type Theme = "system" | "light" | "dark";
+/**
+ * Light/dark is the Dragonhound shared script, public/dh-theme.js (a copy of
+ * vendor/dh/dh-theme.js; src/lib/shared.test.ts holds them equal). It runs
+ * blocking in <head>, sets `data-theme` on <html> before the first paint from a
+ * `dh-theme` cookie (Domain .dragonhound.dev on the live hosts, so the choice
+ * follows you between the family's sites), handles clicks on any
+ * `[data-dh-theme-toggle]` button and keeps their `aria-pressed` in step.
+ *
+ * React only reads the effective scheme through the script's API (`dhTheme`),
+ * for labels; it never writes the theme or `aria-pressed` itself.
+ */
 
-export const THEME_KEY = "safelight-theme";
-export const THEME_ORDER: Theme[] = ["system", "light", "dark"];
+type Scheme = "light" | "dark";
 
-const listeners = new Set<() => void>();
+interface DhTheme {
+  get(): Scheme | null;
+  effective(): Scheme;
+  set(theme: Scheme | null): void;
+  subscribe(listener: (detail: { theme: Scheme; stored: Scheme | null; source: string }) => void): () => void;
+}
 
-export function readTheme(): Theme {
-  try {
-    const saved = localStorage.getItem(THEME_KEY);
-    return saved === "light" || saved === "dark" ? saved : "system";
-  } catch {
-    return "system";
+declare global {
+  interface Window {
+    dhTheme?: DhTheme;
   }
 }
 
-export const serverTheme = (): Theme => "system";
-
-/** Sets `data-theme` on <html> (the layout's boot script does the same before paint) and remembers the choice. */
-export function applyTheme(theme: Theme): void {
-  const root = document.documentElement;
-  if (theme === "system") delete root.dataset.theme;
-  else root.dataset.theme = theme;
-  try {
-    if (theme === "system") localStorage.removeItem(THEME_KEY);
-    else localStorage.setItem(THEME_KEY, theme);
-  } catch {
-    // Private mode: the choice lasts for this page only.
-  }
-  for (const listener of listeners) listener();
+/** The scheme on screen now. Falls back to the system's if dh-theme.js did not run. */
+export function effectiveScheme(): Scheme {
+  if (window.dhTheme) return window.dhTheme.effective();
+  return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export function subscribeTheme(listener: () => void): () => void {
-  listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === THEME_KEY) listener();
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+/** Server snapshot: unknown, rendered as light until hydration reads the real one. */
+export const serverScheme = (): Scheme => "light";
 
-export function nextTheme(theme: Theme): Theme {
-  return THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
+/** Calls `listener` when the effective scheme changes (toggle, system, another subdomain). */
+export function subscribeScheme(listener: () => void): () => void {
+  return window.dhTheme?.subscribe(listener) ?? (() => {});
 }
