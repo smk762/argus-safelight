@@ -64,3 +64,8 @@ jobs:
           curl -sf 'localhost:8106/records?page_size=100' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const n=JSON.parse(s).total;if(n<12)throw new Error("expected the fixture, got "+n)})'
           curl -sf -o /dev/null localhost:8106/image/fx-passed
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8106/image/fx-deleted-illegal)" = 404
+
+  suite-rules:
+    # argus-ci suite rules: lint rules that each eliminate a finding class. New violations fail;
+    # existing ones are in .suite-rules-baseline.json, which may only shrink.
+    uses: smk762/argus-ci/.github/workflows/suite-rules.yml@v1
