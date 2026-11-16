@@ -68,7 +68,7 @@ House exceptions to its advice, with the reason:
 - **CSP:** `web/scripts/csp.mjs` adds a hash CSP `<meta>`, a Trusted Types `default` policy and the `dh-theme.js` tag to every exported page; the policy names `'self'` only. Never add an inline script or a server-rendered `style` attribute.
 - **The tape decides what can be fetched.** `tape.files` has entries for passed and review records only; `imageUrl`/`thumbUrl`/`veilUrl` return `""` for anything else. A veiled frame (`tape.veiled`) renders the veil and requests neither its thumbnail nor its image until Reveal. A blocked record (critical, an illegal cell, or minor-exposed) is withheld by `record_tape.py` before the tape is written; the page never sees its words. `check-static.mjs` and `tape.test.ts` enforce all of it; `demo-e2e.mjs` checks the requests in a browser.
 - **Content rules for any recording** are in `docs/demo-recording.md`: synthetic adults, catalogue-level at most, and never a generation of anything a guard should block. Illegal and minor-exposed outcomes are hand-written fixture records (`--illustrative`), labelled Sample data.
-- **Dragonhound shared layer:** `web/vendor/dh` is vendored (dh-shared 1.2.5) and never edited; `make shared-check` and the `dh-shared` CI job pin it. `public/dh-theme.js` is a copy (`shared.test.ts`). The strip renders in the static build only, with `data-dh-site="safelight"`.
+- **Dragonhound shared layer:** `web/vendor/dh` is vendored (dh-shared 1.2.8) and never edited; `make shared-check` and the `dh-shared` CI job pin it. `public/dh-theme.js` is a copy (`shared.test.ts`). The strip renders in the static build only, with `data-dh-site="safelight"`.
 
 ## Conventions & gotchas
 
