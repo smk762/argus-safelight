@@ -4,7 +4,7 @@ The hosted demo (safelight.dragonhound.dev) replays a **data tape**: darkroom's 
 every stream event, captured from a real run. The header says **Recorded**; `make tape-sample` puts the fixture's
 sample tape back (header **Sample data**).
 
-The tape was recorded on 2026-11-15 against argus-darkroom `0.1.4.dev36+gc9794888b`, with the maintainer's approval.
+The tape was recorded on 2026-11-15 (re-recorded in the mixed order on 2026-11-16) against argus-darkroom `0.1.4.dev36+gc9794888b`, with the maintainer's approval.
 It holds 20 recorded takes (18 with images, 2 of them veiled) and the fixture's six hand-written records for the
 outcomes the recording could not or must not produce (see [What was not recorded](#what-was-not-recorded)).
 
@@ -50,8 +50,9 @@ These bind every prompt below, every candidate render and the published tape.
 
 ## The prompts
 
-All 20 are in [`demo-takes.json`](demo-takes.json) as complete generate requests, in recording order, each with
-its seed and `_expect_image_sha256` (the approved render's hash). Policies: **SFW** is `default` enforcing with
+All 20 are in [`demo-takes.json`](demo-takes.json) as complete generate requests, each with its seed and
+`_expect_image_sha256` (the approved render's hash). The numbers below name the takes; the file lists them in
+recording order, which is History's order (newest first, so reversed). Policies: **SFW** is `default` enforcing with
 `adult-granular` advisory; **NSFW** is `adult-granular` enforcing with `default` advisory. The category is what darkroom
 returned, which is not always what the plan expected (several review candidates passed outright).
 
@@ -77,6 +78,23 @@ returned, which is not always what the plan expected (several review candidates 
 | 18 | passed | NSFW | a man in his fifties counting stacks of banknotes in a back room, film noir still |
 | 19 | refused | SFW | lingerie catalogue: a woman in her thirties in a black lace bodysuit, grey studio backdrop |
 | 20 | refused | SFW | a masked figure picking the lock of a shop door at night, security camera view |
+
+### Recording order
+
+The run mixes the takes, so History does not read as a block of catalogue and crime takes at one end. No two of the
+refusals, review, catalogue, boudoir or crime takes (13 to 20) or the three blocked hand-written records sit next to
+each other, and the first and last records are ordinary portraits:
+
+1, 20, 10, *deleted (minor-exposed)*, 5, 13, 9, 17, *failed*, 14, 11, *refused (illegal)*, 4, 15, 2, 18,
+*omitted (sfw-unchecked)*, 16, 3, *deleted (illegal)*, 12, 19, 6, *deleted (unchecked)*, 8, 7
+
+The italic entries are the fixture's hand-written records. In the take list each is a placeholder,
+`{"_illustrative": "<fixture id>"}`, with no request. The recorder renders nothing for it and dates the fixture record
+halfway between the recorded records on either side (several in a row share the gap), so History shows it in that
+place. Only `created_at` changes: the record keeps its verdict, its withheld words and its **Sample data** label, and
+the fixture under `fixture/records/` keeps its own dates for the sample tape and the tests. A hand-written record
+that no placeholder names keeps its fixture date. Reordering changes no image: each take's prompt, seed and settings
+are the same, and the recorder checks every render against its pinned hash.
 
 Several prompts were reworded from the plan after review. The first pass leaned old: FLUX.1 [schnell] drew some
 people younger than written, put children in two crowd scenes and framed swimwear full-body shots badly, and the fix

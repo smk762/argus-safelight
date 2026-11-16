@@ -6,6 +6,9 @@
     # A real run: every take in TAKES (a JSON list of generate requests) against a running darkroom
     python scripts/record_tape.py live --darkroom http://localhost:8106 --takes docs/demo-takes.json
 
+    A take-list entry {"_illustrative": "<fixture record id>"} renders nothing: it places that hand-written record
+    in History's order, dated between the recorded records either side of it (spread_illustrative).
+
 The tape is what `make pages` (SAFELIGHT_STATIC=1) serves instead of darkroom:
 
     tape.json            provenance (kind, darkroom version and commit, note), /health, /policies,
@@ -483,6 +486,46 @@ def public_models(models: dict, records: list[dict]) -> dict:
     }
 
 
+def stamp(moment: datetime) -> str:
+    return moment.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def parse_stamp(text: str) -> datetime:
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
+def spread_illustrative(illustrative: list[dict], sequence: list[dict | str]) -> list[dict]:
+    """Date each hand-written record the take list places (a str in *sequence*) between its recorded neighbours.
+
+    Only `created_at` changes: History lists newest first, so a placed record sits where the take list put it instead
+    of in a block at the fixture's date. The page still labels it Sample data. A record the take list does not place
+    keeps its fixture date. A placed id that is not in *illustrative* is an error, as is one with no recorded record
+    on both sides (it would date outside the session).
+    """
+    by_id = {record["id"]: record for record in illustrative}
+    out = dict(by_id)
+    for index, item in enumerate(sequence):
+        if not isinstance(item, str):
+            continue
+        if item not in by_id:
+            raise SystemExit(f"record_tape: the take list places {item!r}, which is not among --illustrative")
+        before = [r for r in sequence[:index] if isinstance(r, dict)]
+        after = [r for r in sequence[index + 1:] if isinstance(r, dict)]
+        if not before or not after:
+            raise SystemExit(f"record_tape: {item!r} needs a recorded take on both sides in the take list")
+        lo, hi = parse_stamp(before[-1]["created_at"]), parse_stamp(after[0]["created_at"])
+        # Several placed in a row share the gap evenly, in take-list order.
+        run_start = index
+        while run_start > 0 and isinstance(sequence[run_start - 1], str):
+            run_start -= 1
+        run_end = index
+        while run_end + 1 < len(sequence) and isinstance(sequence[run_end + 1], str):
+            run_end += 1
+        share = (index - run_start + 1) / (run_end - run_start + 2)
+        out[item] = {**by_id[item], "created_at": stamp(lo + (hi - lo) * share)}
+    return [out[record["id"]] for record in illustrative]
+
+
 def live(args: argparse.Namespace) -> None:
     base = args.darkroom.rstrip("/")
     requests = json.loads(Path(args.takes).read_text())
@@ -491,7 +534,14 @@ def live(args: argparse.Namespace) -> None:
         raise SystemExit("record_tape: that darkroom is the fixture mock; pass --allow-mock to record it anyway (never for the published tape)")
     policies, models = get_json(base, "/policies"), get_json(base, "/models")
     takes = []
+    # The run in order: a recorded record, or the id of a hand-written one that a take-list entry places there.
+    sequence: list[dict | str] = []
     for take in requests:
+        if take.get("_illustrative"):
+            # {"_illustrative": "<fixture record id>"}: no request. The fixture's hand-written record is placed here in
+            # History (dated between its recorded neighbours) instead of keeping its fixture date; see spread_illustrative.
+            sequence.append(take["_illustrative"])
+            continue
         # Keys starting with "_" are notes for the operator, not part of the request: _category, _note, and the
         # pauses a fail-closed take needs (_pause_before: before the request; _pause_on: after that stream event;
         # _pause_after: once the record has landed), each with its own message.
@@ -525,6 +575,7 @@ def live(args: argparse.Namespace) -> None:
         if not complete:
             raise SystemExit(f"record_tape: the stream for {request['user_prompt'][:40]!r} ended without a record")
         takes.append((complete[-1]["record"], preflight, events))
+        sequence.append(complete[-1]["record"])
     darkroom = {"version": health.get("version"), "commit": args.darkroom_commit}
 
     def image_bytes(record: dict) -> bytes:
@@ -536,6 +587,7 @@ def live(args: argparse.Namespace) -> None:
     # A tape has no live server: nothing to purge (devmode) and nothing in flight (generating).
     health = {**{key: value for key, value in health.items() if key not in ("generating",)}, "devmode": False}
     illustrative = [json.loads((FIXTURE / "records" / f"{rid}.json").read_text()) for rid in args.illustrative.split(",") if rid]
+    illustrative = spread_illustrative(illustrative, sequence)
     write_tape(
         Path(args.out).resolve(),
         kind="recorded",
