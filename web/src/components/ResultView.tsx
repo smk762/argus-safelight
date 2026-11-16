@@ -45,7 +45,8 @@ export function ResultView({ record, actions }: { record: GenerationRecord; acti
       </header>
       <MadeWith record={record} />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+      {/* grid-cols-1 (minmax(0,1fr)) below xl: an implicit auto column grows to its widest child and scrolls a phone sideways. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-3">
           {record.outcome === "refused" ? (
             <RefusedPanel record={record} />

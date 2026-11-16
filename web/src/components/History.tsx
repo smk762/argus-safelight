@@ -154,9 +154,10 @@ function RuleSelect({ records, value, onChange }: { records: GenerationRecord[];
   const words = REASON_WORDS.filter((word) => records.some((record) => reasonParts(record.outcome_reason).includes(word)));
   const known = words.includes(value ?? "") || [...byPolicy.values()].some((hits) => value != null && hits.has(value));
   return (
-    <label className="flex items-center text-small">
+    // A select is as wide as its longest option: capped at 320px, and at the row's width on a phone.
+    <label className="flex min-w-0 max-w-full items-center text-small">
       <span className="sr-only">Rule</span>
-      <select value={value ?? ""} onChange={(event) => onChange(event.target.value || null)} className={`max-w-[320px] ${SELECT}`}>
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value || null)} className={`min-w-0 max-w-[min(320px,100%)] ${SELECT}`}>
         <option value="">All rules</option>
         {value && !known ? <option value={value}>{value}</option> : null}
         {[...byPolicy.entries()]
