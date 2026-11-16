@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { ApiError, getRecord } from "@/lib/api";
 import type { GenerationRecord } from "@/lib/types";
@@ -8,6 +8,7 @@ import { useLoad } from "@/lib/useLoad";
 
 import { useCompose } from "./ComposeProvider";
 import { RecordActions } from "./RecordActions";
+import { RecordNav } from "./RecordNav";
 import { ResultView } from "./ResultView";
 import { Notice, Spinner } from "./ui";
 
@@ -33,6 +34,10 @@ export function RecordView({ id }: { id: string }) {
   return (
     <>
       {loading && !fetched ? <p className="sr-only">Confirming with darkroom…</p> : null}
+      {/* useSearchParams: the static export prerenders this page, so the filter is read on the client. */}
+      <Suspense fallback={null}>
+        <RecordNav id={record.id} />
+      </Suspense>
       <ResultView record={record} actions={<RecordActions record={record} onRemoved={setUpdated} />} />
     </>
   );

@@ -18,3 +18,10 @@ export function formatWhen(iso: string): string {
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
+
+/** The absolute time in UTC, "2026-11-15 10:12 UTC": what a recorded demo shows, since a relative time rots. */
+export function formatUtc(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}

@@ -1,4 +1,5 @@
-// The committed data tape (web/public/data-tape, `make tape-sample`) and the pure tape logic the static demo runs on.
+// The tape logic the static demo runs on, against the fixture's sample tape (fixture/sample-tape, `make sample-tape`),
+// and the published tape's invariants (web/public/data-tape, whatever it was recorded from).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,10 +8,11 @@ import { fixtureRecords } from "./fixture.test-util";
 import { isWithheld, parseTape, recordPage, servedImage, takeFor, takeRecords, tapeFileUrl, type Take, type Tape } from "./tape";
 import type { GenerationRecord } from "./types";
 
-const DIR = join(__dirname, "..", "..", "public", "data-tape");
-const raw = () => JSON.parse(readFileSync(join(DIR, "tape.json"), "utf8"));
+const DIR = join(__dirname, "..", "..", "..", "fixture", "sample-tape");
+const PUBLISHED = join(__dirname, "..", "..", "public", "data-tape");
+const raw = (dir = DIR) => JSON.parse(readFileSync(join(dir, "tape.json"), "utf8"));
 const tape = parseTape(raw());
-const take = (id: string) => JSON.parse(readFileSync(join(DIR, "takes", `${id}.json`), "utf8")) as Take;
+const take = (id: string, dir = DIR) => JSON.parse(readFileSync(join(dir, "takes", `${id}.json`), "utf8")) as Take;
 
 /** The same rule as scripts/record_tape.py's blocked(). */
 function blocked(record: GenerationRecord): boolean {
@@ -42,7 +44,7 @@ function wordsOf(record: GenerationRecord): string[] {
   return [...new Set(words.filter((text): text is string => !!text && !isWithheld(text) && text !== "[withheld]"))];
 }
 
-describe("the committed tape", () => {
+describe("the sample tape", () => {
   it("holds every fixture record, labelled sample data", () => {
     expect(tape.provenance.kind).toBe("sample");
     expect(tape.records.map((record) => record.id).sort()).toEqual(fixtureRecords().map((record) => record.id).sort());
@@ -84,6 +86,30 @@ describe("the committed tape", () => {
       expect(last).toBe("complete");
       expect((data as { record: GenerationRecord }).record.id).toBe(id);
       expect(preflight?.expansion_applied).toBe(false);
+    }
+  });
+});
+
+describe("the published tape", () => {
+  const published = parseTape(raw(PUBLISHED));
+  const words = (record: GenerationRecord) => [record.request.user_prompt, record.request.final_prompt];
+
+  it("has an image file for served records only, and no file for a sample record", () => {
+    for (const record of published.records) expect(record.id in published.files, record.id).toBe(servedImage(record) && !(published.illustrative ?? []).includes(record.id));
+  });
+
+  it("withholds every blocked request's words, in the record and in its take", () => {
+    for (const record of published.records.filter(blocked)) {
+      for (const text of words(record)) expect(isWithheld(text), record.id).toBe(true);
+      if (published.takes.includes(record.id)) expect(JSON.stringify(take(record.id, PUBLISHED))).not.toMatch(/"user_prompt":"(?!\[withheld)/);
+    }
+  });
+
+  it("replays each take's stream ending in its own record", () => {
+    for (const id of published.takes) {
+      const [last, data] = take(id, PUBLISHED).events.at(-1)!;
+      expect(last).toBe("complete");
+      expect((data as { record: GenerationRecord }).record.id).toBe(id);
     }
   });
 });

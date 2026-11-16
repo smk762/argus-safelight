@@ -12,7 +12,7 @@ UV ?= uv
 PORT ?= 3097
 MOCK_PORT ?= 8106
 
-.PHONY: help install dev mock fixture sync wire build test lint check clean tape-sample tape pages shared-check browser-check
+.PHONY: help install dev mock fixture sync wire build test lint check clean tape-sample sample-tape tape pages shared-check browser-check
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -60,6 +60,10 @@ NOTE ?=
 tape-sample:  ## The stand-in tape: fixture/ records and placeholders, labelled Sample data (needs Pillow)
 	$(PYTHON) scripts/record_tape.py sample --out $(TAPE_DIR) \
 		--note "The repo's fixture records with hand-written verdicts and flat-colour placeholder images, standing in until the demo set is recorded."
+
+sample-tape:  ## The sample tape's JSON (no images) in fixture/sample-tape, which the unit tests read (needs Pillow)
+	$(PYTHON) scripts/record_tape.py sample --out fixture/sample-tape --note "The repo's fixture records, as a tape for the unit tests."
+	rm -rf fixture/sample-tape/images fixture/sample-tape/thumbs fixture/sample-tape/veils
 
 tape:  ## Record TAKES against the darkroom at DARKROOM_URL (GPU host; only once the take list is approved)
 	$(PYTHON) scripts/record_tape.py live --darkroom $(DARKROOM_URL) --takes $(TAKES) --out $(TAPE_DIR) \
