@@ -18,6 +18,7 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 
 ### Changed
 
+- **History mixes the recorded takes.** The take list is in a new recording order, so the refusals, review, catalogue and crime takes are spread through the run instead of recorded last, and the six hand-written Sample data records are dated between recorded takes (a `{"_illustrative": id}` placeholder in the take list) instead of in a block at their fixture date. Same prompts, seeds and images.
 - **The static demo shows when a record was recorded, in UTC** ("2026-11-15 10:12 UTC"), on the record page and in History, instead of a relative time that rots on a recording. The live app keeps "5 min ago".
 
 - **The recorded tape's `/models` lists only what the takes used**, and its `/health` reports `devmode: false` (`record_tape.py live`): a public tape no longer carries the server's whole model shelf, and the static page no longer offers Purge all.
