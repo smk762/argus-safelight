@@ -4,7 +4,7 @@ The hosted demo (safelight.dragonhound.dev) replays a **data tape**: darkroom's 
 every stream event, captured from a real run. The header says **Recorded**; `make tape-sample` puts the fixture's
 sample tape back (header **Sample data**).
 
-The tape was recorded on 2026-11-15 against argus-darkroom `0.1.4.dev36+gc9794888b`, with the maintainer's approval.
+The tape was recorded on 2026-11-15 (re-recorded in the mixed order on 2026-11-16) against argus-darkroom `0.1.4.dev36+gc9794888b`, with the maintainer's approval.
 It holds 20 recorded takes (18 with images, 2 of them veiled) and the fixture's six hand-written records for the
 outcomes the recording could not or must not produce (see [What was not recorded](#what-was-not-recorded)).
 
