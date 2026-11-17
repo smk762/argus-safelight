@@ -4,6 +4,11 @@ import nextTs from "eslint-config-next/typescript";
 
 // A Tailwind arbitrary colour: bg-[#121416], text-[#fff]/50. Colours come from the theme tokens in globals.css.
 const ARBITRARY_HEX = String.raw`-\[#[0-9a-fA-F]{3,8}\]`;
+// The browser decides no verdict: darkroom compares scores to thresholds and /policies says each policy's mode.
+const VERDICT = "The browser decides no verdict: darkroom compares scores to thresholds, and /policies says a policy's mode.";
+const RELATIONAL = "BinaryExpression[operator=/^[<>]=?$/]";
+// camelCase or snake_case names only: MASK_THRESHOLD is the mask's own grey cut, which mirrors darkroom's input check.
+const SCORE_NAME = "/(?:^|_)(?:score|threshold)$|[a-z](?:Score|Threshold)$/";
 const STORAGE = "Nothing goes to browser storage: input pixels never leave memory, and the theme lives in dh-theme.js's cookie.";
 
 /** The rules CLAUDE.md's "Must never happen" table names. Each message says the rule, so a failure explains itself. */
@@ -19,6 +24,10 @@ const houseRules = {
       "error",
       { selector: `Literal[value=/${ARBITRARY_HEX}/]`, message: "Use a theme token class, not a raw hex colour." },
       { selector: `TemplateElement[value.raw=/${ARBITRARY_HEX}/]`, message: "Use a theme token class, not a raw hex colour." },
+      { selector: `${RELATIONAL} > MemberExpression[property.name=${SCORE_NAME}]`, message: VERDICT },
+      { selector: `${RELATIONAL} > Identifier[name=${SCORE_NAME}]`, message: VERDICT },
+      // A policy's mode read from its name: name.startsWith("sfw-"), name.includes("adult"), …
+      { selector: "CallExpression[callee.property.name=/^(?:startsWith|endsWith|includes)$/] > Literal.arguments[value=/sfw|nsfw|adult/i]", message: VERDICT },
     ],
     "no-restricted-globals": ["error", { name: "localStorage", message: STORAGE }, { name: "sessionStorage", message: STORAGE }],
     "no-restricted-properties": [

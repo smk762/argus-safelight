@@ -84,6 +84,8 @@ export type RequestSampling = Omit<SamplingParams, "guidance"> & { guidance?: nu
 export interface Health {
   version: string;
   mock?: boolean;
+  /** True only for darkroom's `make demo` (fake backends). Absent before darkroom reported it. */
+  demo?: boolean;
   backends: { comfyui: boolean; ollama: boolean; singguard: boolean; nudenet: boolean; age: boolean };
   policies: string[];
   default_policy: string;

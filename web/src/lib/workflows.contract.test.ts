@@ -1,6 +1,6 @@
 import { deflateSync } from "node:zlib";
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { defaultCompose, toRequest, withCheckpoint, type ComposeState } from "./compose";
 import { maskSizeBlock, maskedFraction, type InputImage, type InputMask } from "./initImage";
@@ -11,12 +11,30 @@ import { workflowBlock, type RenderMode } from "./workflows";
  * Against a running darkroom, not the fixture: every checkpoint it lists, with 0 to 3 LoRAs, in every mode (text, an
  * input image, an input image with a mask), sent as the form sends it. Darkroom chooses the workflow when a generation
  * begins, so this posts to `/generate/stream`: darkroom must accept exactly what the form offers and 400 exactly what
- * it blocks. Each accepted request is a generation, so point it at darkroom's demo (fake backends), never a server
- * with a GPU. Skipped unless DARKROOM_CONTRACT_URL is set:
+ * it blocks. Each accepted request is a generation, so it runs only against darkroom's demo (fake backends): it reads
+ * /health first and refuses, before sending anything, a server that does not say `demo: true`. Skipped unless
+ * DARKROOM_CONTRACT_URL is set:
  *
  *   DARKROOM_CONTRACT_URL=http://127.0.0.1:8116 npx vitest run src/lib/workflows.contract.test.ts
  */
 const BASE = process.env.DARKROOM_CONTRACT_URL;
+
+/** Why this test must not generate on that server, or null for darkroom's demo. Only the demo's own word counts. */
+export function notTheDemo(health: Pick<Health, "demo" | "mock"> | null): string | null {
+  if (health?.demo === true) return null;
+  if (health?.mock) return "that is safelight's fixture mock, not darkroom: the contract is darkroom's. Run darkroom's `make demo` on another port.";
+  return "that darkroom does not report `demo: true` on /health, so it may render on a GPU, and every accepted case here is a generation. Run darkroom's `make demo` on another port.";
+}
+
+describe("the contract test's guard", () => {
+  it("runs only against a darkroom that says it is the demo", () => {
+    expect(notTheDemo({ demo: true })).toBeNull();
+    expect(notTheDemo({})).toMatch(/does not report `demo: true`/);
+    expect(notTheDemo({ demo: false })).toMatch(/may render on a GPU/);
+    expect(notTheDemo({ mock: true })).toMatch(/fixture mock/);
+    expect(notTheDemo(null)).not.toBeNull();
+  });
+});
 
 const CRC = Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -55,10 +73,17 @@ const mask = (side = SIDE, grey = 255): InputMask => ({ origin: "upload", width:
 
 describe.skipIf(!BASE)("the form against a live darkroom", () => {
   const get = async <T>(path: string) => (await (await fetch(`${BASE}${path}`)).json()) as T;
+  let isDemo = false;
+  beforeAll(async () => {
+    const refusal = notTheDemo(await get<Health>("/health"));
+    if (refusal) throw new Error(`Refusing ${BASE}: ${refusal}`);
+    isDemo = true;
+  });
   const idle = async () => {
     for (let tries = 0; tries < 300 && (await get<Health>("/health")).generating; tries++) await new Promise((resolve) => setTimeout(resolve, 200));
   };
   const send = async (state: ComposeState, models: Models) => {
+    if (!isDemo) throw new Error("Refusing to generate before /health has said this is darkroom's demo.");
     await idle();
     const abort = new AbortController();
     const response = await fetch(`${BASE}/generate/stream`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(toRequest(state, false, models)), signal: abort.signal });
