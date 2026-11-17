@@ -52,6 +52,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -317,12 +318,16 @@ def sample_health(darkroom: dict, policies: dict) -> dict:
 
 
 def check_leaks(out: Path) -> None:
+    """Refuse a tape with a leak in its JSON. Each is reported by file, kind and line:column, never by what matched:
+    the message goes to a terminal or a CI log, which must not get the address or path the tape was refused for."""
     problems = []
     for path in sorted(out.rglob("*.json")):
         text = path.read_text()
         for kind, pattern in LEAKS:
             for found in pattern.finditer(text):
-                problems.append(f"{path.relative_to(out)}: {kind} ({found.group(0)})")
+                line = text.count("\n", 0, found.start()) + 1
+                column = found.start() - (text.rfind("\n", 0, found.start()) + 1) + 1
+                problems.append(f"{path.relative_to(out)}:{line}:{column}: {kind}")
     if problems:
         raise SystemExit("record_tape: refusing to keep a tape that leaks:\n  " + "\n  ".join(problems))
 
@@ -348,11 +353,45 @@ def write_tape(
     must not produce for real, such as an illegal-rule or minor-exposed deletion. They get no take and no file, and
     the tape lists them so the page labels each one Sample data.
     """
-    illustrative = illustrative or []
+    # Built beside *out* and swapped in only once every check has passed, so a failed recording leaves the last tape
+    # as it was rather than a half-written one.
+    out.parent.mkdir(parents=True, exist_ok=True)
+    building = Path(tempfile.mkdtemp(dir=out.parent, prefix=f".{out.name}-"))
+    try:
+        building.chmod(0o755)
+        summary = _build_tape(building, kind=kind, source=source, darkroom=darkroom, note=note, health=health, policies=policies,
+                    models=models, takes=takes, image_bytes=image_bytes, replayable=replayable, illustrative=illustrative or [])
+        if out.exists():
+            old = Path(tempfile.mkdtemp(dir=out.parent, prefix=f".{out.name}-old-"))
+            out.rename(old / out.name)
+            building.rename(out)
+            shutil.rmtree(old)
+        else:
+            building.rename(out)
+        print(f"{summary} -> {out}")
+    finally:
+        if building.exists():
+            shutil.rmtree(building)
+
+
+def _build_tape(
+    out: Path,
+    *,
+    kind: str,
+    source: str,
+    darkroom: dict,
+    note: str | None,
+    health: dict,
+    policies: dict,
+    models: dict,
+    takes: list[tuple[dict, dict | None, list[list] | None]],
+    image_bytes: Callable[[dict], bytes],
+    replayable: Callable[[dict], bool],
+    illustrative: list[dict],
+) -> str:
+    """Write the tape into *out*, an empty directory, and check it for leaks. Returns the summary line."""
     takes = [*takes, *[(record, None, None) for record in illustrative]]
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    if out.exists():
-        shutil.rmtree(out)
     for sub in ("takes", "images", "thumbs", "veils"):
         (out / sub).mkdir(parents=True)
     records, files, veils, replay = [], {}, [], []
@@ -398,7 +437,7 @@ def write_tape(
     }
     (out / "tape.json").write_text(json.dumps(tape, indent=1) + "\n")
     check_leaks(out)
-    print(f"tape: {len(records)} records, {len(files)} with images ({len(veils)} veiled), {len(replay)} replayable -> {out}")
+    return f"tape: {len(records)} records, {len(files)} with images ({len(veils)} veiled), {len(replay)} replayable"
 
 
 def sample(args: argparse.Namespace) -> None:
@@ -476,8 +515,10 @@ def public_models(models: dict, records: list[dict]) -> dict:
     vaes = {name(request.get("vae")) for request in requests}
     checkpoints = [c for c in models.get("checkpoints", []) if c.get("name") in used]
     families = {c.get("family") for c in checkpoints}
+    # Named keys only: anything else /models grows goes on a tape when this list says so, never by default.
     return {
-        **models,
+        "samplers": list(models.get("samplers", [])),
+        "schedulers": list(models.get("schedulers", [])),
         "checkpoints": checkpoints,
         "default_checkpoint": checkpoints[0]["name"] if checkpoints else None,
         "loras": [lora for lora in models.get("loras", []) if lora.get("name") in loras],

@@ -80,12 +80,13 @@ export function promptChangedVerdict(record: Pick<GenerationRecord, "guard">): b
   return Object.values(record.guard.scans ?? {}).some((pair) => rowDisagrees(pair));
 }
 
-export function allCells(guard: Pick<GenerationRecord["guard"], "scans">): Cell[] {
-  return Object.values(guard.scans ?? {}).flatMap((pair) => [pair.isolated, pair.with_prompt]);
+/** Every cell that is in. A row's cell may still be missing while a generation is in flight. */
+export function allCells(guard: { scans?: Record<string, RowPair> | null }): Cell[] {
+  return Object.values(guard.scans ?? {}).flatMap((pair) => [pair.isolated, pair.with_prompt].filter((cell): cell is Cell => cell != null));
 }
 
 /** The overall shield beside the image: the worst cell, or null before any scan. */
-export function overallState(guard: Pick<GenerationRecord["guard"], "scans">): CellState | null {
+export function overallState(guard: { scans?: Record<string, RowPair> | null }): CellState | null {
   const worst = worstState(allCells(guard).map((cell) => cell.state));
   return worst === "pending" ? null : worst;
 }

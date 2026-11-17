@@ -88,6 +88,13 @@ describe("overall state", () => {
     expect(overallState(fixtureRecord("fx-deleted-illegal").guard)).toBe("illegal");
     expect(overallState(fixtureRecord("fx-refused").guard)).toBeNull();
   });
+
+  it("reads a row whose cells are still in flight", () => {
+    const flagged = fixtureRecord("fx-review-disagree").guard.scans!;
+    const [policy, pair] = Object.entries(flagged).find(([, row]) => row.with_prompt.state === "flagged")!;
+    expect(overallState({ scans: { [policy]: { isolated: null, with_prompt: pair.with_prompt } } })).toBe("flagged");
+    expect(overallState({ scans: { [policy]: { isolated: null, with_prompt: null } } })).toBeNull();
+  });
 });
 
 describe("fired cell", () => {

@@ -13,7 +13,8 @@ const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "0.0.0.0"]);
  * scheme come from DARKROOM_URL. When that URL names a loopback host (the
  * default), the host follows the page, so a page opened as a LAN address
  * calls darkroom at that same address. A URL naming another machine is used
- * as written.
+ * as written. A path (darkroom behind a proxy at `/darkroom`) is kept, without
+ * a trailing slash, since callers append `/health` and the like.
  */
 export function darkroomUrl(pageHost?: string, configured: string = DARKROOM_URL): string {
   const host = pageHost ?? (typeof window === "undefined" ? "" : window.location.hostname);
@@ -24,9 +25,8 @@ export function darkroomUrl(pageHost?: string, configured: string = DARKROOM_URL
   } catch {
     return configured;
   }
-  if (!LOOPBACK_HOSTS.has(url.hostname)) return url.origin;
-  url.hostname = host;
-  return url.origin;
+  if (LOOPBACK_HOSTS.has(url.hostname)) url.hostname = host;
+  return url.origin + url.pathname.replace(/\/+$/, "");
 }
 
 export type Outcome = "refused" | "passed" | "review" | "deleted" | "omitted" | "failed";

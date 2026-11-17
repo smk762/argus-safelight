@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { DOCS, OLLAMA_SETUP } from "@/lib/docsLinks";
 import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, fromRecord, generateBlock, randomSeed, renderMode, toRequest, withCheckpoint } from "@/lib/compose";
@@ -132,13 +132,10 @@ export function ComposeForm() {
                     </label>
                     <label className="flex items-center gap-1 text-caption text-text-muted">
                       trigger words
-                      <input
-                        type="text"
-                        value={lora.trigger_words.join(", ")}
-                        placeholder="none"
-                        aria-label={`Trigger words for ${lora.name}`}
-                        onChange={(event) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, trigger_words: event.target.value.split(",").map((word) => word.trim()).filter(Boolean) } : entry)) }))}
-                        className={`${FIELD} w-36`}
+                      <TriggerWords
+                        words={lora.trigger_words}
+                        label={`Trigger words for ${lora.name}`}
+                        onWords={(words) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, trigger_words: words } : entry)) }))}
                       />
                     </label>
                     <Button small aria-label={`Remove ${lora.name}`} onClick={() => update((current) => ({ ...current, loras: current.loras.filter((_, i) => i !== index) }))}>
@@ -293,6 +290,28 @@ export function ComposeForm() {
 export const DEMO_TAKE_BLOCK = "This demo replays recorded runs: pick a recorded prompt above. A prompt or policies the recording does not hold have no run to replay.";
 
 /** The static demo's recorded prompts. Picking one fills the whole form from its record, as Regenerate does. */
+/**
+ * A LoRA's trigger words as one comma-separated field. The text is kept as typed while the field has focus, so a comma
+ * or a space can be typed before the next word; the words it parses to go to the form on every keystroke.
+ */
+function TriggerWords({ words, label, onWords }: { words: string[]; label: string; onWords: (words: string[]) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      type="text"
+      value={draft ?? words.join(", ")}
+      placeholder="none"
+      aria-label={label}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onWords(event.target.value.split(",").map((word) => word.trim()).filter(Boolean));
+      }}
+      onBlur={() => setDraft(null)}
+      className={`${FIELD} w-36`}
+    />
+  );
+}
+
 function TakePicker({ tape, current, onPick }: { tape: Tape | null; current: string; onPick: (record: ReturnType<typeof takeRecords>[number]) => void }) {
   const takes = takeRecords(tape);
   return (

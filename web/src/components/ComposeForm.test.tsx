@@ -89,6 +89,22 @@ describe("ComposeForm offers what darkroom can render", () => {
   });
 });
 
+describe("ComposeForm's trigger words", () => {
+  it("keeps a typed comma so a second word can follow, and sends the words it parses to", () => {
+    on(models.default_checkpoint!, { loras: [{ name: "argus-style-soft.safetensors", weight: 1, trigger_words: [] }] });
+    const field = screen.getByLabelText("Trigger words for argus-style-soft.safetensors") as HTMLInputElement;
+    fireEvent.focus(field);
+    fireEvent.change(field, { target: { value: "flat colour, " } });
+    expect(field.value).toBe("flat colour, ");
+    expect((update.mock.lastCall![0](view.compose) as ComposeState).loras[0].trigger_words).toEqual(["flat colour"]);
+    fireEvent.change(field, { target: { value: "flat colour, soft" } });
+    expect((update.mock.lastCall![0](view.compose) as ComposeState).loras[0].trigger_words).toEqual(["flat colour", "soft"]);
+    // Off the field it shows the words the form holds again.
+    fireEvent.blur(field);
+    expect(field.value).toBe("");
+  });
+});
+
 describe("ComposeForm's input image", () => {
   const SDXL = models.default_checkpoint!;
   const image = { id: 7, name: "field.png", format: "png" as const, bytes: 2048, width: 640, height: 480, dataBase64: "AAAA", previewUrl: "data:image/png;base64,AAAA" };
