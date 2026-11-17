@@ -1,9 +1,10 @@
-// Generated from smk762/argus-darkroom@3cf0818 (0.1.4.dev18+g3cf0818) schema/darkroom-wire.schema.json.
+// Generated from smk762/argus-darkroom@3ed2d26 (0.1.4.dev60+g3ed2d26) schema/darkroom-wire.schema.json.
 // Do not edit: run `make sync` (or `npm run darkroom:pull`) to move to darkroom's dev HEAD.
 
 export interface DarkroomWire {
   AgeRecord?: AgeRecord;
   Cell?: Cell;
+  DepthRecord?: DepthRecord;
   Expansion?: Expansion;
   FaceAge?: FaceAge;
   GenerationRecord?: GenerationRecord;
@@ -15,7 +16,9 @@ export interface DarkroomWire {
   LoRARef?: LoRARef;
   MaskRef?: MaskRef;
   ModelRef?: ModelRef;
+  NudeNetBox?: NudeNetBox;
   NudeNetRecord?: NudeNetRecord;
+  PersonAge?: PersonAge;
   RequestRecord?: RequestRecord;
   SamplingParams?: SamplingParams;
   ScanCells?: ScanCells;
@@ -23,6 +26,8 @@ export interface DarkroomWire {
 export interface AgeRecord {
   faces: FaceAge[];
   minor_exposed: boolean;
+  minor_exposed_rule: "frame" | "overlap";
+  people: PersonAge[];
   source: "mivolo";
 }
 /**
@@ -35,6 +40,22 @@ export interface FaceAge {
    * @maxItems 4
    */
   bbox: [number, number, number, number];
+}
+/**
+ * One person (body) box from curator's person detector, with its MiVOLO estimate when it has one.
+ *
+ * ``face_index`` is the face in :attr:`AgeRecord.faces` this person was matched to, or ``None`` for a body with
+ * no face. A matched person's estimate may be ``None``: the face carries it. An unmatched person's estimate is
+ * also in :attr:`AgeRecord.faces`, so ``faces`` alone still holds every estimate.
+ */
+export interface PersonAge {
+  age_estimate_years: number | null;
+  /**
+   * @minItems 4
+   * @maxItems 4
+   */
+  bbox: [number, number, number, number];
+  face_index: number | null;
 }
 /**
  * One policy's verdict in one context: a state, and the SingGuard answer or the error behind it.
@@ -57,6 +78,25 @@ export interface GuardResult {
   thinking: string | null;
 }
 /**
+ * A depth map derived from the record's stored image (``POST /depth/{id}``), never from a new prompt.
+ *
+ * The PNG is 8-bit greyscale at the image's size, near bright (255) and far dark (0), stretched min to max per image,
+ * with no metadata. ``sha256`` is of the stored PNG's bytes. ``workflow`` names darkroom's built-in depth graph.
+ */
+export interface DepthRecord {
+  created_at: string;
+  engine_version: string | null;
+  height: number;
+  model: string;
+  model_license: string;
+  /**
+   * lowercase hex SHA256 digest
+   */
+  sha256: string;
+  width: number;
+  workflow: string;
+}
+/**
  * How Ollama expanded the prompt: enough to know which system prompt was used.
  */
 export interface Expansion {
@@ -70,6 +110,7 @@ export interface GenerationRecord {
   created_at: string;
   critical: boolean;
   darkroom_version: string;
+  depth: DepthRecord | null;
   guard: GuardRecord;
   id: string;
   image: ImageRecord | null;
@@ -114,11 +155,26 @@ export interface InputScanRecord {
  */
 export interface NudeNetRecord {
   blur: boolean;
+  detections: NudeNetBox[];
+  detector: string | null;
+  detector_model: string | null;
   exposed_score: number | null;
   labels: {
     [k: string]: number;
   };
   threshold: number;
+}
+/**
+ * One NudeNet detection: a class, its score and where it is. A box, never pixels.
+ */
+export interface NudeNetBox {
+  /**
+   * @minItems 4
+   * @maxItems 4
+   */
+  bbox: [number, number, number, number];
+  label: string;
+  score: number;
 }
 /**
  * One policy's two image scans: alone, and alongside the prompt that made the image.

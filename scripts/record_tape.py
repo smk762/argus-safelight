@@ -30,7 +30,7 @@ What never goes on a tape:
 - The words of a blocked request. A record that is critical, that any guard judged illegal, or
   that was deleted as minor-exposed keeps its verdict, rule, reason, timestamps and state, but
   its prompts, trigger words and SingGuard's explanations are replaced by "[withheld: <reason>]",
-  in the record and in every stream event, and NudeNet's per-class labels are dropped (the score
+  in the record and in every stream event, and NudeNet's per-class labels and detections are dropped (the score
   stays). The page shows the record as it is on the tape; it never sees the original words.
 - A generation of anything a guard should block. A real recording never asks for one: the outcomes that would
   need it (an illegal-rule or minor-exposed deletion, an illegal refusal) come from the fixture's hand-written
@@ -123,8 +123,11 @@ def withhold_record(record: dict) -> dict:
     for cell in cells_of(out):
         withhold_cell(cell)
     for block in (out["guard"].get("nudenet"), (out["guard"].get("input") or {}).get("nudenet")):
+        # The per-class labels, and the detections that name the same classes; the score stays.
         if block and block.get("labels"):
             block["labels"] = {}
+        if block and block.get("detections"):
+            block["detections"] = []
     return out
 
 

@@ -385,12 +385,17 @@ def lora(index: int, weight: float) -> dict:
 def nudenet(score: float | None, threshold: float = 0.2, blur: bool = False, labels: dict[str, float] | None = None) -> dict | None:
     if score is None:
         return None
-    return {"exposed_score": score, "labels": labels or {}, "threshold": threshold, "blur": blur}
+    labels = labels or {}
+    # One box per class NudeNet scored (darkroom keeps every detection >= 0.2), and the detector darkroom's server names.
+    detections = [{"label": name, "score": value, "bbox": [96.0 + 48 * i, 128.0, 160.0, 192.0]} for i, (name, value) in enumerate(labels.items()) if value >= 0.2]
+    return {"exposed_score": score, "labels": labels, "detections": detections, "threshold": threshold, "blur": blur, "detector": "640m", "detector_model": "640m.onnx"}
 
 
 def age(*estimates: int, minor_exposed: bool = False) -> dict:
     faces = [{"age_estimate_years": years, "bbox": [120 + 40 * i, 90, 300 + 40 * i, 330]} for i, years in enumerate(estimates)]
-    return {"source": "mivolo", "faces": faces, "minor_exposed": minor_exposed}
+    # Each face matched to a person box, as curator's person detector reports them; the face carries the estimate.
+    people = [{"bbox": [100 + 40 * i, 60, 340 + 40 * i, 460], "age_estimate_years": None, "face_index": i} for i in range(len(estimates))]
+    return {"source": "mivolo", "faces": faces, "people": people, "minor_exposed": minor_exposed, "minor_exposed_rule": "frame"}
 
 
 def scans(**per_policy: tuple[dict, dict]) -> dict:
@@ -491,6 +496,8 @@ def record(
                 "input": input_block,
             },
             "image": image_block(data, served, rid) if data else None,
+            # A depth map is made on request (POST /depth/{id}), never by a generation.
+            "depth": None,
         },
         data if served else None,
     )

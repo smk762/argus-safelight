@@ -1,6 +1,6 @@
 # argus-darkroom — build doc
 
-Guarded image generation for the Argus suite. A prompt is checked before anything is generated. Each output is checked twice, once on its own and once alongside the prompt that made it, and only then released or destroyed. Generation is done by ComfyUI and prompt expansion by Ollama, both external; darkroom orchestrates them, judges the results and keeps the record. Its demo UI is [argus-safelight](../argus-safelight/spec.md). This doc is the build plan; the repo does not exist yet.
+Guarded image generation for the Argus suite. A prompt is checked before anything is generated. Each output is checked twice, once on its own and once alongside the prompt that made it, and only then released or destroyed. Generation is done by ComfyUI and prompt expansion by Ollama, both external; darkroom orchestrates them, judges the results and keeps the record. Its demo UI is [argus-safelight](../argus-safelight/spec.md). This doc is the design and the reasoning behind it. `README.md` covers running it, and `CHANGELOG.md` covers what has shipped.
 
 ```
 argus-quarry -> argus-curator -> argus-lens -> argus-forge -> trainer -> argus-proof
@@ -136,7 +136,12 @@ Without a `NUDENET_URL`, every SFW output would be omitted. So the server refuse
 
 **NudeNet under an NSFW enforcing policy.** NudeNet never omits or deletes on its own here, because it cannot see age or consent. Its exposed score against the request's `nsfw_threshold` (default `0.2`) sets `blur: true` on the served image, so safelight blurs it until the user clicks to reveal. If NudeNet does not respond, `blur` is `true`.
 
-**Age estimate (when available).** Darkroom applies curator's `minor_exposed` rule: any face with a MiVOLO age under 18, on an image where NudeNet scores an exposed class at 0.2 or more, makes the outcome **deleted**, with `outcome_reason: "minor-exposed"`. The rule ignores the user's NudeNet threshold. An age under 18 without exposure does not delete; it is recorded and shown. When the age check is unavailable, the record says `age: null` and the minors rule rests on SingGuard alone.
+**Age estimate (when available).** The `minor-exposed` rule makes the outcome **deleted**, with `outcome_reason: "minor-exposed"`, when a MiVOLO age under 18 shares the image with exposure NudeNet scores at 0.2 or more on one of its five default exposed classes. `ARGUS_DARKROOM_MINOR_EXPOSED` picks how the exposure is placed; an unknown value refuses to start:
+
+- `frame` (the default): any estimate under 18, from a face or a faceless person, anywhere in the frame. Where the exposure is does not matter, so an adult's exposure beside a clothed minor deletes too. This is the rule darkroom has always applied.
+- `overlap`: argus-curator's original `minor_exposed` rule. With person boxes (else face boxes), each exposed NudeNet detection scoring 0.2 or more deletes the image when it overlaps a box estimated under 18 or overlaps no box at all; one overlapping only adults' boxes does not. A matched person takes its face's estimate. It fails closed: a face under 18 whose body was not found makes any exposure count, as does an exposed score with no exposed detection box to place.
+
+Both ignore the user's NudeNet threshold. An age under 18 without exposure does not delete; it is recorded and shown. The record keeps every person box and its face link (`age.people`), NudeNet's detection boxes (`nudenet.detections`), and the rule that decided (`age.minor_exposed_rule`), so an `overlap` decision can be recomputed from the record. Faceless people are known from `age.people` (a null `face_index`), never from their position in `faces`. When the age check is unavailable, the record says `age: null` and the minors rule rests on SingGuard alone.
 
 The age is a tool's estimate from a face, and darkroom says so everywhere it appears. The record names its source (`mivolo`) and stores the estimate, never a stated age. The API field is `age_estimate_years`, not `age`. Safelight labels it as "MiVOLO estimate". A wrong estimate can delete an adult's image or, worse, pass a minor's. The second case is why the age check is an extra signal on top of SingGuard's minors rule, never a replacement for it.
 
@@ -178,8 +183,9 @@ GenerationRecord (record_version "1.0", wire schema committed)
     enforcing_policy, advisory_policies, thinking
     preflight: {policy: GuardResult}
     scans: {policy: {isolated: Cell, with_prompt: Cell}}   # Cell = state + GuardResult | error
-    nudenet: {exposed_score, labels, threshold, blur} | null
-    age: {source "mivolo", faces: [{age_estimate_years, bbox}], minor_exposed} | null   # tool estimate
+    nudenet: {exposed_score, labels, detections: [{label, score, bbox}], threshold, blur} | null   # boxes, never pixels
+    age: {source "mivolo", faces: [{age_estimate_years, bbox}], people: [{bbox, age_estimate_years | null, face_index | null}],
+          minor_exposed, minor_exposed_rule "frame" | "overlap"} | null   # tool estimate
     input: {scans, nudenet, age, outcome, reason} | null   # the input image's own scan (image-to-image)
   image
     sha256, phash, width, height      # always, including when deleted
@@ -213,7 +219,7 @@ The package is scaffolded from `argus-pkg-template` with the CLI, server and Doc
 - `GET /policies`: names, the enforcing default and each policy's illegal rules. Safelight shows the wording.
 - `GET /models`: checkpoints and LoRAs found under the models root, skipping any diffusers folder (one holding `model_index.json`), and `default_checkpoint`, the one a form should start on (null when `DEFAULT_CHECKPOINT` matches nothing).
 - `POST /preflight`: the text check alone, so the form can show a verdict before Generate.
-- `POST /generate/stream`: SSE events `preflight`, `input_scan` (image-to-image and inpainting: one per finished input cell), `queued`, `progress` (ComfyUI step), `scan` (one per finished cell), `complete` (the record). One generation at a time; a second gets HTTP 409.
+- `POST /generate/stream`: SSE events `preflight`, `input_scan` (image-to-image and inpainting: one per finished input cell), `queued`, `progress` (ComfyUI step), `scan` (one per finished cell), `complete` (the record). One generation at a time; a second gets HTTP 409. With the GPU broker (argus-iris, `ARGUS_GPU_COORDINATOR=broker`) up to eight run at once, each waiting for its own GPU lease, so a second queues behind iris instead; the caller's `X-Argus-Priority` sets the lease class (`interactive` by default).
 - `GET /records`: paged, filterable by outcome. `GET /record/{id}`.
 - `GET /image/{id}`: ids only, no path input. A deleted, omitted or refused record answers 404 with the record id.
 - `DELETE /record/{id}`: the user removing their own output. This deletes the file; the record stays, marked as removed by the user.
@@ -257,6 +263,8 @@ Deferred until before a public launch:
 - **Record retention.** Keep records forever, or prune by age? Refused and deleted records are the audit trail. Until this is decided, records are kept.
 
 ## Build order
+
+The order the first release was built in, kept for its reasoning. Steps 1 to 7 are done. Step 8 is still open: darkroom still has its own ComfyUI client.
 
 1. **Cortex 0.4.2**, a separate PR in argus-core: `check_text()` and `moderation.policies` (the texts, the illegal table and `mode()`). Curator then imports its policies from cortex (a PR into curator `dev`).
 2. **Engine without generation.** Assemble the prompt, frame it, run pre-flight, compute the outcome table and write records, all tested against fakes. Run the pre-flight evaluation against :9150.

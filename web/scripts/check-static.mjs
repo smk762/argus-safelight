@@ -7,7 +7,7 @@
 //   - only a served record (passed or review, image not removed) has a file; there is no image, thumbnail or veil
 //     on disk that the tape does not list, so nothing of a deleted, omitted, refused or failed record can be fetched
 //   - a blocked record (critical, judged illegal anywhere, or minor-exposed) shows "[withheld: …]" for its prompts,
-//     in tape.json and in its take, and SingGuard's explanations on it are withheld too
+//     in tape.json and in its take, and SingGuard's explanations and NudeNet's classes on it are withheld too
 //   - no home or server path, private address or email address anywhere in the tape's JSON
 //
 //   node scripts/check-static.mjs [outDir]   (run by `npm run build:pages`)
@@ -76,6 +76,9 @@ else {
     for (const key of ["user_prompt", "final_prompt"]) if (!WITHHELD.test(request[key] ?? "")) problems.push(`${record.id} is blocked but its ${key} is not withheld`);
     if (request.expanded_prompt != null && !WITHHELD.test(request.expanded_prompt)) problems.push(`${record.id} is blocked but its expanded_prompt is not withheld`);
     if (cellsOf(record).some(explained)) problems.push(`${record.id} is blocked but keeps SingGuard's explanations`);
+    for (const nude of [record.guard?.nudenet, record.guard?.input?.nudenet]) {
+      if (Object.keys(nude?.labels ?? {}).length > 0 || (nude?.detections ?? []).length > 0) problems.push(`${record.id} is blocked but keeps NudeNet's classes (labels or detections)`);
+    }
     if (tape.takes.includes(record.id)) {
       const take = readFileSync(join(root, "takes", `${record.id}.json`), "utf8");
       for (const event of JSON.parse(take).events) {
