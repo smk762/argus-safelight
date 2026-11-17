@@ -121,6 +121,8 @@ describe("from a record", () => {
     const state = fromRecord(record, defaultCompose(health(), policies(), models));
     expect(state.loras[0].trigger_words).toEqual(["studio lighting", "soft"]);
     expect(toRequest(state).loras).toEqual([{ name: "argus-light-studio.safetensors", weight: 0.5, trigger_words: ["studio lighting", "soft"] }]);
+    // Darkroom appends them to the final prompt; the client never does.
+    expect(toRequest(state).user_prompt).not.toContain("studio lighting");
   });
 });
 
