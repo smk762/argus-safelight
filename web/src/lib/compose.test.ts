@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { canExpand, defaultCompose, enforceBlock, fromRecord, generateBlock, normaliseCompose, policyMode, toRequest } from "./compose";
+import { canExpand, defaultCompose, enforceBlock, fromRecord, generateBlock, normaliseCompose, toRequest } from "./compose";
 import { fixtureRecord } from "./fixture.test-util";
 import type { Health, Models, Policies } from "./types";
 
@@ -40,12 +40,6 @@ describe("defaults", () => {
   });
   it("starts on the first checkpoint when darkroom names no default", () => {
     expect(defaultCompose(health(), policies(), { ...models, default_checkpoint: null }).checkpoint).toBe(models.checkpoints[0].name);
-  });
-  it("reads the mode from the catalogue, and by name before it loads", () => {
-    expect(policyMode(policies(), "adult")).toBe("nsfw");
-    expect(policyMode(null, "default")).toBe("sfw");
-    expect(policyMode(null, "sfw-strict")).toBe("sfw");
-    expect(policyMode(null, "anything-else")).toBe("nsfw");
   });
 });
 
@@ -151,5 +145,7 @@ describe("generate gating", () => {
   it("refuses SFW generation without NudeNet", () => {
     expect(generateBlock(health({ sfw_available: false }), null, { ...ready, enforcingPolicy: "default" }, policies())).toContain("NudeNet");
     expect(generateBlock(health({ sfw_available: false }), null, ready, policies())).toBeNull();
+    // A policy's mode comes from /policies, never its name: before the catalogue loads, nothing is blocked on it.
+    expect(generateBlock(health({ sfw_available: false }), null, { ...ready, enforcingPolicy: "default" }, null)).toBeNull();
   });
 });
