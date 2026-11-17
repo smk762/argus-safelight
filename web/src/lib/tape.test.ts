@@ -10,6 +10,8 @@ import type { GenerationRecord } from "./types";
 
 const DIR = join(__dirname, "..", "..", "..", "fixture", "sample-tape");
 const PUBLISHED = join(__dirname, "..", "..", "public", "data-tape");
+/** The reviewed take list (docs/demo-recording.md): each rendered take pins the render a person approved. */
+const TAKES = JSON.parse(readFileSync(join(__dirname, "..", "..", "..", "docs", "demo-takes.json"), "utf8")) as Record<string, unknown>[];
 const raw = (dir = DIR) => JSON.parse(readFileSync(join(dir, "tape.json"), "utf8"));
 const tape = parseTape(raw());
 const take = (id: string, dir = DIR) => JSON.parse(readFileSync(join(dir, "takes", `${id}.json`), "utf8")) as Take;
@@ -105,6 +107,11 @@ describe("the published tape", () => {
     }
   });
 
+  it("serves only renders a person approved: every image file's hash is pinned in the take list", () => {
+    const approved = new Set(TAKES.map((entry) => entry._expect_image_sha256).filter(Boolean));
+    for (const record of published.records.filter((r) => r.id in published.files)) expect(approved.has(record.image?.sha256), record.id).toBe(true);
+  });
+
   it("replays each take's stream ending in its own record", () => {
     for (const id of published.takes) {
       const [last, data] = take(id, PUBLISHED).events.at(-1)!;
@@ -158,5 +165,15 @@ describe("tape lookups", () => {
     const offered = takeRecords(tape as Tape);
     expect(offered.length).toBeGreaterThan(0);
     expect(offered.every((record) => !record.request.init_image)).toBe(true);
+  });
+});
+
+describe("the take list", () => {
+  it("pins every rendered take to its approved image, or expects pre-flight to refuse it so it is never rendered", () => {
+    for (const entry of TAKES) {
+      if (entry._illustrative) continue;
+      const pinned = typeof entry._expect_image_sha256 === "string" && /^[0-9a-f]{64}$/.test(entry._expect_image_sha256);
+      expect(pinned || entry._expect_preflight === "refused", JSON.stringify(entry.user_prompt)).toBe(true);
+    }
   });
 });

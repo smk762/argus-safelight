@@ -36,6 +36,16 @@ jobs:
           OPSEC_DENYLIST: ${{ secrets.OPSEC_DENYLIST }}
       - run: python3 -m py_compile ../scripts/record_tape.py
 
+  # The Python scripts' tests: the tape writer (no unfiltered /models key, no leak echoed, a failed recording keeps the
+  # last tape) and the fixture's images (flat colour fields only).
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --no-project --with pytest --with pillow pytest scripts -q
+
   # The Dragonhound shared design layer (web/vendor/dh) is vendored from dragonhound.dev/brand/v1 and must not be
   # edited here. Fails if a vendored file changed locally or no longer matches the published v1 manifest; a newer
   # upstream version is only a warning (re-sync in its own PR).

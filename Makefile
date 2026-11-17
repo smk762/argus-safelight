@@ -12,7 +12,7 @@ UV ?= uv
 PORT ?= 3097
 MOCK_PORT ?= 8106
 
-.PHONY: help install dev mock fixture sync wire build test lint check clean tape-sample sample-tape tape pages shared-check browser-check
+.PHONY: help install dev mock fixture sync wire build test test-scripts lint check clean tape-sample sample-tape tape pages shared-check browser-check
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -45,7 +45,10 @@ test:  ## vitest
 lint:  ## eslint + tsc + the darkroom sync record (docs, wire types, fixture version)
 	cd web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run darkroom:check
 
-check: lint test build  ## Everything CI runs
+test-scripts:  ## pytest over scripts/: the tape writer and the fixture's images (needs uv)
+	$(UV) run --no-project --with pytest --with pillow pytest scripts -q
+
+check: lint test test-scripts build  ## Everything CI runs
 
 # ---- Static demo (safelight.dragonhound.dev): a recorded tape, served without darkroom.
 
