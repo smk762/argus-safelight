@@ -42,6 +42,8 @@ function wordsOf(record: GenerationRecord): string[] {
     ...cells.map((cell) => cell?.result?.explanation),
     ...Object.keys(guard.nudenet?.labels ?? {}),
     ...Object.keys(guard.input?.nudenet?.labels ?? {}),
+    ...(guard.nudenet?.detections ?? []).map((box) => box.label),
+    ...(guard.input?.nudenet?.detections ?? []).map((box) => box.label),
   ];
   return [...new Set(words.filter((text): text is string => !!text && !isWithheld(text) && text !== "[withheld]"))];
 }

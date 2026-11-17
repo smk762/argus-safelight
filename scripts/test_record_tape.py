@@ -73,3 +73,12 @@ def test_a_good_recording_replaces_the_last_tape(tmp_path: Path) -> None:
     assert [r["id"] for r in json.loads((out / "tape.json").read_text())["records"]] == ["fx-omitted-exposed"]
     assert not (out / "takes" / "stale.json").exists()
     assert sorted(p.name for p in tmp_path.iterdir()) == ["data-tape"]
+
+
+def test_a_blocked_record_keeps_no_nudenet_class() -> None:
+    record = fixture_record("fx-deleted-minor")
+    assert record["guard"]["nudenet"]["detections"], "the fixture should carry detections to withhold"
+    out = record_tape.withhold_record(record)
+    assert out["guard"]["nudenet"]["labels"] == {} and out["guard"]["nudenet"]["detections"] == []
+    assert out["guard"]["nudenet"]["exposed_score"] == record["guard"]["nudenet"]["exposed_score"]
+
