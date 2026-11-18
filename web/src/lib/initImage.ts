@@ -131,15 +131,18 @@ async function readChecked(file: Blob, what: string): Promise<{ format: InputFor
   const block = fileBlock(file.size, format, what);
   if (block || !format) throw new InputError(block ?? `${what} is not a PNG, JPEG or WebP.`);
   const bitmap = await decode(file, what);
-  const edge = edgeBlock(bitmap.width, bitmap.height, what);
-  if (edge) {
+  // The bitmap is the caller's only once this returns; until then any refusal or read error closes it here.
+  try {
+    const edge = edgeBlock(bitmap.width, bitmap.height, what);
+    if (edge) throw new InputError(edge);
+    const url = await dataUrl(file);
+    const base64 = url.slice(url.indexOf(",") + 1);
+    // The browser's type for the bytes, not the one it guessed from the name.
+    return { format, bitmap, base64, previewUrl: `data:${MIME[format]};base64,${base64}` };
+  } catch (caught) {
     bitmap.close();
-    throw new InputError(edge);
+    throw caught;
   }
-  const url = await dataUrl(file);
-  const base64 = url.slice(url.indexOf(",") + 1);
-  // The browser's type for the bytes, not the one it guessed from the name.
-  return { format, bitmap, base64, previewUrl: `data:${MIME[format]};base64,${base64}` };
 }
 
 let chosen = 0;

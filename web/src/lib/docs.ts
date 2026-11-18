@@ -7,14 +7,17 @@
  * - the `#` title goes (the page has its own), and for a page with `sections` only those `##` sections stay;
  * - every heading gets GitHub's id, counted over the whole file so a deep link means what it means on GitHub;
  * - links to another imported doc stay on this site, links into darkroom's repo go to GitHub at the pinned commit,
- *   `../<sibling>/...` goes to that sibling's `dev`, and an anchor whose section was left out goes to GitHub;
- * - remote images (badges) are dropped, since `img-src` would block them; relative ones load from the vendored copy.
+ *   `../<sibling>/...` goes to that sibling's `dev`, and an anchor whose section was left out (of this page or the
+ *   page it points to) goes to GitHub;
+ * - remote images (badges), inline or by reference, are dropped, since `img-src` would block them; ones in darkroom's
+ *   repo load from the vendored copy (`/x.png` from its root), and one outside it is dropped.
  * Raw HTML is skipped by the renderer.
  */
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
-import type { Heading, Image, Link, Nodes, Root, RootContent } from "mdast";
+import type { Definition, Heading, Image, Link, Nodes, Root, RootContent } from "mdast";
+import type { Processor } from "unified";
 
 import { DARKROOM, DOC_PAGES, darkroomLinks, docsHref, type DarkroomPin, type DocPage } from "./docsLinks";
 
@@ -49,10 +52,10 @@ export interface DocHeading {
 const isRemote = (url: string) => /^[a-z][a-z0-9+.-]*:|^\/\//i.test(url);
 
 /** Every relative target resolved: on this site when it is an imported doc, else GitHub. */
-function resolveUrl(url: string, page: DocPage, kept: Set<string>, pin: DarkroomPin): string {
+function resolveUrl(url: string, page: DocPage, anchorsOn: (doc: DocPage) => Set<string>, pin: DarkroomPin): string {
   const links = darkroomLinks(pin);
   if (isRemote(url) || url.startsWith("/")) return url;
-  if (url.startsWith("#")) return kept.has(url.slice(1)) ? url : `${links.blob(page.file)}${url}`;
+  if (url.startsWith("#")) return anchorsOn(page).has(url.slice(1)) ? url : `${links.blob(page.file)}${url}`;
   const [path, anchor] = url.split("#", 2);
   const target = posix.normalize(posix.join(posix.dirname(page.file), path));
   if (target.startsWith("../")) {
@@ -61,8 +64,15 @@ function resolveUrl(url: string, page: DocPage, kept: Set<string>, pin: Darkroom
     return `https://github.com/${pin.repo.split("/")[0]}/${repo}/blob/dev/${rest.join("/")}${anchor ? `#${anchor}` : ""}`;
   }
   const imported = DOC_PAGES.find((doc) => doc.file === target);
-  if (imported && (!anchor || imported !== page || kept.has(anchor))) return docsHref(imported, anchor);
+  if (imported && (!anchor || anchorsOn(imported.file === page.file ? page : imported).has(anchor))) return docsHref(imported, anchor);
   return `${links.blob(target)}${anchor ? `#${anchor}` : ""}`;
+}
+
+/** An image's path in the vendored copy, or null when it cannot load there: remote, or outside darkroom's repo. */
+function vendoredImage(url: string, page: DocPage): string | null {
+  if (isRemote(url)) return null;
+  const path = url.startsWith("/") ? posix.normalize(url.slice(1)) : posix.normalize(posix.join(posix.dirname(page.file), url));
+  return path === ".." || path.startsWith("../") ? null : `/docs/darkroom/${path}`;
 }
 
 function walk(node: Nodes, visit: (node: Nodes, parent: Nodes | null) => void, parent: Nodes | null = null) {
@@ -70,50 +80,81 @@ function walk(node: Nodes, visit: (node: Nodes, parent: Nodes | null) => void, p
   if ("children" in node) for (const child of [...(node.children as Nodes[])]) walk(child, visit, node);
 }
 
-/** The remark plugin for one page. Returns the headings it kept, for the page's contents list. */
-export function darkroomDoc(page: DocPage, pin: DarkroomPin = DARKROOM) {
+const remove = (node: Nodes, parent: Nodes) => (parent as { children: Nodes[] }).children.splice((parent as { children: Nodes[] }).children.indexOf(node), 1);
+
+/** Drops the `#` title and the sections a page leaves out, and gives every kept heading GitHub's id. */
+function prune(tree: Root, page: DocPage): Map<Heading, string> {
+  const slug = slugger();
+  const ids = new Map<Heading, string>();
+  walk(tree, (node) => {
+    if (node.type === "heading") ids.set(node, slug(textOf(node)));
+  });
+
+  let keep = page.sections === null;
+  const children: RootContent[] = [];
+  for (const node of tree.children) {
+    if (node.type === "heading" && node.depth === 1) continue;
+    if (node.type === "heading" && node.depth === 2 && page.sections !== null) keep = (page.sections as readonly string[]).includes(textOf(node));
+    if (keep) children.push(node);
+  }
+  tree.children = children;
+
+  const kept = new Map<Heading, string>();
+  walk(tree, (node) => {
+    if (node.type === "heading") kept.set(node, ids.get(node)!);
+  });
+  return kept;
+}
+
+/**
+ * The remark plugin for one page. Returns the headings it kept, for the page's contents list. `read` gives another
+ * imported page's markdown, so a link into it keeps its anchor only when that page kept the section.
+ */
+export function darkroomDoc(page: DocPage, pin: DarkroomPin = DARKROOM, read: (page: DocPage) => string = readDoc) {
   const headings: DocHeading[] = [];
-  const plugin = () => (tree: Root) => {
-    const slug = slugger();
-    const ids = new Map<Heading, string>();
-    walk(tree, (node) => {
-      if (node.type === "heading") ids.set(node, slug(textOf(node)));
-    });
+  const plugin = function (this: Processor) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- the processor parses the other pages the same way
+    const processor = this;
+    return (tree: Root) => {
+      for (const [node, id] of prune(tree, page)) {
+        node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id } };
+        headings.push({ depth: node.depth, text: textOf(node), id });
+      }
+      const anchors = new Map<string, Set<string>>([[page.file, new Set(headings.map((heading) => heading.id))]]);
+      const anchorsOn = (doc: DocPage): Set<string> => {
+        if (!anchors.has(doc.file)) anchors.set(doc.file, new Set(prune(processor.parse(read(doc)) as Root, doc).values()));
+        return anchors.get(doc.file)!;
+      };
 
-    let keep = page.sections === null;
-    const children: RootContent[] = [];
-    for (const node of tree.children) {
-      if (node.type === "heading" && node.depth === 1) continue;
-      if (node.type === "heading" && node.depth === 2 && page.sections !== null) keep = (page.sections as readonly string[]).includes(textOf(node));
-      if (keep) children.push(node);
-    }
-    tree.children = children;
+      // A definition an image refers to is an image's source, not a link.
+      const imageIds = new Set<string>();
+      const definitions = new Map<string, Definition>();
+      walk(tree, (node) => {
+        if (node.type === "imageReference") imageIds.add(node.identifier);
+        if (node.type === "definition") definitions.set(node.identifier, node);
+      });
+      const dropped = new Set<string>();
+      for (const [identifier, definition] of definitions) {
+        if (!imageIds.has(identifier)) continue;
+        const vendored = vendoredImage(definition.url, page);
+        if (vendored) definition.url = vendored;
+        else dropped.add(identifier);
+      }
 
-    walk(tree, (node) => {
-      if (node.type !== "heading") return;
-      const id = ids.get(node)!;
-      node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id } };
-      headings.push({ depth: node.depth, text: textOf(node), id });
-    });
-    const kept = new Set(headings.map((heading) => heading.id));
-
-    walk(tree, (node, parent) => {
-      if (node.type === "link" || node.type === "definition") (node as Link).url = resolveUrl(node.url, page, kept, pin);
-      if (node.type === "image" && parent && "children" in parent) {
-        const image = node as Image;
-        if (isRemote(image.url)) {
-          (parent.children as Nodes[]).splice((parent.children as Nodes[]).indexOf(node), 1);
-        } else {
-          image.url = `/docs/darkroom/${posix.normalize(posix.join(posix.dirname(page.file), image.url))}`;
+      walk(tree, (node, parent) => {
+        if (node.type === "link" || (node.type === "definition" && !imageIds.has(node.identifier))) (node as Link).url = resolveUrl(node.url, page, anchorsOn, pin);
+        if (node.type === "image" && parent && "children" in parent) {
+          const vendored = vendoredImage((node as Image).url, page);
+          if (vendored) (node as Image).url = vendored;
+          else remove(node, parent);
         }
-      }
-    });
-    // A badge's link is empty once its image is gone.
-    walk(tree, (node, parent) => {
-      if (node.type === "link" && node.children.length === 0 && parent && "children" in parent) {
-        (parent.children as Nodes[]).splice((parent.children as Nodes[]).indexOf(node), 1);
-      }
-    });
+        if (node.type === "imageReference" && parent && "children" in parent && (dropped.has(node.identifier) || !definitions.has(node.identifier))) remove(node, parent);
+      });
+      // A badge's link is empty once its image is gone.
+      walk(tree, (node, parent) => {
+        if ((node.type === "link" || node.type === "linkReference") && node.children.length === 0 && parent && "children" in parent) remove(node, parent);
+      });
+    };
   };
   return { plugin, headings };
 }

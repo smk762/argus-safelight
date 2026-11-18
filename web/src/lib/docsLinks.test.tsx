@@ -58,4 +58,34 @@ describe("the imported docs", () => {
     const urls = JSON.stringify(tree).match(/"url":"[^"]+"/g);
     expect(urls).toEqual(['"url":"#kept"', `"url":"https://github.com/${DARKROOM.repo}/blob/${DARKROOM.commit}/spec.md#gone"`, '"url":"https://github.com/smk762/argus-safelight/blob/dev/spec.md"']);
   });
+
+  const transform = async (page: DocPage, markdown: string, read?: (page: DocPage) => string) => {
+    const { darkroomDoc } = await import("./docs");
+    const [{ unified }, { default: remarkParse }] = await Promise.all([import("unified"), import("remark-parse")]);
+    const processor = unified().use(remarkParse).use(darkroomDoc(page, DARKROOM, read).plugin);
+    return JSON.stringify(await processor.run(processor.parse(markdown)));
+  };
+
+  it("send an anchor into a section another page left out to GitHub", async () => {
+    const [overview, design] = DOC_PAGES;
+    const spec = "# S\n\n## Flow\n\nx\n\n## Build order\n\ny\n";
+    const tree = await transform(overview, "See [flow](spec.md#flow) and [order](spec.md#build-order).\n", (doc) => (doc === design ? spec : ""));
+    expect(tree.match(/"url":"[^"]+"/g)).toEqual(['"url":"/docs/design#flow"', `"url":"https://github.com/${DARKROOM.repo}/blob/${DARKROOM.commit}/spec.md#build-order"`]);
+  });
+
+  it("drop a remote image by reference with its badge link, and load a relative one from the vendored copy", async () => {
+    const markdown = "[![ci][badge]][run]\n\n![flow][pic]\n\n[badge]: https://img.shields.io/ci.svg\n[run]: https://github.com/x/actions\n[pic]: docs/flow.png\n";
+    const tree = await transform(DOC_PAGES[0], markdown);
+    expect(tree).not.toContain('"type":"linkReference"');
+    const images: string[] = [];
+    JSON.parse(tree, (key, value) => (value?.type === "imageReference" ? images.push(value.identifier) && value : value));
+    expect(images).toEqual(["pic"]);
+    expect(tree).toContain('"url":"/docs/darkroom/docs/flow.png"');
+  });
+
+  it("load a root-relative image from the repo's root, and drop one outside the repo", async () => {
+    const page = { slug: "guide", file: "docs/guide.md", title: "Guide", sections: null } as unknown as DocPage;
+    const tree = await transform(page, "![a](/img/a.png) ![b](b.png) ![c](../../c.png)\n");
+    expect(tree.match(/"url":"[^"]+"/g)).toEqual(['"url":"/docs/darkroom/img/a.png"', '"url":"/docs/darkroom/docs/b.png"']);
+  });
 });

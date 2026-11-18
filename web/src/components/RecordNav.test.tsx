@@ -16,14 +16,20 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(search),
 }));
+// Darkroom's paging: `perPage` stands in for a server whose cap is below what was asked for.
+let perPage = 200;
 vi.mock("@/lib/api", () => ({
   MAX_PAGE_SIZE: 200,
-  getRecords: () => Promise.resolve({ records: store, total: store.length, page: 1, page_size: 200 }),
+  getRecords: ({ page = 1, pageSize = 50 }: { page?: number; pageSize?: number } = {}) => {
+    const size = Math.min(pageSize, perPage);
+    return Promise.resolve({ records: store.slice((page - 1) * size, page * size), total: store.length, page, page_size: size });
+  },
 }));
 
 beforeEach(() => {
   store = fixtureRecords().sort((a, b) => b.created_at.localeCompare(a.created_at));
   search = "";
+  perPage = 200;
   push.mockClear();
 });
 afterEach(cleanup);
@@ -31,6 +37,15 @@ afterEach(cleanup);
 const ids = () => store.map((record) => record.id);
 
 describe("RecordNav", () => {
+  it("steps through the whole history, not only its first page", async () => {
+    perPage = 3;
+    const id = ids()[3];
+    render(<RecordNav id={id} />);
+    expect(await screen.findByText(`4 of ${store.length}`)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Previous record/ }).getAttribute("href")).toBe(`/record/${ids()[2]}`);
+    expect(screen.getByRole("link", { name: /Next record/ }).getAttribute("href")).toBe(`/record/${ids()[4]}`);
+  });
+
   it("shows the position and links both neighbours in history order", async () => {
     const id = ids()[2];
     render(<RecordNav id={id} />);

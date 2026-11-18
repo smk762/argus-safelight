@@ -57,8 +57,11 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
       redraw();
       return;
     }
+    // A clear, an upload or a stroke made while this decodes wins: the late image must not paint over it.
+    const mine = version.current;
     const picture = new Image();
     picture.onload = () => {
+      if (version.current !== mine) return;
       context.drawImage(picture, 0, 0, image.width, image.height);
       redraw();
     };
@@ -158,6 +161,7 @@ export function MaskPainter({ image, mask, onMask }: { image: InputImage; mask: 
           className="absolute inset-0 h-full w-full cursor-crosshair touch-none opacity-50"
           onPointerDown={(event) => {
             event.currentTarget.setPointerCapture(event.pointerId);
+            version.current += 1;
             const at = point(event);
             last.current = at;
             stroke(at, at);
