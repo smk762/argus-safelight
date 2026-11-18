@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 import { MAX_PAGE_SIZE, getRecords } from "@/lib/api";
+import type { GenerationRecord } from "@/lib/types";
 import { applyHistoryFilter, keyBelongsToField, neighbours, recordHref } from "@/lib/historyNav";
 import { EMPTY_FILTER, historyQuery, parseHistoryFilter } from "@/lib/historyQuery";
 import { useLoad } from "@/lib/useLoad";
@@ -12,6 +13,16 @@ import { useLoad } from "@/lib/useLoad";
 const STEP = "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-caption font-medium";
 const LIVE = `${STEP} bg-base-700 text-text-primary hover:bg-base-600`;
 const OFF = `${STEP} bg-base-800 text-text-muted opacity-60`;
+
+/** Every record, page after page until darkroom's total is reached (or a page comes back empty). */
+async function wholeHistory(): Promise<GenerationRecord[]> {
+  const records: GenerationRecord[] = [];
+  for (let page = 1; ; page++) {
+    const answer = await getRecords({ page, pageSize: MAX_PAGE_SIZE });
+    records.push(...answer.records);
+    if (answer.records.length === 0 || records.length >= answer.total) return records;
+  }
+}
 
 /**
  * Previous / Next through History's list, in its order (newest first) and under the filter the record was reached
@@ -25,8 +36,8 @@ export function RecordNav({ id }: { id: string }) {
   const asked = parseHistoryFilter(params);
   // The whole history, once: outcome and mode are applied here as darkroom applies them, so a record outside the
   // filter it was linked with can fall back to the plain history order without a second request.
-  const { data } = useLoad("record-nav", () => getRecords({ pageSize: MAX_PAGE_SIZE }));
-  const all = data?.records ?? [];
+  const { data } = useLoad("record-nav", wholeHistory);
+  const all = data ?? [];
   const filtered = applyHistoryFilter(
     all.filter((record) => (!asked.outcome || record.outcome === asked.outcome) && (!asked.mode || record.request.mode === asked.mode)),
     asked,

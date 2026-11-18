@@ -82,7 +82,11 @@ export function ShieldCell({
         aria-expanded={show}
         aria-controls={id}
         aria-label={`${heading}: ${label}`}
-        onClick={() => setPinned((value) => !value)}
+        // A second click or tap closes it, though the same tap also focused it (and, on touch, "hovered" it).
+        onClick={() => {
+          if (pinned) setOpen(false);
+          setPinned(!pinned);
+        }}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         className={`rounded-md px-2 py-1 transition-colors hover:bg-base-700/70 ${outlined ? "outline-dashed outline-2 outline-offset-1 outline-warning/80" : ""}`}

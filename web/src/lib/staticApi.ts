@@ -80,18 +80,19 @@ export async function preflight(request: GenerateRequest): Promise<Preflight> {
   return take.preflight;
 }
 
-const wait = (ms: number, signal?: AbortSignal) =>
+/** A pause that Stop ends early. Its abort listener goes when the pause ends, so a long take leaves none behind. */
+export const wait = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     if (signal?.aborted) return reject(new DOMException("Stopped", "AbortError"));
-    const timer = window.setTimeout(resolve, ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        window.clearTimeout(timer);
-        reject(new DOMException("Stopped", "AbortError"));
-      },
-      { once: true },
-    );
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Stopped", "AbortError"));
+    };
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 
 /** "Generate": the recorded stream for this prompt, event by event at about darkroom's pace. */

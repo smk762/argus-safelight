@@ -12,7 +12,8 @@ import {
   type Policies,
   type Preflight,
   type ProgressEvent,
-  type PurgeResult, RecordPurgeResult,
+  type PurgeResult,
+  type RecordPurgeResult,
   type RecordPage,
   type ScanEvent,
 } from "./types";
@@ -86,7 +87,8 @@ export function getRecords(query: RecordQuery = {}): Promise<RecordPage> {
  * served record has a file on the tape; any other id gets "", and the page never renders an image for those anyway.
  */
 export const imageUrl = (id: string): string => (staticDemo() ? demo.imageUrl(id) : `${darkroomUrl()}/image/${encodeURIComponent(id)}`);
-export const archiveUrl = (): string => `${darkroomUrl()}/archive`;
+/** The purge dialog's archive download. The static demo has no darkroom behind it, so "" there: no link. */
+export const archiveUrl = (): string => (staticDemo() ? "" : `${darkroomUrl()}/archive`);
 
 export const preflight = (request: GenerateRequest): Promise<Preflight> => (staticDemo() ? demo.preflight(request) : send("POST", "/preflight", request));
 export const purge = (): Promise<PurgeResult> => (staticDemo() ? demo.notInDemo("Purge") : send("POST", "/purge", { confirm: "purge" }));

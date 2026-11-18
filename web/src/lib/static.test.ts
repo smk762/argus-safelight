@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "./api";
+import { wait } from "./staticApi";
 import type { GenerationRecord } from "./types";
 
 // The fixture's sample tape (fixture/sample-tape), served here under /data-tape.
@@ -108,5 +109,18 @@ describe("static api", () => {
     await expect(api.purge()).rejects.toThrow(/needs a running darkroom/);
     await expect(api.purgeRecord("fx-passed")).rejects.toThrow(/needs a running darkroom/);
     expect(requested).toEqual([]);
+  });
+
+  it("offers no archive download, since no darkroom is behind it", () => {
+    expect(api.archiveUrl()).toBe("");
+  });
+
+  it("leaves no abort listener on the signal after each replayed pause", async () => {
+    const abort = new AbortController();
+    const add = vi.spyOn(abort.signal, "addEventListener");
+    const remove = vi.spyOn(abort.signal, "removeEventListener");
+    for (let i = 0; i < 3; i++) await wait(0, abort.signal);
+    expect(add).toHaveBeenCalledTimes(3);
+    expect(remove.mock.calls.map(([, listener]) => listener)).toEqual(add.mock.calls.map(([, listener]) => listener));
   });
 });

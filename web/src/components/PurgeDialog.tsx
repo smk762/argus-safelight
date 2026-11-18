@@ -41,6 +41,7 @@ export function PurgeButton({ onPurged }: { onPurged?: (result: PurgeResult) => 
 function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (result: PurgeResult) => void }) {
   const titleId = useId();
   const inputId = useId();
+  const archive = archiveUrl();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const { reload: reloadDarkroom } = useDarkroom();
@@ -116,9 +117,11 @@ function PurgeDialog({ onClose, onPurged }: { onClose: () => void; onPurged: (re
         <ol className="space-y-3 text-small text-text-primary">
           <li className="flex flex-wrap items-center gap-2">
             <span className="text-text-secondary">1.</span>
-            <a href={archiveUrl()} download className="inline-flex items-center rounded-md border border-base-600 bg-base-700/60 px-3.5 py-2 font-medium text-text-primary transition-colors hover:border-accent-primary/60">
-              Download archive
-            </a>
+            {archive ? (
+              <a href={archive} download className="inline-flex items-center rounded-md border border-base-600 bg-base-700/60 px-3.5 py-2 font-medium text-text-primary transition-colors hover:border-accent-primary/60">
+                Download archive
+              </a>
+            ) : null}
             <span className="text-text-secondary">every record and image, as a zip</span>
           </li>
           <li className="space-y-1.5">
