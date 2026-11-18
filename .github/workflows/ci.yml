@@ -75,6 +75,23 @@ jobs:
           curl -sf -o /dev/null localhost:8106/image/fx-passed
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8106/image/fx-deleted-illegal)" = 404
 
+  # Property-based UI testing (Bombadil) through argus-ci's reusable bombadil.yml (argus-ci#12):
+  # drives a browser around the static demo (the committed tape, no darkroom) at random for 3
+  # minutes and checks web/bombadil/spec.ts in every state. Not required yet: continue-on-error
+  # stays until about two weeks of runs without a spurious failure.
+  bombadil:
+    uses: smk762/argus-ci/.github/workflows/bombadil.yml@v1
+    with:
+      working-directory: web
+      node-version: "22"
+      build-command: npm run build:pages
+      serve-dir: out
+      specification: bombadil/spec.ts
+      time-limit: 3m
+      # Matches the devDependency that types the spec.
+      bombadil-version: 0.7.10
+      continue-on-error: true
+
   suite-rules:
     # argus-ci suite rules: lint rules that each eliminate a finding class. New violations fail;
     # existing ones are in .suite-rules-baseline.json, which may only shrink.
