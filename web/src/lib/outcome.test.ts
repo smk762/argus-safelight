@@ -88,7 +88,7 @@ describe("an input image's refusal", () => {
     const record = {
       ...base,
       outcome_reason: "input image: default:A, minor-exposed",
-      guard: { ...base.guard, input: { ...input, outcome: "deleted" as const, reason: "default:A, minor-exposed", scans: { default: { ...input.scans.default, isolated: illegal } }, age: { source: "mivolo" as const, faces: [], minor_exposed: true } } },
+      guard: { ...base.guard, input: { ...input, outcome: "deleted" as const, reason: "default:A, minor-exposed", scans: { default: { ...input.scans.default, isolated: illegal } }, age: { source: "mivolo" as const, faces: [], people: [], minor_exposed: true, minor_exposed_rule: "frame" as const } } },
     };
     const lines = inputRefusalSummary(record).lines;
     expect(lines[0]).toBe("Rule A. Illegal Sexual Content fired under default, in the isolated scan of the input image.");

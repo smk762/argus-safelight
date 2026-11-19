@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
 import { ApiError, generate, preflight as runPreflight } from "@/lib/api";
+import { staticDemo } from "@/lib/demo";
 import { canExpand, defaultCompose, normaliseCompose, preflightKey, toRequest, withoutPixels, type ComposeState } from "@/lib/compose";
 import { IDLE, isRunning, liveReducer, type LiveState } from "@/lib/live";
 import type { Preflight } from "@/lib/types";
@@ -55,6 +56,8 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const touched = useRef(false);
   const controller = useRef<AbortController | null>(null);
+  // Bumped by every check and every start, so only the latest check's answer is shown: a slow one never lands after it.
+  const checks = useRef(0);
   const expandable = canExpand(health);
 
   // Server defaults the first time the catalogue arrives; afterwards only keep the form consistent with it.
@@ -85,13 +88,14 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     // Darkroom's pre-flight judges the text alone, so the input image does not travel with it.
     const request = withoutPixels(toRequest(compose, expandable, models));
     const key = preflightKey(request);
+    const mine = ++checks.current;
     setPreflight({ state: "checking", result: null, error: null, forRequest: key });
     try {
       const result = await runPreflight(request);
-      setPreflight({ state: "done", result, error: null, forRequest: key });
+      if (checks.current === mine) setPreflight({ state: "done", result, error: null, forRequest: key });
       return result;
     } catch (caught) {
-      setPreflight({ state: "error", result: null, error: caught instanceof ApiError || caught instanceof Error ? caught.message : String(caught), forRequest: key });
+      if (checks.current === mine) setPreflight({ state: "error", result: null, error: caught instanceof ApiError || caught instanceof Error ? caught.message : String(caught), forRequest: key });
       return null;
     }
   }, [compose, expandable, models]);
@@ -106,6 +110,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     // The live view keeps the request without the input's pixels; only the stream carries them.
     const input = compose.initImage && request.init_image ? { width: compose.initImage.width, height: compose.initImage.height, denoise: request.init_image.denoise, maskFraction: compose.mask?.fraction ?? null } : null;
     dispatch({ type: "start", request: withoutPixels(request), input });
+    checks.current += 1;
     setPreflight({ state: "idle", result: null, error: null, forRequest: null });
     setComposerOpen(false);
     router.push("/");
@@ -128,7 +133,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         router.replace(`/record/${encodeURIComponent(record.id)}`);
       })
       .catch((caught: unknown) => {
-        if (abort.signal.aborted) dispatch({ type: "error", error: "Stopped. Darkroom finishes the generation on its own; its record will appear in the history." });
+        if (abort.signal.aborted) dispatch({ type: "error", error: staticDemo() ? "Stopped the replay. The recorded record is in the history." : "Stopped. Darkroom finishes the generation on its own; its record will appear in the history." });
         else dispatch({ type: "error", error: caught instanceof Error ? caught.message : String(caught) });
       })
       .finally(() => {

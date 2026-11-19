@@ -82,13 +82,6 @@ export const MoonIcon = () => (
   </Icon>
 );
 
-export const SystemIcon = () => (
-  <Icon>
-    <rect x="2" y="3" width="20" height="14" rx="2" />
-    <path d="M8 21h8M12 17v4" />
-  </Icon>
-);
-
 export const DocsIcon = () => (
   <Icon>
     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />

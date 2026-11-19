@@ -46,4 +46,19 @@ describe("Escape dismisses hover and focus content", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
   });
+
+  it("closes a pinned shield's detail on a second tap, though the tap also focused and hovered it", () => {
+    render(<ShieldCell cell={null} heading="adult-granular" />);
+    const button = screen.getByRole("button");
+    const tap = () => {
+      fireEvent.mouseEnter(button.parentElement!);
+      fireEvent.focus(button);
+      fireEvent.click(button);
+    };
+    tap();
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    tap();
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
 });

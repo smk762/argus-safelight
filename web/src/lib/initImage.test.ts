@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_DENOISE, MAX_INPUT_BYTES, clampDenoise, edgeBlock, fileBlock, formatShare, hasTranslucency, luma, maskSizeBlock, maskedFraction, sniffFormat } from "./initImage";
+import { DEFAULT_DENOISE, MAX_INPUT_BYTES, clampDenoise, edgeBlock, fileBlock, formatShare, hasTranslucency, luma, maskSizeBlock, maskedFraction, readInputImage, sniffFormat } from "./initImage";
 
 const bytes = (...values: number[]) => new Uint8Array([...values, ...new Array(16).fill(0)]);
 
@@ -68,5 +68,27 @@ describe("the input image, checked as darkroom checks it", () => {
     expect(clampDenoise(1.4)).toBe(1);
     expect(clampDenoise(0.333)).toBe(0.33);
     expect(clampDenoise(Number.NaN)).toBe(DEFAULT_DENOISE);
+  });
+});
+
+describe("reading a chosen file", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("closes the decoded bitmap when the file then cannot be read", async () => {
+    const close = vi.fn();
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 64, height: 64, close })));
+    vi.stubGlobal(
+      "FileReader",
+      class {
+        error = new Error("the file changed");
+        onerror: (() => void) | null = null;
+        readAsDataURL() {
+          queueMicrotask(() => this.onerror?.());
+        }
+      },
+    );
+    const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(16).fill(0)])], "x.png");
+    await expect(readInputImage(png)).rejects.toThrow("the file changed");
+    expect(close).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,6 +4,31 @@ Each release has a `## [x.y.z]` section here. The release workflow uses that sec
 
 Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schema/pins.json`), not a darkroom release. Each section names the darkroom commit it was checked against.
 
+## [Unreleased]
+
+## [0.3.0] - 2026-11-19
+
+### Added
+
+- **A hosted static demo** for safelight.dragonhound.dev (`make pages`, `SAFELIGHT_STATIC=1`): a pure static export that replays a recorded data tape (`web/public/data-tape`) and never calls darkroom. Every page gets a hash-based CSP with a Trusted Types policy (`web/scripts/csp.mjs`, as in Cull), and `_headers` carries `frame-ancestors`. History, records, docs, Regenerate and Copy record work as live. Compose offers the tape's **recorded prompts**: Check shows the pre-flight darkroom recorded for it, and Generate replays the recorded stream, so the grid fills cell by cell and lands on the record. Writes (Remove image, row selection, purge) and the input-image field are left out, and the status icon too: a recording has no live server.
+- **The tape**, written by `scripts/record_tape.py`: `sample` from `fixture/` (labelled **Sample data**, the current tape), or `live` from a running darkroom and a take list. Only passed and review records get image files; a deleted, omitted, refused or failed record is its metadata alone. A blocked request (critical, judged illegal, or minor-exposed) keeps its verdict, rule, reason, timestamps and state, but its prompts and SingGuard's explanations are replaced by `[withheld: <reason>]`. Borderline frames (review, or darkroom's blur) load only a 28-cell **veil** until Reveal. `web/scripts/check-static.mjs` fails the build if any of that is not so, and `web/scripts/demo-e2e.mjs` (`make browser-check`) checks it in Chromium at 1440 and 390 px, light and dark.
+- **The recording plan**, `docs/demo-recording.md`, with the proposed takes in `docs/demo-takes.json`.
+- **The recorded tape.** The demo now replays a real run of argus-darkroom (`0.1.4.dev36+gc9794888b`) on FLUX.1 [schnell] (Apache-2.0; SDXL 1.0 base, the plan's first choice, is not installed): 20 takes, 18 with real images (2 veiled for review), 2 refused at pre-flight, plus the fixture's six hand-written records, labelled Sample data, for outcomes that need a backend stopped mid-run or must never be generated. Every candidate was reviewed by eye; rejected renders were deleted and purged, several prompts were reworded (no crowds, waist-up catalogue framing), the people takes were rebalanced across adult ages with each age stated in the prompt (4 aged 22 to 29, 4 in their thirties, 4 in their forties, 3 at 50 or over), and two plan takes were dropped. `docs/demo-recording.md` says which and why; `docs/demo-takes.json` pins each take's seed and approved image hash.
+- **The Dragonhound shared layer** (dh-shared 1.2.8) vendored in `web/vendor/dh`, with a CI job that fails on local edits or drift from the published manifest. The static demo carries the family strip (`data-dh-site="safelight"`, default "recorded output" label, Safelight's own link marked current since 1.2.5) and the demo-state badge.
+
+- **Previous / Next on a record page**, stepping through History's list in its order and under the filter the record was opened from (History's links now carry it), with the position ("3 of 26"). The ends are disabled rather than wrapping; ← and → step too, except in a form field or an open dialog. The links are real hrefs, so the static export reaches its prerendered pages.
+
+### Changed
+
+- **History mixes the recorded takes.** The take list is in a new recording order, so the refusals, review, catalogue and crime takes are spread through the run instead of recorded last, and the six hand-written Sample data records are dated between recorded takes (a `{"_illustrative": id}` placeholder in the take list) instead of in a block at their fixture date. Same prompts, seeds and images.
+- **The static demo shows when a record was recorded, in UTC** ("2026-11-15 10:12 UTC"), on the record page and in History, instead of a relative time that rots on a recording. The live app keeps "5 min ago".
+
+- **The recorded tape's `/models` lists only what the takes used**, and its `/health` reports `devmode: false` (`record_tape.py live`): a public tape no longer carries the server's whole model shelf, and the static page no longer offers Purge all.
+- **Unit tests read the fixture's sample tape** (`fixture/sample-tape`, `make sample-tape`) instead of the published one, which now gets its own invariant checks (files for served records only, blocked words withheld, every take ending in its record). `make browser-check` replays an unserved take from whichever tape is published.
+
+- **Theme and type follow the family.** The colours map onto the shared `--dh-*` tokens, the fonts are the system stack (no webfonts), and light/dark is `dh-theme.js`: two states, following the system until toggled, and shared across `*.dragonhound.dev` by cookie. The old three-state toggle and its `localStorage` key are gone.
+- The proxy is `src/proxy.live.ts` and the record route has a live and a static page (`page.live.tsx`, `page.static.tsx`); each build's `pageExtensions` picks its own.
+
 ## [0.2.0] - 2026-11-13
 
 Checked against argus-darkroom `dev` @ `3cf0818` (`0.1.4.dev18+g3cf0818`).

@@ -1,10 +1,11 @@
 {
   "name": "argus-safelight",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "SAFELIGHT_STATIC=1 next build && SAFELIGHT_STATIC=1 node scripts/csp.mjs out && node scripts/check-static.mjs out",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -23,6 +24,7 @@
     "unified": "^11.0.5"
   },
   "devDependencies": {
+    "@antithesishq/bombadil": "0.7.10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10",
     "@testing-library/react": "^16",

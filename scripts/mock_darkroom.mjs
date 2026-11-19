@@ -436,6 +436,21 @@ function refusalReason(pre) {
   return pre.refusal.rule ? ruleCode(pre.refusal.policy, pre.refusal.rule) : pre.refusal.reason;
 }
 
+/** NudeNet's block as darkroom keeps it: a box per detection at or above 0.2, and the detector its server names. A null score means NudeNet did not answer. */
+function nudeBlock(score, threshold, blur) {
+  const labels = score != null && score >= 0.2 ? { FEMALE_BREAST_EXPOSED: score } : {};
+  const detections = Object.entries(labels).map(([label, value]) => ({ label, score: value, bbox: [96, 128, 160, 192] }));
+  const answered = score != null;
+  return { exposed_score: score, labels, detections, threshold, blur, detector: answered ? "640m" : null, detector_model: answered ? "640m.onnx" : null };
+}
+
+/** MiVOLO's block: each face matched to a person box, which leaves the estimate on the face. */
+function ageOf(estimates, minorExposed) {
+  const faces = estimates.map((years, i) => ({ age_estimate_years: years, bbox: [120 + 40 * i, 90, 300 + 40 * i, 330] }));
+  const people = estimates.map((_, i) => ({ bbox: [100 + 40 * i, 60, 340 + 40 * i, 460], age_estimate_years: null, face_index: i }));
+  return { source: "mivolo", faces, people, minor_exposed: minorExposed, minor_exposed_rule: "frame" };
+}
+
 function baseRecord(id, outcome, reason, critical, request, guardBlock, image) {
   return {
     record_version: "1.0",
@@ -449,6 +464,7 @@ function baseRecord(id, outcome, reason, critical, request, guardBlock, image) {
     request,
     guard: guardBlock,
     image,
+    depth: null,
   };
 }
 
@@ -492,7 +508,7 @@ async function generate(body, send, input = null) {
       }
     }
     const exposedInput = user.includes("[input-exposed]") ? 0.41 : 0.0;
-    const inputNude = { exposed_score: exposedInput, labels: exposedInput >= 0.2 ? { FEMALE_BREAST_EXPOSED: exposedInput } : {}, threshold: nsfwThreshold, blur: false };
+    const inputNude = nudeBlock(exposedInput, nsfwThreshold, false);
     const illegalCodes = Object.entries(inputScans).flatMap(([name, pair]) => [pair.isolated, pair.with_prompt].filter((c) => c.state === "illegal").map((c) => ruleCode(name, c.result.rules[0])));
     const uncheckedInput = inputScans[enforcing].isolated.state === "unchecked" || inputScans[enforcing].with_prompt.state === "unchecked";
     let inputOutcome = "passed";
@@ -566,14 +582,14 @@ async function generate(body, send, input = null) {
   // SFW records null and the outcome says sfw-unchecked.
   const nudenet = nudenetDown
     ? pre.mode === "nsfw"
-      ? { exposed_score: null, labels: {}, threshold: nsfwThreshold, blur: true }
+      ? nudeBlock(null, nsfwThreshold, true)
       : null
-    : { exposed_score: exposed, labels: exposed >= 0.2 ? { FEMALE_BREAST_EXPOSED: exposed } : {}, threshold: nsfwThreshold, blur: pre.mode === "nsfw" && exposed >= nsfwThreshold };
+    : nudeBlock(exposed, nsfwThreshold, pre.mode === "nsfw" && exposed >= nsfwThreshold);
   const ageBlock = !AGE || user.includes("[noage]")
     ? null
     : user.includes("[minor]")
-      ? { source: "mivolo", faces: [{ age_estimate_years: 24, bbox: [120, 90, 300, 330] }, { age_estimate_years: 17, bbox: [160, 90, 340, 330] }], minor_exposed: true }
-      : { source: "mivolo", faces: [{ age_estimate_years: 20 + (seed % 40), bbox: [120, 90, 300, 330] }], minor_exposed: false };
+      ? ageOf([24, 17], true)
+      : ageOf([20 + (seed % 40)], false);
 
   const cells = Object.values(scans).flatMap((pair) => [pair.isolated, pair.with_prompt]);
   let outcome = "passed";

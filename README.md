@@ -36,6 +36,8 @@ The server is the product. Safelight is a client: it shows the verdicts darkroom
 
 ## Running it
 
+What this UI needs live, what its mock or recording stands in for, and the no-GPU command are in [What to run for which UI](https://docs.dragonhound.dev/setup/which-services/#safelight). Each external service it depends on has a setup page under the suite's [Setup and services](https://docs.dragonhound.dev/setup/).
+
 ```
 browser ──▶ safelight :3097 ──▶ argus-darkroom :8106
             compose, shields,     preflight, generate (SSE),
@@ -104,6 +106,23 @@ Safelight tracks argus-darkroom's `dev` HEAD, never an old release. One sync rec
 ## The fixture
 
 `fixture/` holds a record for every outcome and flat colour images for the ones that keep an image. The verdicts are written by hand to exercise the UI, not earned by the pictures, and nothing flagged, sexual or violent goes in the repo. See [fixture/README.md](fixture/README.md).
+
+## The hosted demo
+
+[safelight.dragonhound.dev](https://safelight.dragonhound.dev/) is a static export of this app (`make pages`) that replays a recorded data tape instead of calling darkroom. The tape is a real recording on FLUX.1 [schnell], synthetic adults only (how it was made, and what was left out, is in [docs/demo-recording.md](docs/demo-recording.md)); the header says **Recorded**. Outcomes that could not or must not be produced for real are the fixture's hand-written records, each labelled **Sample data**. `make tape-sample` swaps the fixture's sample tape back in.
+
+- History, every record, the docs, Regenerate and Copy record work as they do live.
+- Compose lists the tape's **recorded prompts**. Check shows the pre-flight darkroom recorded for the chosen one, and Generate replays its recorded stream. A prompt or policies the tape does not hold have nothing to replay, and the form says so.
+- Nothing writes: Remove image, row selection and purge are left out, as are the input image (there is no darkroom to render from it) and the status icon.
+- Only passed and review records have image files on the tape. A blocked request shows its verdict, rule, reason and timestamps, with its prompt replaced by `[withheld: <reason>]`. A borderline frame loads only a coarse mosaic (its veil) until you press Reveal. `make pages` fails if any of this is not so, and `make browser-check` checks it in a browser.
+- The theme toggle stores a `dh-theme` cookie (shared across `*.dragonhound.dev`) when you pick the scheme your system does not use; the live app does the same on its own host.
+
+```bash
+make tape-sample   # the fixture as a tape, in web/public/data-tape (needs Pillow)
+make sample-tape   # the same tape's JSON in fixture/sample-tape, which the unit tests read
+make pages         # static export to web/out, hash CSP on every page, then check-static
+make browser-check PLAYWRIGHT_DIR=<dir with node_modules/playwright> SHOTS=<dir>
+```
 
 ## Licence
 

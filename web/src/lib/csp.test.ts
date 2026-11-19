@@ -32,6 +32,13 @@ describe("contentSecurityPolicy", () => {
     expect(directives(contentSecurityPolicy("abc", false, origin)).get("connect-src")).toEqual(["'self'", "http://192.168.1.5:8106"]);
   });
 
+  it("keeps a path prefix in darkroom's URL, loopback or not, and drops a trailing slash", () => {
+    expect(darkroomUrl("192.168.1.5", "http://localhost:8106")).toBe("http://192.168.1.5:8106");
+    expect(darkroomUrl("192.168.1.5", "http://localhost:8106/darkroom/")).toBe("http://192.168.1.5:8106/darkroom");
+    expect(darkroomUrl("demo.example", "https://demo.example/darkroom")).toBe("https://demo.example/darkroom");
+    expect(directives(contentSecurityPolicy("abc", false, darkroomUrl("demo.example", "https://demo.example/darkroom"))).get("connect-src")).toEqual(["'self'", "https://demo.example"]);
+  });
+
   it("relaxes only what next dev needs: eval for React's stacks and its own inline styles", () => {
     const csp = directives(contentSecurityPolicy("abc", true, "http://localhost:8106"));
     expect(csp.get("script-src")).toEqual(["'self'", "'nonce-abc'", "'strict-dynamic'", "'unsafe-eval'"]);

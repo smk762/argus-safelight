@@ -67,6 +67,7 @@ export function LiveView({ live, onStop, onClear }: { live: LiveState; onStop: (
               </span>
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-base-600" role="progressbar" aria-valuemin={0} aria-valuemax={steps.total} aria-valuenow={steps.step} aria-label="ComfyUI steps">
+              {/* eslint-disable-next-line react/forbid-dom-props -- client only: `steps` exists after a stream's progress event, never in server HTML */}
               <div className="h-full bg-accent-primary transition-[width]" style={{ width: `${renderPct}%` }} />
             </div>
           </div>

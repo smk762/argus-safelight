@@ -1,5 +1,5 @@
 import { DEFAULT_DENOISE, clampDenoise, type InputImage, type InputMask } from "./initImage";
-import type { GenerateRequest, GenerationRecord, Health, InitImageRef, LoRAChoice, Mode, Models, Policies, PolicyInfo, RequestSampling, ThinkingMode } from "./types";
+import type { GenerateRequest, GenerationRecord, Health, InitImageRef, LoRAChoice, Models, Policies, PolicyInfo, RequestSampling, ThinkingMode } from "./types";
 import { DEFAULT_GUIDANCE, checkpointOf, familySampling, formWorkflow, renderable, usesSlot, workflowBlock, type RenderMode } from "./workflows";
 
 /** The compose form. Everything a request needs, plus whether the seed is held. */
@@ -38,13 +38,6 @@ export const SIZES = [512, 576, 640, 704, 768, 832, 896, 960, 1024] as const;
 
 export function policyByName(policies: Policies | null, name: string): PolicyInfo | null {
   return policies?.policies.find((policy) => policy.name === name) ?? null;
-}
-
-/** The mode a policy sets. By name, as cortex does, when the catalogue has not loaded; from the catalogue when it has. */
-export function policyMode(policies: Policies | null, name: string): Mode {
-  const known = policyByName(policies, name);
-  if (known) return known.mode;
-  return name === "default" || name.startsWith("sfw-") ? "sfw" : "nsfw";
 }
 
 /** Why a policy cannot enforce on this server, or null when it can. */
@@ -224,7 +217,8 @@ export function generateBlock(health: Health | null, error: string | null, state
   if (health.read_only) return READ_ONLY_BLOCK;
   if (!health.backends.singguard) return "SingGuard is unreachable. Darkroom never runs unguarded.";
   if (!health.backends.comfyui) return "ComfyUI is unreachable.";
-  if (policyMode(policies, state.enforcingPolicy) === "sfw" && !health.sfw_available) return "SFW generation needs NudeNet, which this server does not have.";
+  // The mode comes from /policies only. Before it loads, the client blocks nothing on it: darkroom decides.
+  if (policyByName(policies, state.enforcingPolicy)?.mode === "sfw" && !health.sfw_available) return "SFW generation needs NudeNet, which this server does not have.";
   if (state.recordInput && !state.initImage) return RECORD_INPUT_BLOCK;
   const workflow = workflowBlock(models, state.checkpoint, state.loras.length, renderMode(state));
   if (workflow) return workflow;

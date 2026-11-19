@@ -1,9 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { DOCS, OLLAMA_SETUP } from "@/lib/docsLinks";
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, generateBlock, randomSeed, renderMode, withCheckpoint } from "@/lib/compose";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, fromRecord, generateBlock, randomSeed, renderMode, toRequest, withCheckpoint } from "@/lib/compose";
+import { staticDemo } from "@/lib/demo";
+import { isWithheld, takeFor, takeRecords, type Tape } from "@/lib/tape";
 import { THINKING_MODES, type CheckpointOption, type Models, type ThinkingMode } from "@/lib/types";
 import { DEFAULT_GUIDANCE, checkpointOf, formWorkflow, loraAddBlock, renderable, usesSlot, workflowBlock, workflowFor } from "@/lib/workflows";
 
@@ -31,12 +33,15 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: st
 
 /** The compose form: prompt, models, sampling, policies, thinking mode and the NudeNet blur threshold. Lives in `ComposeDialog`. */
 export function ComposeForm() {
-  const { health, policies, models, error } = useDarkroom();
-  const { compose, ready, update, check, preflight, start, stop, running } = useCompose();
+  const { health, policies, models, error, tape } = useDarkroom();
+  const { compose, ready, update, replace, check, preflight, start, stop, running } = useCompose();
   const ollamaDown = !canExpand(health);
   const readOnly = health?.read_only ?? false;
   const checking = preflight.state === "checking";
-  const block = generateBlock(health, error, compose, policies, models);
+  // The static demo replays recorded takes: Check and Generate answer only for a prompt and policies on the tape.
+  const take = staticDemo() ? takeFor(tape, toRequest(compose, !ollamaDown, models)) : null;
+  const demoBlock = staticDemo() && !take ? DEMO_TAKE_BLOCK : null;
+  const block = staticDemo() ? demoBlock : generateBlock(health, error, compose, policies, models);
   // The template darkroom will choose decides which fields a request may set; the form shows only those.
   const mode = renderMode(compose);
   const workflow = formWorkflow(models, compose.checkpoint, compose.loras.length, mode);
@@ -54,6 +59,8 @@ export function ComposeForm() {
           <Spinner /> Loading darkroom&apos;s catalogue…
         </p>
       ) : null}
+
+      {staticDemo() ? <TakePicker tape={tape} current={take?.id ?? ""} onPick={(record) => replace(fromRecord(record, compose))} /> : null}
 
       {/* Two columns when the form has the dialog to itself, one beside a verdict. */}
       <div className="grid gap-x-8 gap-y-5 @3xl:grid-cols-2">
@@ -125,13 +132,10 @@ export function ComposeForm() {
                     </label>
                     <label className="flex items-center gap-1 text-caption text-text-muted">
                       trigger words
-                      <input
-                        type="text"
-                        value={lora.trigger_words.join(", ")}
-                        placeholder="none"
-                        aria-label={`Trigger words for ${lora.name}`}
-                        onChange={(event) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, trigger_words: event.target.value.split(",").map((word) => word.trim()).filter(Boolean) } : entry)) }))}
-                        className={`${FIELD} w-36`}
+                      <TriggerWords
+                        words={lora.trigger_words}
+                        label={`Trigger words for ${lora.name}`}
+                        onWords={(words) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, trigger_words: words } : entry)) }))}
                       />
                     </label>
                     <Button small aria-label={`Remove ${lora.name}`} onClick={() => update((current) => ({ ...current, loras: current.loras.filter((_, i) => i !== index) }))}>
@@ -166,7 +170,8 @@ export function ComposeForm() {
             </div>
           </div>
 
-          <InputImageField compose={compose} models={models} update={update} />
+          {/* An input image would need darkroom to render from it; the demo replays text-to-image takes only. */}
+          {staticDemo() ? null : <InputImageField compose={compose} models={models} update={update} />}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Thinking mode" htmlFor="thinking" hint="fast is a verdict and rule; the others also write why. cascade runs fast, then slow on what fast flags.">
@@ -261,8 +266,8 @@ export function ComposeForm() {
       <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-base-600/40 bg-base-800 py-4">
         <Button
           onClick={() => void check()}
-          disabled={!ready || checking || running || readOnly || !compose.userPrompt.trim()}
-          title={readOnly ? READ_ONLY_BLOCK : !compose.userPrompt.trim() ? "Write a prompt first." : "POST /preflight: the text-only check, before anything is generated"}
+          disabled={!ready || checking || running || readOnly || !compose.userPrompt.trim() || demoBlock != null}
+          title={demoBlock ?? (readOnly ? READ_ONLY_BLOCK : !compose.userPrompt.trim() ? "Write a prompt first." : staticDemo() ? "The pre-flight verdict recorded for this prompt" : "POST /preflight: the text-only check, before anything is generated")}
         >
           {checking ? <Spinner /> : null}
           Check
@@ -272,12 +277,67 @@ export function ComposeForm() {
             Stop
           </Button>
         ) : (
-          <Button tone="primary" onClick={start} disabled={!ready || block != null} title={block ?? "POST /generate/stream: pre-flight, then render, then the scans"}>
+          <Button tone="primary" onClick={start} disabled={!ready || block != null} title={block ?? (staticDemo() ? "Replay the recorded run: pre-flight, render, then the scans" : "POST /generate/stream: pre-flight, then render, then the scans")}>
             Generate
           </Button>
         )}
         {block && ready && !running ? <p className="basis-full text-caption text-text-muted">{block}</p> : null}
       </div>
+    </div>
+  );
+}
+
+export const DEMO_TAKE_BLOCK = "This demo replays recorded runs: pick a recorded prompt above. A prompt or policies the recording does not hold have no run to replay.";
+
+/**
+ * A LoRA's trigger words as one comma-separated field. The text is kept as typed while the field has focus, so a comma
+ * or a space can be typed before the next word; the words it parses to go to the form on every keystroke.
+ */
+function TriggerWords({ words, label, onWords }: { words: string[]; label: string; onWords: (words: string[]) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      type="text"
+      value={draft ?? words.join(", ")}
+      placeholder="none"
+      aria-label={label}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onWords(event.target.value.split(",").map((word) => word.trim()).filter(Boolean));
+      }}
+      onBlur={() => setDraft(null)}
+      className={`${FIELD} w-36`}
+    />
+  );
+}
+
+/** The static demo's recorded prompts. Picking one fills the whole form from its record, as Regenerate does. */
+function TakePicker({ tape, current, onPick }: { tape: Tape | null; current: string; onPick: (record: ReturnType<typeof takeRecords>[number]) => void }) {
+  const takes = takeRecords(tape);
+  return (
+    <div className="rounded-md border border-base-600/60 bg-base-900 p-3">
+      <label htmlFor="take" className={LABEL}>
+        Recorded prompt
+      </label>
+      <select
+        id="take"
+        value={current}
+        onChange={(event) => {
+          const record = takes.find((entry) => entry.id === event.target.value);
+          if (record) onPick(record);
+        }}
+        className={`mt-1 ${FIELD}`}
+      >
+        <option value="" disabled>
+          Choose a prompt the recording holds…
+        </option>
+        {takes.map((record) => (
+          <option key={record.id} value={record.id}>
+            {isWithheld(record.request.user_prompt) ? "Prompt withheld" : record.request.user_prompt} · {record.guard.enforcing_policy} → {record.outcome}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-caption text-text-muted">Check and Generate replay what darkroom answered for it. A blocked request&apos;s prompt stays withheld: the demo shows its verdict, never its words or an image.</p>
     </div>
   );
 }

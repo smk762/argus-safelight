@@ -5,3 +5,5 @@ out
 .env
 __pycache__
 .venv
+.wrangler
+bombadil-output

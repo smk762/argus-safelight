@@ -2,7 +2,7 @@
   "record_version": "1.0",
   "id": "fx-inpaint-passed",
   "created_at": "2026-10-20T10:15:00Z",
-  "darkroom_version": "0.1.4.dev18+g3cf0818",
+  "darkroom_version": "0.1.4.dev79+g7c02a00",
   "outcome": "passed",
   "outcome_reason": null,
   "critical": false,
@@ -138,8 +138,11 @@
     "nudenet": {
       "exposed_score": 0.0,
       "labels": {},
+      "detections": [],
       "threshold": 0.2,
-      "blur": false
+      "blur": false,
+      "detector": "640m",
+      "detector_model": "640m.onnx"
     },
     "age": null,
     "input": {
@@ -200,8 +203,11 @@
       "nudenet": {
         "exposed_score": 0.0,
         "labels": {},
+        "detections": [],
         "threshold": 0.2,
-        "blur": false
+        "blur": false,
+        "detector": "640m",
+        "detector_model": "640m.onnx"
       },
       "age": null,
       "outcome": "passed",
@@ -214,5 +220,6 @@
     "width": 512,
     "height": 512,
     "path": "fx-inpaint-passed.png"
-  }
+  },
+  "depth": null
 }

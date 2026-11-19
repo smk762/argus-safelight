@@ -3,7 +3,7 @@ HOST_NPM := $(shell command -v npm 2>/dev/null)
 DOCKER_RUN = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v $(CURDIR):/repo $(1) node:22-bookworm-slim
 DOCKER_NPM = $(call DOCKER_RUN,-w /repo/web $(1)) npm
 # A container sees none of the caller's environment. `-e NAME` forwards a variable when it is set and nothing when it is not.
-WEB_ENV = -e NEXT_PUBLIC_DARKROOM_URL -e SAFELIGHT_DEV_ORIGINS
+WEB_ENV = -e NEXT_PUBLIC_DARKROOM_URL -e SAFELIGHT_DEV_ORIGINS -e NEXT_PUBLIC_SAFELIGHT_TAPE_URL -e SAFELIGHT_TAPE_DIR
 MOCK_ENV = $(foreach name,NSFW_ALLOWED DEVMODE OLLAMA SINGGUARD NUDENET AGE STEP_MS SCAN_MS,-e MOCK_$(name))
 NPM ?= $(if $(HOST_NPM),npm,$(call DOCKER_NPM,$(WEB_ENV)))
 NPM_DEV ?= $(if $(HOST_NPM),npm,$(call DOCKER_NPM,-p $(PORT):$(PORT) $(WEB_ENV)))
@@ -12,7 +12,7 @@ UV ?= uv
 PORT ?= 3097
 MOCK_PORT ?= 8106
 
-.PHONY: help install dev mock fixture sync wire build test lint check clean
+.PHONY: help install dev mock fixture sync wire build test test-scripts lint check clean tape-sample sample-tape tape pages shared-check browser-check
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -45,7 +45,42 @@ test:  ## vitest
 lint:  ## eslint + tsc + the darkroom sync record (docs, wire types, fixture version)
 	cd web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run darkroom:check
 
-check: lint test build  ## Everything CI runs
+test-scripts:  ## pytest over scripts/: the tape writer and the fixture's images (needs uv)
+	$(UV) run --no-project --with pytest --with pillow pytest scripts -q
+
+check: lint test test-scripts build  ## Everything CI runs
+
+# ---- Static demo (safelight.dragonhound.dev): a recorded tape, served without darkroom.
+
+PYTHON ?= python3
+# Where the tape is written; the page reads it at NEXT_PUBLIC_SAFELIGHT_TAPE_URL (/data-tape by default).
+TAPE_DIR ?= web/public/data-tape
+DARKROOM_URL ?= http://localhost:8106
+TAKES ?= docs/demo-takes.json
+DARKROOM_COMMIT ?=
+NOTE ?=
+
+tape-sample:  ## The stand-in tape: fixture/ records and placeholders, labelled Sample data (needs Pillow)
+	$(PYTHON) scripts/record_tape.py sample --out $(TAPE_DIR) \
+		--note "The repo's fixture records with hand-written verdicts and flat-colour placeholder images, standing in until the demo set is recorded."
+
+sample-tape:  ## The sample tape's JSON (no images) in fixture/sample-tape, which the unit tests read (needs Pillow)
+	$(PYTHON) scripts/record_tape.py sample --out fixture/sample-tape --note "The repo's fixture records, as a tape for the unit tests."
+	rm -rf fixture/sample-tape/images fixture/sample-tape/thumbs fixture/sample-tape/veils
+
+tape:  ## Record TAKES against the darkroom at DARKROOM_URL (GPU host; only once the take list is approved)
+	$(PYTHON) scripts/record_tape.py live --darkroom $(DARKROOM_URL) --takes $(TAKES) --out $(TAPE_DIR) \
+		$(if $(DARKROOM_COMMIT),--darkroom-commit $(DARKROOM_COMMIT)) $(if $(NOTE),--note "$(NOTE)")
+
+pages:  ## Static export (SAFELIGHT_STATIC=1) of the tape to web/out/, with a hash CSP on every page
+	# SAFELIGHT_TAPE_DIR (relative to web/) is the tape page.static.tsx makes one record page per record from.
+	cd web && NEXT_PUBLIC_SAFELIGHT_TAPE_URL=/$(patsubst web/public/%,%,$(TAPE_DIR)) SAFELIGHT_TAPE_DIR=$(patsubst web/%,%,$(TAPE_DIR)) $(NPM) run build:pages
+
+shared-check:  ## The vendored Dragonhound shared layer is unedited and matches the published v1 manifest
+	node web/vendor/dh/sync-shared.mjs --check . --against https://dragonhound.dev/brand/v1/manifest.json --allow-outdated
+
+browser-check:  ## Browser check of web/out at 1440 and 390, light and dark (needs PLAYWRIGHT_DIR; SHOTS=dir for screenshots)
+	$(if $(SHOTS),SHOTS=$(SHOTS)) node web/scripts/demo-e2e.mjs web/out
 
 clean:  ## Remove build output and dependencies
 	rm -rf web/node_modules web/.next web/out

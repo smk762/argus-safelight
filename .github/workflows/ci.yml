@@ -29,6 +29,35 @@ jobs:
         run: npm run darkroom:check
       - run: npm test
       - run: npm run build
+      # The hosted demo: a pure static export of the committed tape (web/public/data-tape), a hash CSP on every
+      # page, and check-static.mjs (images for served records only, blocked requests withheld, opsec over the tape).
+      - run: npm run build:pages
+        env:
+          OPSEC_DENYLIST: ${{ secrets.OPSEC_DENYLIST }}
+      - run: python3 -m py_compile ../scripts/record_tape.py
+
+  # The Python scripts' tests: the tape writer (no unfiltered /models key, no leak echoed, a failed recording keeps the
+  # last tape) and the fixture's images (flat colour fields only).
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --no-project --with pytest --with pillow pytest scripts -q
+
+  # The Dragonhound shared design layer (web/vendor/dh) is vendored from dragonhound.dev/brand/v1 and must not be
+  # edited here. Fails if a vendored file changed locally or no longer matches the published v1 manifest; a newer
+  # upstream version is only a warning (re-sync in its own PR).
+  dh-shared:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node web/vendor/dh/sync-shared.mjs --check . --against https://dragonhound.dev/brand/v1/manifest.json --allow-outdated
 
   mock:
     runs-on: ubuntu-latest
@@ -45,3 +74,25 @@ jobs:
           curl -sf 'localhost:8106/records?page_size=100' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const n=JSON.parse(s).total;if(n<12)throw new Error("expected the fixture, got "+n)})'
           curl -sf -o /dev/null localhost:8106/image/fx-passed
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8106/image/fx-deleted-illegal)" = 404
+
+  # Property-based UI testing (Bombadil) through argus-ci's reusable bombadil.yml (argus-ci#12):
+  # drives a browser around the static demo (the committed tape, no darkroom) at random for 3
+  # minutes and checks web/bombadil/spec.ts in every state. Not required yet: continue-on-error
+  # stays until about two weeks of runs without a spurious failure.
+  bombadil:
+    uses: smk762/argus-ci/.github/workflows/bombadil.yml@v1
+    with:
+      working-directory: web
+      node-version: "22"
+      build-command: npm run build:pages
+      serve-dir: out
+      specification: bombadil/spec.ts
+      time-limit: 3m
+      # Matches the devDependency that types the spec.
+      bombadil-version: 0.7.10
+      continue-on-error: true
+
+  suite-rules:
+    # argus-ci suite rules: lint rules that each eliminate a finding class. New violations fail;
+    # existing ones are in .suite-rules-baseline.json, which may only shrink.
+    uses: smk762/argus-ci/.github/workflows/suite-rules.yml@v1

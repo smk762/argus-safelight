@@ -5,19 +5,24 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { MAX_PAGE_SIZE, getRecords, imageUrl } from "@/lib/api";
-import { historyQuery, parseHistoryFilter, type HistoryFilter } from "@/lib/historyQuery";
+import { staticDemo } from "@/lib/demo";
+import { isIllustrative, thumbUrl, veilUrl } from "@/lib/staticApi";
+import { applyHistoryFilter, recordHref } from "@/lib/historyNav";
+import { EMPTY_FILTER, historyQuery, parseHistoryFilter, type HistoryFilter } from "@/lib/historyQuery";
 import { OUTCOME_LABEL, OUTCOME_TONE, hasImage } from "@/lib/outcome";
-import { REASON_WORDS, matchesRule, promptChangedVerdict, reasonParts, recordRules, rowVerdict, type RuleHit } from "@/lib/shields";
-import { ago, formatWhen } from "@/lib/time";
+import { REASON_WORDS, promptChangedVerdict, reasonParts, recordRules, rowVerdict, type RuleHit } from "@/lib/shields";
 import { OUTCOMES, type GenerationRecord, type Mode, type Outcome } from "@/lib/types";
 import { useLoad } from "@/lib/useLoad";
 
 import { ComposeButton } from "./ComposeDialog";
 import { useDarkroom } from "./DarkroomProvider";
+import { DemoBadge } from "./DemoBadge";
 import { HistorySelection } from "./HistorySelection";
 import { ImageRemovedIcon } from "./icons";
 import { PurgeButton } from "./PurgeDialog";
+import { ILLUSTRATIVE } from "./ResultView";
 import { Shield } from "./Shield";
+import { When } from "./When";
 import { Badge, Notice, Spinner } from "./ui";
 
 const SELECT = "rounded-md border border-base-600/60 bg-base-800 px-2 py-1 text-small text-text-primary";
@@ -45,7 +50,7 @@ export function History() {
   const fetched = data?.records ?? null;
   const [picked, setPicked] = useState<ReadonlySet<string>>(() => new Set());
   const narrowed = filter.changed || filter.removed || filter.rule != null;
-  const records = fetched?.filter((record) => (!filter.changed || promptChangedVerdict(record)) && (!filter.removed || record.removed_at != null) && (!filter.rule || matchesRule(record, filter.rule))) ?? null;
+  const records = fetched ? applyHistoryFilter(fetched, filter) : null;
 
   const setFilter = (patch: Partial<HistoryFilter>) => {
     router.replace(`${pathname}${historyQuery({ ...filter, ...patch })}`, { scroll: false });
@@ -86,10 +91,13 @@ export function History() {
             ≠
           </span>
         </label>
-        <label className="flex items-center gap-1.5 text-small text-text-primary" title="Only records whose image was removed. The record stays.">
+        {/* A recording has no removed images to find. */}
+        {staticDemo() ? null : (
+          <label className="flex items-center gap-1.5 text-small text-text-primary" title="Only records whose image was removed. The record stays.">
           <input type="checkbox" checked={filter.removed} onChange={(event) => setFilter({ removed: event.target.checked })} className="accent-accent-primary" />
           <span>Image removed</span>
         </label>
+        )}
       </div>
       {error ? <Notice tone="error">{error}</Notice> : null}
       {data && fetched && data.total > fetched.length ? (
@@ -110,13 +118,15 @@ export function History() {
         )
       ) : null}
       {/* Outside the list: a reload empties it for a moment, and a failure must outlive that. */}
-      <HistorySelection records={records ?? []} picked={picked} devmode={health?.devmode ?? false} onPick={setPicked} onChanged={reload} />
+      {staticDemo() ? null : <HistorySelection records={records ?? []} picked={picked} devmode={health?.devmode ?? false} onPick={setPicked} onChanged={reload} />}
       {records && records.length > 0 ? (
         <ul className="space-y-2">
           {records.map((record) => (
             <HistoryRow
               key={record.id}
               record={record}
+              selectable={!staticDemo()}
+              filter={filter}
               selected={picked.has(record.id)}
               onSelect={(on) => {
                 const next = new Set(picked);
@@ -144,9 +154,10 @@ function RuleSelect({ records, value, onChange }: { records: GenerationRecord[];
   const words = REASON_WORDS.filter((word) => records.some((record) => reasonParts(record.outcome_reason).includes(word)));
   const known = words.includes(value ?? "") || [...byPolicy.values()].some((hits) => value != null && hits.has(value));
   return (
-    <label className="flex items-center text-small">
+    // A select is as wide as its longest option: capped at 320px, and at the row's width on a phone.
+    <label className="flex min-w-0 max-w-full items-center text-small">
       <span className="sr-only">Rule</span>
-      <select value={value ?? ""} onChange={(event) => onChange(event.target.value || null)} className={`max-w-[320px] ${SELECT}`}>
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value || null)} className={`min-w-0 max-w-[min(320px,100%)] ${SELECT}`}>
         <option value="">All rules</option>
         {value && !known ? <option value={value}>{value}</option> : null}
         {[...byPolicy.entries()]
@@ -191,23 +202,25 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
   );
 }
 
-export function HistoryRow({ record, selected, onSelect }: { record: GenerationRecord; selected: boolean; onSelect: (on: boolean) => void }) {
+/** `selectable` is false in the static demo, which removes nothing: no tick box at all. */
+export function HistoryRow({ record, selected, onSelect, selectable = true, filter = EMPTY_FILTER }: { record: GenerationRecord; selected: boolean; onSelect: (on: boolean) => void; selectable?: boolean; filter?: HistoryFilter }) {
   const verdict = rowVerdict(record);
   const changed = promptChangedVerdict(record);
   return (
     <li className="flex items-center gap-2">
-      <input type="checkbox" checked={selected} onChange={(event) => onSelect(event.target.checked)} aria-label={`Select ${record.request.user_prompt || record.id}`} className="ml-1 shrink-0 accent-accent-primary" />
-      <Link href={`/record/${encodeURIComponent(record.id)}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-base-600/60 bg-base-800 p-2 transition-colors hover:border-accent-primary/60 hover:bg-base-700/60">
+      {selectable ? <input type="checkbox" checked={selected} onChange={(event) => onSelect(event.target.checked)} aria-label={`Select ${record.request.user_prompt || record.id}`} className="ml-1 shrink-0 accent-accent-primary" /> : null}
+      <Link href={recordHref(record.id, filter)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-base-600/60 bg-base-800 p-2 transition-colors hover:border-accent-primary/60 hover:bg-base-700/60">
         <Thumb record={record} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-small text-text-primary">{record.request.user_prompt || <span className="text-text-muted">(empty prompt)</span>}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-text-muted">
             <Badge className={OUTCOME_TONE[record.outcome]}>{record.outcome}</Badge>
+            {staticDemo() && isIllustrative(record.id) ? <DemoBadge state="sample" title={ILLUSTRATIVE} /> : null}
             {record.removed_at ? <Badge className="border-base-600 text-text-secondary">image removed</Badge> : null}
             <span className="uppercase">{record.request.mode}</span>
             <span className="font-mono">{record.guard.enforcing_policy}</span>
             {record.outcome_reason ? <span>· {record.outcome_reason}</span> : null}
-            <span title={formatWhen(record.created_at)}>· {ago(record.created_at)}</span>
+            <span>· <When iso={record.created_at} /></span>
           </p>
         </div>
         {changed ? (
@@ -223,6 +236,16 @@ export function HistoryRow({ record, selected, onSelect }: { record: GenerationR
 
 /** A thumbnail for a served image. Anything else gets a plain mark and no img element. */
 function Thumb({ record }: { record: GenerationRecord }) {
+  if (hasImage(record) && staticDemo()) {
+    // The tape's 160 px thumbnail, or for a veiled frame its mosaic alone: the thumbnail is never requested.
+    const veil = veilUrl(record.id);
+    return (
+      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-base-700">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a file on the tape */}
+        <img src={veil || thumbUrl(record.id)} alt="" width={48} height={48} loading="lazy" decoding="async" className={`h-full w-full object-cover ${veil ? "veil" : ""}`} draggable={false} />
+      </span>
+    );
+  }
   if (hasImage(record)) {
     const blur = record.guard.nudenet?.blur ?? false;
     return (
