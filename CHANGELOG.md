@@ -6,6 +6,8 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-19
+
 ### Added
 
 - **A hosted static demo** for safelight.dragonhound.dev (`make pages`, `SAFELIGHT_STATIC=1`): a pure static export that replays a recorded data tape (`web/public/data-tape`) and never calls darkroom. Every page gets a hash-based CSP with a Trusted Types policy (`web/scripts/csp.mjs`, as in Cull), and `_headers` carries `frame-ancestors`. History, records, docs, Regenerate and Copy record work as live. Compose offers the tape's **recorded prompts**: Check shows the pre-flight darkroom recorded for it, and Generate replays the recorded stream, so the grid fills cell by cell and lands on the record. Writes (Remove image, row selection, purge) and the input-image field are left out, and the status icon too: a recording has no live server.
