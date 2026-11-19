@@ -367,7 +367,13 @@ def write_tape(
         if out.exists():
             old = Path(tempfile.mkdtemp(dir=out.parent, prefix=f".{out.name}-old-"))
             out.rename(old / out.name)
-            building.rename(out)
+            try:
+                building.rename(out)
+            except BaseException:
+                # Put the last tape back where it was: a failed swap must not leave it only in a hidden directory.
+                (old / out.name).rename(out)
+                shutil.rmtree(old)
+                raise
             shutil.rmtree(old)
         else:
             building.rename(out)

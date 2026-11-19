@@ -80,12 +80,21 @@ else {
       if (Object.keys(nude?.labels ?? {}).length > 0 || (nude?.detections ?? []).length > 0) problems.push(`${record.id} is blocked but keeps NudeNet's classes (labels or detections)`);
     }
     if (tape.takes.includes(record.id)) {
-      const take = readFileSync(join(root, "takes", `${record.id}.json`), "utf8");
-      for (const event of JSON.parse(take).events) {
+      const take = JSON.parse(readFileSync(join(root, "takes", `${record.id}.json`), "utf8"));
+      // What Check shows: POST /preflight's answer, kept beside the stream.
+      if (take.preflight) {
+        for (const key of ["user_prompt", "final_prompt", "framed_text"]) if (!WITHHELD.test(take.preflight[key] ?? "")) problems.push(`take ${record.id}: the pre-flight answer keeps its ${key}`);
+        if (Object.values(take.preflight.results ?? {}).some(explained)) problems.push(`take ${record.id}: the pre-flight answer keeps SingGuard's explanation`);
+      }
+      for (const event of take.events) {
         const [name, data] = event;
-        if (name === "preflight" && !WITHHELD.test(data.user_prompt)) problems.push(`take ${record.id}: the preflight event keeps the prompt`);
+        if (name === "preflight") {
+          for (const key of ["user_prompt", "final_prompt", "framed_text"]) if (!WITHHELD.test(data[key] ?? "")) problems.push(`take ${record.id}: the preflight event keeps its ${key}`);
+        }
         if ((name === "scan" || name === "input_scan") && explained(data.cell)) problems.push(`take ${record.id}: a scan keeps SingGuard's explanation`);
-        if (name === "complete" && !WITHHELD.test(data.record.request.user_prompt)) problems.push(`take ${record.id}: the complete event keeps the prompt`);
+        if (name === "complete") {
+          for (const key of ["user_prompt", "final_prompt"]) if (!WITHHELD.test(data.record.request[key] ?? "")) problems.push(`take ${record.id}: the complete event keeps its ${key}`);
+        }
       }
     }
   }

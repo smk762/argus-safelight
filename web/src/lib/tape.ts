@@ -86,6 +86,18 @@ export function parseTape(raw: unknown): Tape {
     if (!record) fail(`files names ${id}, which is not on the tape`);
     if (!servedImage(record)) fail(`files names ${id}, a ${record.outcome} record: only a served image may have a file`);
   }
+  for (const record of records) {
+    // The page renders an <img> for every served record: one with no file would point it at "".
+    if (servedImage(record) && !(record.id in files)) fail(`${record.id} is ${record.outcome} but has no file`);
+  }
+  // Check and Generate find a take by its prompt and policies alone: two takes alike there could never both replay.
+  const seen = new Map<string, string>();
+  for (const id of tape.takes as string[]) {
+    const record = records.find((entry) => entry.id === id)!;
+    const key = takeKey(record.request.user_prompt, record.guard.enforcing_policy, record.guard.advisory_policies);
+    if (seen.has(key)) fail(`takes ${seen.get(key)} and ${id} share a prompt and policies, so only the first could replay`);
+    seen.set(key, id);
+  }
   if (tape.illustrative != null && (!Array.isArray(tape.illustrative) || !tape.illustrative.every((id) => typeof id === "string" && ids.has(id) && !(id in files)))) fail("illustrative must list record ids that have no file");
   const veils = object(tape.veils, "veils");
   if (typeof veils.medium !== "number" || !Number.isInteger(veils.medium) || veils.medium < 4 || veils.medium > 64) fail("veils.medium must be a cell count from 4 to 64");
@@ -113,10 +125,9 @@ export function recordPage(tape: Pick<Tape, "records">, query: RecordQuery = {})
   return { records: matching.slice((page - 1) * pageSize, page * pageSize), total: matching.length, page, page_size: pageSize };
 }
 
-function sameSet(a: readonly string[], b: readonly string[]): boolean {
-  const left = new Set(a);
-  const right = new Set(b);
-  return left.size === right.size && [...left].every((name) => right.has(name));
+/** What picks a take: the trimmed prompt, the enforcing policy and the set of other advisory policies. */
+function takeKey(prompt: string, enforcing: string, advisory: readonly string[]): string {
+  return JSON.stringify([prompt.trim(), enforcing, [...new Set(advisory.filter((name) => name !== enforcing))].sort()]);
 }
 
 /**
@@ -125,13 +136,11 @@ function sameSet(a: readonly string[], b: readonly string[]): boolean {
  */
 export function takeFor(tape: Pick<Tape, "records" | "takes"> | null, request: Pick<GenerateRequest, "user_prompt" | "enforcing_policy" | "advisory_policies">): GenerationRecord | null {
   if (!tape) return null;
-  const prompt = request.user_prompt.trim();
-  const advisory = request.advisory_policies.filter((name) => name !== request.enforcing_policy);
+  const key = takeKey(request.user_prompt, request.enforcing_policy, request.advisory_policies);
   for (const id of tape.takes) {
     const record = tape.records.find((entry) => entry.id === id);
     if (!record) continue;
-    const { guard } = record;
-    if (record.request.user_prompt.trim() === prompt && guard.enforcing_policy === request.enforcing_policy && sameSet(guard.advisory_policies.filter((name) => name !== guard.enforcing_policy), advisory)) return record;
+    if (takeKey(record.request.user_prompt, record.guard.enforcing_policy, record.guard.advisory_policies) === key) return record;
   }
   return null;
 }

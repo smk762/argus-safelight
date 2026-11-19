@@ -289,7 +289,6 @@ export function ComposeForm() {
 
 export const DEMO_TAKE_BLOCK = "This demo replays recorded runs: pick a recorded prompt above. A prompt or policies the recording does not hold have no run to replay.";
 
-/** The static demo's recorded prompts. Picking one fills the whole form from its record, as Regenerate does. */
 /**
  * A LoRA's trigger words as one comma-separated field. The text is kept as typed while the field has focus, so a comma
  * or a space can be typed before the next word; the words it parses to go to the form on every keystroke.
@@ -312,6 +311,7 @@ function TriggerWords({ words, label, onWords }: { words: string[]; label: strin
   );
 }
 
+/** The static demo's recorded prompts. Picking one fills the whole form from its record, as Regenerate does. */
 function TakePicker({ tape, current, onPick }: { tape: Tape | null; current: string; onPick: (record: ReturnType<typeof takeRecords>[number]) => void }) {
   const takes = takeRecords(tape);
   return (
