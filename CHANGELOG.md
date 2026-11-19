@@ -6,6 +6,10 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 
 ## [Unreleased]
 
+### Security
+
+- **Dev dependencies patched for three Dependabot alerts**, all in `web/package-lock.json` and none in the shipped bundle: vitest 4.1.11 → 4.1.12 (`@vitest/mocker`, GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp) and typescript-eslint 8.72.0 → 8.73.0, which moves its minimatch from 10.2.6 to 11.0.9 (GHSA-g3hv-75wg-m249).
+
 ## [0.3.0] - 2026-11-19
 
 ### Added
