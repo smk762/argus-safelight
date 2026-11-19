@@ -30,3 +30,16 @@ describe("parseSseFrames", () => {
     expect(rest).toBe("");
   });
 });
+
+describe("readSse", () => {
+  it("delivers a last frame that ends in lone CRs when the stream closes", async () => {
+    const { readSse } = await import("./api");
+    const body = 'event: queued\rdata: {"position":0}\r\revent: complete\rdata: {"record":{"id":"r1"}}\r\r';
+    const seen: [string, unknown][] = [];
+    await readSse(new Response(body), (event, data) => seen.push([event, data]));
+    expect(seen).toEqual([
+      ["queued", { position: 0 }],
+      ["complete", { record: { id: "r1" } }],
+    ]);
+  });
+});

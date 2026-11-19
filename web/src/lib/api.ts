@@ -103,7 +103,9 @@ export async function readSse(response: Response, onEvent: (event: string, data:
   while (true) {
     const { done, value } = await reader.read();
     rest += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-    const parsed = parseSseFrames(rest);
+    // At the end, a CR that parseSseFrames held back for a possible CRLF is a line end after all: the last frame
+    // (`complete`) may end in one when a proxy sends lone-CR line endings.
+    const parsed = parseSseFrames(done && rest.endsWith("\r") ? `${rest.slice(0, -1)}\n` : rest);
     rest = parsed.rest;
     for (const frame of parsed.events) onEvent(frame.event, frame.data);
     if (done) break;
