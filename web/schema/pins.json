@@ -2,8 +2,8 @@
   "darkroom": {
     "repo": "smk762/argus-darkroom",
     "branch": "dev",
-    "commit": "fe32c9e18ed5269ab09fd552be963025401ed2b9",
-    "version": "0.1.4.dev82+gfe32c9e",
+    "commit": "567ef35ba8ded1dea09ab8dafc05c00f55b4abac",
+    "version": "0.1.4.dev84+g567ef35",
     "pypi": "argus-darkroom",
     "schema": {
       "path": "schema/darkroom-wire.schema.json",
