@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { DOCS, OLLAMA_SETUP } from "@/lib/docsLinks";
-import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, fromRecord, generateBlock, randomSeed, renderMode, toRequest, withCheckpoint } from "@/lib/compose";
+import { NSFW_THRESHOLD_MAX, NSFW_THRESHOLD_MIN, READ_ONLY_BLOCK, SIZES, canExpand, fromRecord, generateBlock, randomSeed, renderMode, toRequest, withCheckpoint, type ComposeState } from "@/lib/compose";
 import { staticDemo } from "@/lib/demo";
 import { isWithheld, takeFor, takeRecords, type Tape } from "@/lib/tape";
 import { THINKING_MODES, type CheckpointOption, type Models, type ThinkingMode } from "@/lib/types";
@@ -35,6 +35,9 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: st
 export function ComposeForm() {
   const { health, policies, models, error, tape } = useDarkroom();
   const { compose, ready, update, replace, check, preflight, start, stop, running } = useCompose();
+  // Controlled fields: read the value in the handler and pass the constant in. React puts a controlled
+  // field's value back once the event ends, and the updater may run after that.
+  const sample = (patch: Partial<ComposeState["sampling"]>) => update((current) => ({ ...current, sampling: { ...current.sampling, ...patch } }));
   const ollamaDown = !canExpand(health);
   const readOnly = health?.read_only ?? false;
   const checking = preflight.state === "checking";
@@ -126,7 +129,10 @@ export function ComposeForm() {
                         max="2"
                         value={lora.weight}
                         aria-label={`Weight for ${lora.name}`}
-                        onChange={(event) => update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, weight: Number(event.target.value) } : entry)) }))}
+                        onChange={(event) => {
+                          const weight = Number(event.target.value);
+                          update((current) => ({ ...current, loras: current.loras.map((entry, i) => (i === index ? { ...entry, weight } : entry)) }));
+                        }}
                         className={`${FIELD} w-20`}
                       />
                     </label>
@@ -192,24 +198,24 @@ export function ComposeForm() {
             <SectionTitle>Sampling</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Sampler" htmlFor="sampler">
-                <select id="sampler" value={compose.sampling.sampler} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, sampler: event.target.value } }))} className={FIELD} disabled={!models}>
+                <select id="sampler" value={compose.sampling.sampler} onChange={(event) => sample({ sampler: event.target.value })} className={FIELD} disabled={!models}>
                   {withCurrent(models?.samplers, compose.sampling.sampler).map((name) => (
                     <option key={name}>{name}</option>
                   ))}
                 </select>
               </Field>
               <Field label="Scheduler" htmlFor="scheduler">
-                <select id="scheduler" value={compose.sampling.scheduler} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, scheduler: event.target.value } }))} className={FIELD} disabled={!models}>
+                <select id="scheduler" value={compose.sampling.scheduler} onChange={(event) => sample({ scheduler: event.target.value })} className={FIELD} disabled={!models}>
                   {withCurrent(models?.schedulers, compose.sampling.scheduler).map((name) => (
                     <option key={name}>{name}</option>
                   ))}
                 </select>
               </Field>
               <Field label="Steps" htmlFor="steps">
-                <input id="steps" type="number" min={1} max={150} value={compose.sampling.steps} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, steps: Math.max(1, Math.floor(Number(event.target.value) || 1)) } }))} className={FIELD} />
+                <input id="steps" type="number" min={1} max={150} value={compose.sampling.steps} onChange={(event) => sample({ steps: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} className={FIELD} />
               </Field>
               <Field label="CFG" htmlFor="cfg">
-                <input id="cfg" type="number" min={0} max={30} step={0.5} value={compose.sampling.cfg} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, cfg: Number(event.target.value) } }))} className={FIELD} />
+                <input id="cfg" type="number" min={0} max={30} step={0.5} value={compose.sampling.cfg} onChange={(event) => sample({ cfg: Number(event.target.value) })} className={FIELD} />
               </Field>
               {hasGuidance ? (
                 <Field label="Guidance" htmlFor="guidance" hint="Flux's distilled guidance. The workflow needs a value; CFG usually stays at 1.">
@@ -220,18 +226,18 @@ export function ComposeForm() {
                     max={30}
                     step={0.5}
                     value={compose.sampling.guidance ?? DEFAULT_GUIDANCE}
-                    onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, guidance: Math.max(0, Number(event.target.value)) } }))}
+                    onChange={(event) => sample({ guidance: Math.max(0, Number(event.target.value)) })}
                     className={FIELD}
                   />
                 </Field>
               ) : null}
               <Field label="Width" htmlFor="width">
-                <select id="width" value={compose.sampling.width} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, width: Number(event.target.value) } }))} className={FIELD}>
+                <select id="width" value={compose.sampling.width} onChange={(event) => sample({ width: Number(event.target.value) })} className={FIELD}>
                   {sizeOptions(compose.sampling.width)}
                 </select>
               </Field>
               <Field label="Height" htmlFor="height">
-                <select id="height" value={compose.sampling.height} onChange={(event) => update((c) => ({ ...c, sampling: { ...c.sampling, height: Number(event.target.value) } }))} className={FIELD}>
+                <select id="height" value={compose.sampling.height} onChange={(event) => sample({ height: Number(event.target.value) })} className={FIELD}>
                   {sizeOptions(compose.sampling.height)}
                 </select>
               </Field>

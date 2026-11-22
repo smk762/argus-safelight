@@ -83,6 +83,12 @@ describe("the imported docs", () => {
     expect(tree).toContain('"url":"/docs/darkroom/docs/flow.png"');
   });
 
+  it("read a root-relative link from darkroom's repo root, not this site's", async () => {
+    const page = { slug: "guide", file: "docs/guide.md", title: "Guide", sections: null } as unknown as DocPage;
+    const tree = await transform(page, "[licence](/LICENSE) and [design](/spec.md)\n", () => "");
+    expect(tree.match(/"url":"[^"]+"/g)).toEqual([`"url":"https://github.com/${DARKROOM.repo}/blob/${DARKROOM.commit}/LICENSE"`, '"url":"/docs/design"']);
+  });
+
   it("load a root-relative image from the repo's root, and drop one outside the repo", async () => {
     const page = { slug: "guide", file: "docs/guide.md", title: "Guide", sections: null } as unknown as DocPage;
     const tree = await transform(page, "![a](/img/a.png) ![b](b.png) ![c](../../c.png)\n");

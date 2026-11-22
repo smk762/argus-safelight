@@ -65,6 +65,15 @@ def test_a_failed_recording_leaves_the_last_tape(tmp_path: Path) -> None:
     assert sorted(p.name for p in tmp_path.iterdir()) == ["data-tape"]
 
 
+@pytest.mark.parametrize("record_id", ["../escape", "a/b", "..", ".hidden", "c:d"])
+def test_a_take_with_an_unsafe_id_is_refused(tmp_path: Path, record_id: str) -> None:
+    out = tmp_path / "data-tape"
+    record = {**fixture_record("fx-refused"), "id": record_id}
+    with pytest.raises(SystemExit, match="not a safe file name"):
+        write(out, [(record, None, [["queued", {}]])])
+    assert sorted(p.name for p in tmp_path.iterdir()) == []
+
+
 def test_a_good_recording_replaces_the_last_tape(tmp_path: Path) -> None:
     out = tmp_path / "data-tape"
     write(out, [(fixture_record("fx-refused"), None, None)])

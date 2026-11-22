@@ -104,7 +104,8 @@ describe.skipIf(!BASE)("the form against a live darkroom", () => {
     const mismatches: string[] = [];
     for (const checkpoint of models.checkpoints) {
       for (const [mode, extra] of modes) {
-        for (let count = 0; count <= 3; count++) {
+        // LoRAs repeat to fill a count; with none listed, only the count of zero can be sent.
+        for (let count = 0; count <= (models.loras.length ? 3 : 0); count++) {
           const loras = Array.from({ length: count }, (_, i) => ({ name: models.loras[i % models.loras.length].name, weight: 1, trigger_words: [] }));
           const state = { ...withCheckpoint(base, checkpoint.name, models), loras, ...extra };
           const block = workflowBlock(models, checkpoint.name, count, mode);

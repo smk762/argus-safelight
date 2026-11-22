@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { defaultCompose, withCheckpoint, type ComposeState } from "@/lib/compose";
+import { SIZES, defaultCompose, withCheckpoint, type ComposeState } from "@/lib/compose";
 import type { Models } from "@/lib/types";
 
 import { ComposeForm } from "./ComposeForm";
@@ -71,6 +71,26 @@ describe("ComposeForm offers what darkroom can render", () => {
     const next = update.mock.calls[0][0](view.compose) as ComposeState;
     expect(next.checkpoint).toBe(FLUX);
     expect(next.sampling).toMatchObject({ sampler: "euler", scheduler: "simple", cfg: 1, guidance: 3.5 });
+  });
+
+  it("keeps each sampling edit and LoRA weight once the event has ended", () => {
+    on(FLUX, { loras: [{ name: "argus-style-soft.safetensors", weight: 1, trigger_words: [] }] });
+    const edits: [string, string, (next: ComposeState) => unknown][] = [
+      ["Sampler", models.samplers.find((name) => name !== view.compose.sampling.sampler)!, (next) => next.sampling.sampler],
+      ["Scheduler", models.schedulers.find((name) => name !== view.compose.sampling.scheduler)!, (next) => next.sampling.scheduler],
+      ["Steps", "33", (next) => String(next.sampling.steps)],
+      ["CFG", "4.5", (next) => String(next.sampling.cfg)],
+      ["Guidance", "2.5", (next) => String(next.sampling.guidance)],
+      ["Width", String(SIZES.find((size) => size !== view.compose.sampling.width)), (next) => String(next.sampling.width)],
+      ["Height", String(SIZES.find((size) => size !== view.compose.sampling.height)), (next) => String(next.sampling.height)],
+      ["Weight for argus-style-soft.safetensors", "0.6", (next) => String(next.loras[0].weight)],
+    ];
+    for (const [label, value, read] of edits) {
+      update.mockReset();
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      // The field is controlled, so it is back to its old value by now; the updater must not read it.
+      expect(read(update.mock.calls[0][0](view.compose) as ComposeState), label).toBe(value);
+    }
   });
 
   it("stops adding LoRAs where the family's templates stop, and blocks a count it cannot render", () => {
