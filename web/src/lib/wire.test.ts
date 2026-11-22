@@ -42,7 +42,7 @@ describe("the opsec gate", () => {
   });
 
   it("refuses private addresses, home paths and emails, with the line", () => {
-    const hits = opsecHits("one\nhttp://192.168.1.20:8106\n/home/someone/models\nmail a@b.example\nfe80::1:2\n");
+    const hits = opsecHits("one\nhttp://192.168.200.20:8106\n/home/someone/models\nmail a@b.example\nfe80::1:2\n");
     expect(hits.map((hit) => [hit.line, hit.kind])).toEqual([
       [2, "private IPv4 address"],
       [3, "home directory path"],
