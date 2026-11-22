@@ -21,20 +21,20 @@ describe("contentSecurityPolicy", () => {
   });
 
   it("lets the browser reach darkroom's API and images by origin, and nothing else", () => {
-    const csp = directives(contentSecurityPolicy("abc", false, "http://192.168.1.5:8106/api"));
-    expect(csp.get("connect-src")).toEqual(["'self'", "http://192.168.1.5:8106"]);
-    expect(csp.get("img-src")).toEqual(["'self'", "blob:", "data:", "http://192.168.1.5:8106"]);
+    const csp = directives(contentSecurityPolicy("abc", false, "http://192.168.200.5:8106/api"));
+    expect(csp.get("connect-src")).toEqual(["'self'", "http://192.168.200.5:8106"]);
+    expect(csp.get("img-src")).toEqual(["'self'", "blob:", "data:", "http://192.168.200.5:8106"]);
     expect(csp.has("upgrade-insecure-requests")).toBe(false);
   });
 
   it("allows the address a LAN page calls when darkroom's URL is loopback", () => {
-    const origin = darkroomUrl("192.168.1.5", "http://localhost:8106");
-    expect(directives(contentSecurityPolicy("abc", false, origin)).get("connect-src")).toEqual(["'self'", "http://192.168.1.5:8106"]);
+    const origin = darkroomUrl("192.168.200.5", "http://localhost:8106");
+    expect(directives(contentSecurityPolicy("abc", false, origin)).get("connect-src")).toEqual(["'self'", "http://192.168.200.5:8106"]);
   });
 
   it("keeps a path prefix in darkroom's URL, loopback or not, and drops a trailing slash", () => {
-    expect(darkroomUrl("192.168.1.5", "http://localhost:8106")).toBe("http://192.168.1.5:8106");
-    expect(darkroomUrl("192.168.1.5", "http://localhost:8106/darkroom/")).toBe("http://192.168.1.5:8106/darkroom");
+    expect(darkroomUrl("192.168.200.5", "http://localhost:8106")).toBe("http://192.168.200.5:8106");
+    expect(darkroomUrl("192.168.200.5", "http://localhost:8106/darkroom/")).toBe("http://192.168.200.5:8106/darkroom");
     expect(darkroomUrl("demo.example", "https://demo.example/darkroom")).toBe("https://demo.example/darkroom");
     expect(directives(contentSecurityPolicy("abc", false, darkroomUrl("demo.example", "https://demo.example/darkroom"))).get("connect-src")).toEqual(["'self'", "https://demo.example"]);
   });

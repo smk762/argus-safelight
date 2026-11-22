@@ -33,7 +33,7 @@ export const config = {
   ],
 };
 
-/** The hostname of a Host header (`192.168.1.5:3097`, `[::1]:3097`), or null when it is missing or not a host. */
+/** The hostname of a Host header (`192.0.2.5:3097`, `[::1]:3097`), or null when it is missing or not a host. */
 function pageHostname(host: string | null): string | null {
   if (!host) return null;
   try {
