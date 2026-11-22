@@ -110,7 +110,8 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     // The live view keeps the request without the input's pixels; only the stream carries them.
     const input = compose.initImage && request.init_image ? { width: compose.initImage.width, height: compose.initImage.height, denoise: request.init_image.denoise, maskFraction: compose.mask?.fraction ?? null } : null;
     dispatch({ type: "start", request: withoutPixels(request), input });
-    checks.current += 1;
+    // A check run after Generate (the composer can be reopened) owns the verdict from then on.
+    const mine = ++checks.current;
     setPreflight({ state: "idle", result: null, error: null, forRequest: null });
     setComposerOpen(false);
     router.push("/");
@@ -119,7 +120,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       {
         onPreflight: (result) => {
           dispatch({ type: "preflight", preflight: result });
-          setPreflight({ state: "done", result, error: null, forRequest: preflightKey(request) });
+          if (checks.current === mine) setPreflight({ state: "done", result, error: null, forRequest: preflightKey(request) });
         },
         onQueued: () => dispatch({ type: "queued" }),
         onProgress: (progress) => dispatch({ type: "progress", progress }),

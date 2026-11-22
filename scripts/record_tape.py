@@ -204,6 +204,16 @@ def veil(data: bytes, cells: int) -> bytes:
         return out.getvalue()
 
 
+# A take is served as takes/<id>.json and looked up by the record's id, so the id must be one safe path component.
+SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+
+
+def take_name(record_id: str) -> str:
+    if not SAFE_ID.fullmatch(record_id):
+        raise SystemExit(f"record_tape: record id {record_id!r} is not a safe file name; refusing to write its take")
+    return f"{record_id}.json"
+
+
 def file_id(record_id: str) -> str:
     return hashlib.sha256(f"safelight-tape:{record_id}".encode()).hexdigest()[:16]
 
@@ -425,7 +435,7 @@ def _build_tape(
                 (out / "veils" / f"{ident}-medium.webp").write_bytes(veil(data, VEIL_CELLS["medium"]))
                 veils.append(record["id"])
         if events and replayable(record):
-            (out / "takes" / f"{record['id']}.json").write_text(json.dumps({"preflight": preflight, "events": events}, separators=(",", ":")))
+            (out / "takes" / take_name(record["id"])).write_text(json.dumps({"preflight": preflight, "events": events}, separators=(",", ":")))
             replay.append(record["id"])
         print(f"  {record['id']}: {record['outcome']}{' (withheld)' if hide else ''}{' (veiled)' if record['id'] in veils else ''}", file=sys.stderr)
     records.sort(key=lambda r: r["created_at"], reverse=True)

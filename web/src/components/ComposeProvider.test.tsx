@@ -84,4 +84,24 @@ describe("pre-flight in the compose provider", () => {
     });
     expect(compose().preflight.result).toEqual(verdict("generation"));
   });
+
+  it("keeps a manual check run after Generate over the stream's own pre-flight that arrives later", async () => {
+    render(
+      <ComposeProvider>
+        <Probe />
+      </ComposeProvider>,
+    );
+    act(() => compose().start());
+    act(() => compose().update({ userPrompt: "a flat green field" }));
+    let pending!: Promise<unknown>;
+    act(() => {
+      pending = compose().check();
+    });
+    await act(async () => {
+      calls.preflight[0](verdict("manual"));
+      await pending;
+    });
+    act(() => (calls.generate[0] as GenerateHandlers).onPreflight?.(verdict("generation")));
+    expect(compose().preflight.result).toEqual(verdict("manual"));
+  });
 });

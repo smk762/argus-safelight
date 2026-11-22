@@ -54,10 +54,11 @@ const isRemote = (url: string) => /^[a-z][a-z0-9+.-]*:|^\/\//i.test(url);
 /** Every relative target resolved: on this site when it is an imported doc, else GitHub. */
 function resolveUrl(url: string, page: DocPage, anchorsOn: (doc: DocPage) => Set<string>, pin: DarkroomPin): string {
   const links = darkroomLinks(pin);
-  if (isRemote(url) || url.startsWith("/")) return url;
+  if (isRemote(url)) return url;
   if (url.startsWith("#")) return anchorsOn(page).has(url.slice(1)) ? url : `${links.blob(page.file)}${url}`;
   const [path, anchor] = url.split("#", 2);
-  const target = posix.normalize(posix.join(posix.dirname(page.file), path));
+  // `/x` is darkroom's repo root, as on GitHub (and as `vendoredImage` reads it), never this site's.
+  const target = path.startsWith("/") ? posix.normalize(path.slice(1)) : posix.normalize(posix.join(posix.dirname(page.file), path));
   if (target.startsWith("../")) {
     // A sibling repo in the suite's checkout layout: `../argus-safelight/spec.md`.
     const [repo, ...rest] = target.slice(3).split("/");

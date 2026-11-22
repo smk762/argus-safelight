@@ -20,6 +20,7 @@ export function LiveView({ live, onStop, onClear }: { live: LiveState; onStop: (
   const byInput = live.record != null && inputRefused(live.record);
   // The input image's stage is there only when the request carried one.
   const stages: Stage[] = STAGES.filter((stage) => stage !== "input" || live.input != null);
+  const stopped = refused || byInput;
   const stageIndex = refused ? 0 : byInput ? stages.indexOf("input") : stages.indexOf(live.phase as Stage);
   const rows: PolicyRow[] = live.policies.map((policy) => ({ policy, enforcing: policy === live.enforcing, pair: live.cells[policy] ?? null }));
   const inputRows: PolicyRow[] = live.policies.map((policy) => ({ policy, enforcing: policy === live.enforcing, pair: live.inputCells[policy] ?? null }));
@@ -48,11 +49,12 @@ export function LiveView({ live, onStop, onClear }: { live: LiveState; onStop: (
         </div>
         <ol className={`mt-3 grid gap-1 text-caption ${stages.length === 6 ? "grid-cols-6" : "grid-cols-5"}`} aria-label="Stages">
           {stages.map((stage, index) => {
-            const done = (index < stageIndex || live.phase === "complete") && !(byInput && index === stageIndex);
-            const current = index === stageIndex && (live.phase !== "complete" || byInput);
+            // A refusal stops at its stage: nothing after it ran, so a complete stream marks only the stages before it done.
+            const done = index < stageIndex || (live.phase === "complete" && !stopped);
+            const current = index === stageIndex && (live.phase !== "complete" || stopped);
             return (
               <li key={stage} className="space-y-1">
-                <div className={`h-1.5 rounded-full ${done ? "bg-success" : current ? (byInput ? "bg-error" : "bg-accent-primary") : "bg-base-600"}`} aria-hidden="true" />
+                <div className={`h-1.5 rounded-full ${done ? "bg-success" : current ? (stopped ? "bg-error" : "bg-accent-primary") : "bg-base-600"}`} aria-hidden="true" />
                 <span className={current ? "text-text-primary" : "text-text-muted"}>{PHASE_LABEL[stage]}</span>
               </li>
             );
