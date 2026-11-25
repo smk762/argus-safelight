@@ -124,6 +124,8 @@ make pages         # static export to web/out, hash CSP on every page, then chec
 make browser-check PLAYWRIGHT_DIR=<dir with node_modules/playwright> SHOTS=<dir>
 ```
 
+`.github/workflows/pages.yml` deploys it to Cloudflare Pages from every `dev` commit that passes CI.
+
 ## Licence
 
 MIT.
