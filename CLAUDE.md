@@ -80,7 +80,7 @@ House exceptions to its advice:
 - **CSP:** `web/scripts/csp.mjs` adds a hash CSP `<meta>`, a Trusted Types `default` policy and the `dh-theme.js` tag to every exported page; the policy names `'self'` only.
 - **The tape decides what can be fetched.** `imageUrl`/`thumbUrl`/`veilUrl` return `""` for anything without a file. A veiled frame requests neither its thumbnail nor its image until Reveal. `demo-e2e.mjs` (`make browser-check`) checks the requests in a browser.
 - **Recording** follows `docs/demo-recording.md`: synthetic adults, catalogue-level at most, a person reviews every candidate, and each approved take is pinned by `_expect_image_sha256`. Illegal and minor-exposed outcomes are hand-written fixture records (`--illustrative`), labelled Sample data, never generated.
-- **Dragonhound shared layer:** `web/vendor/dh` is vendored (dh-shared 1.2.8); `public/dh-theme.js` is a copy. The strip renders in the static build only, with `data-dh-site="safelight"`.
+- **Dragonhound shared layer:** `web/vendor/dh` is vendored (dh-shared 1.2.11); `public/dh-theme.js` is a copy. The strip renders in the static build only, with `data-dh-site="safelight"`.
 
 ## Conventions & gotchas
 
