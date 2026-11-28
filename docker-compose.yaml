@@ -3,7 +3,7 @@
 # profile and set NEXT_PUBLIC_DARKROOM_URL to the real server. The real pairing
 # also lives in argus-darkroom's compose file.
 services:
-  web:
+  web:  # nosemgrep: service-peer-label  the safelight demo UI (Next.js), not a suite service
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,7 +19,7 @@ services:
         required: false
     restart: unless-stopped
 
-  mock-darkroom:
+  mock-darkroom:  # nosemgrep: service-peer-label  test fixture standing in for darkroom; must not be listed as the darkroom peer
     profiles: [mock]
     image: node:22-alpine
     working_dir: /repo
