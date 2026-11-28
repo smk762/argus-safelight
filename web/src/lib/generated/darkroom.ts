@@ -1,4 +1,4 @@
-// Generated from smk762/argus-darkroom@34fa4e2 (0.1.4.dev88+g34fa4e2) schema/darkroom-wire.schema.json.
+// Generated from smk762/argus-darkroom@ac47f95 (0.1.4.dev95+gac47f95) schema/darkroom-wire.schema.json.
 // Do not edit: run `make sync` (or `npm run darkroom:pull`) to move to darkroom's dev HEAD.
 
 export interface DarkroomWire {

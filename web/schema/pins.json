@@ -2,16 +2,16 @@
   "darkroom": {
     "repo": "smk762/argus-darkroom",
     "branch": "dev",
-    "commit": "34fa4e29c4e758754b0eb4bc4b4d6cea5c5aed08",
-    "version": "0.1.4.dev88+g34fa4e2",
+    "commit": "ac47f957339a7e4cdc4a86f114553eece3065fbc",
+    "version": "0.1.4.dev95+gac47f95",
     "pypi": "argus-darkroom",
     "schema": {
       "path": "schema/darkroom-wire.schema.json",
       "sha256": "98723e2b56c16b5c4274a9c2a7693bdfed46da7de4b469dbdd4eb720b86b5e9d"
     },
     "docs": {
-      "README.md": "51bb2d533946f9abb472e48f6a536fdc57bdff7da5fddae6d8c64da05514f49b",
-      "spec.md": "8aa34f2dc4d0e01dedb522f62e32ddf152f45ba8e00c15d6bb5c884409a7b1d9"
+      "README.md": "a020b30bcfb859d8eb1be9850b4c08fa9d3e5602e8d6e6ed75dc722399dabbe4",
+      "spec.md": "9f9e1ab1f31fd3a1e10e51b1a53fc4277a620aa4616e537e73bf84af3e33d169"
     },
     "images": {}
   }
