@@ -10,6 +10,12 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 
 - The hosted demo deploys itself: `.github/workflows/pages.yml` publishes every `dev` commit that passes CI and checks the live site serves that build.
 
+### Changed
+- The docs header and the compose form's Ollama hint link the suite handbook's setup pages for ComfyUI, Ollama, SingGuard and NudeNet (`docs.dragonhound.dev/setup/services/…`), argus-studio#172's "Setup and services", in place of each project's own guide.
+
+### Fixed
+- `workflows.contract.test.ts` records a refusal whose body is not JSON (a plain-text 500) as a mismatch instead of ending the whole sweep.
+
 ### Security
 
 - **Dev dependencies patched for three Dependabot alerts**, all in `web/package-lock.json` and none in the shipped bundle: vitest 4.1.11 → 4.1.12 (`@vitest/mocker`, GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp) and typescript-eslint 8.72.0 → 8.73.0, which moves its minimatch from 10.2.6 to 11.0.9 (GHSA-g3hv-75wg-m249).
