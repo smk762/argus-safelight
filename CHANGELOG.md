@@ -10,6 +10,10 @@ Safelight follows argus-darkroom's `dev` branch at a recorded commit (`web/schem
 
 - The hosted demo deploys itself: `.github/workflows/pages.yml` publishes every `dev` commit that passes CI and checks the live site serves that build.
 
+### Changed
+
+- Both services in `docker-compose.yaml` (`web`, the UI, and `mock-darkroom`, the fixture) are marked `# nosemgrep: service-peer-label`: neither is a suite peer, so argus-ci's `service-peer-label` rule passes.
+
 ### Security
 
 - **Dev dependencies patched for three Dependabot alerts**, all in `web/package-lock.json` and none in the shipped bundle: vitest 4.1.11 → 4.1.12 (`@vitest/mocker`, GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp) and typescript-eslint 8.72.0 → 8.73.0, which moves its minimatch from 10.2.6 to 11.0.9 (GHSA-g3hv-75wg-m249).
