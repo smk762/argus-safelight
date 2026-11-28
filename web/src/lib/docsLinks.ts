@@ -54,8 +54,18 @@ export const OUTCOME_DOCS: Record<Outcome, string> = {
   failed: DOCS.pipeline,
 };
 
-/** Ollama's own install guide. Studio's "Setup and services" pages (argus-studio#172) will replace this once they exist. */
-export const OLLAMA_SETUP = "https://docs.ollama.com/linux";
+/** The suite's setup guides (argus-studio#172's "Setup and services"), published by argus-handbook. */
+const HANDBOOK_SERVICES = "https://docs.dragonhound.dev/setup/services";
+
+/** The setup guide for each service darkroom calls, by the name the docs header shows. */
+export const SERVICE_SETUP: Record<"ComfyUI" | "Ollama" | "SingGuard" | "NudeNet", string> = {
+  ComfyUI: `${HANDBOOK_SERVICES}/comfyui/`,
+  Ollama: `${HANDBOOK_SERVICES}/ollama/`,
+  SingGuard: `${HANDBOOK_SERVICES}/singguard/`,
+  NudeNet: `${HANDBOOK_SERVICES}/nudenet/`,
+};
+
+export const OLLAMA_SETUP = SERVICE_SETUP.Ollama;
 
 export interface DarkroomPin {
   repo: string;

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DocArticle } from "@/components/DocArticle";
 
 import { docHeadings, slugger } from "./docs";
-import { DARKROOM, DOC_PAGES, DOCS, OUTCOME_DOCS, THINKING_DOCS, docsHref, type DocPage } from "./docsLinks";
+import { DARKROOM, DOC_PAGES, DOCS, OLLAMA_SETUP, OUTCOME_DOCS, SERVICE_SETUP, THINKING_DOCS, docsHref, type DocPage } from "./docsLinks";
 
 const html = new Map<DocPage, string>(DOC_PAGES.map((page) => [page, renderToStaticMarkup(<DocArticle page={page} />)]));
 const idsOn = (page: DocPage) => new Set([...html.get(page)!.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]));
@@ -93,5 +93,17 @@ describe("the imported docs", () => {
     const page = { slug: "guide", file: "docs/guide.md", title: "Guide", sections: null } as unknown as DocPage;
     const tree = await transform(page, "![a](/img/a.png) ![b](b.png) ![c](../../c.png)\n");
     expect(tree.match(/"url":"[^"]+"/g)).toEqual(['"url":"/docs/darkroom/img/a.png"', '"url":"/docs/darkroom/docs/b.png"']);
+  });
+});
+
+// Audit pack-argus-safelight-4809b2c709: Studio's "Setup and services" pages exist now, in argus-handbook.
+describe("service setup links", () => {
+  it("point at the suite handbook's setup pages, not the services' own guides", () => {
+    for (const [name, href] of Object.entries(SERVICE_SETUP)) {
+      const url = new URL(href);
+      expect(url.hostname, name).toBe("docs.dragonhound.dev");
+      expect(url.pathname, name).toMatch(/^\/setup\/services\/[a-z]+\/$/);
+    }
+    expect(OLLAMA_SETUP).toBe(SERVICE_SETUP.Ollama);
   });
 });
