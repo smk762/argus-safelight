@@ -1,15 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ExternalLink } from "@/components/links";
-import { DARKROOM, OLLAMA_SETUP, darkroomLinks } from "@/lib/docsLinks";
-
-/** The external services' own setup guides, until Studio's "Setup and services" pages (argus-studio#172) exist to link instead. */
-const SERVICES: [string, string][] = [
-  ["ComfyUI", "https://docs.comfy.org/installation/manual_install"],
-  ["Ollama", OLLAMA_SETUP],
-  ["SingGuard", "https://huggingface.co/inclusionAI/SingGuard-4b-GGUF"],
-  ["NudeNet", "https://github.com/notAI-tech/NudeNet"],
-];
+import { DARKROOM, SERVICE_SETUP, darkroomLinks } from "@/lib/docsLinks";
 
 /**
  * argus-darkroom's docs, imported at its `dev` HEAD. The header names the version and commit they were taken at,
@@ -33,8 +25,8 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
           <ExternalLink href={links.changelog}>Changelog</ExternalLink>
         </p>
         <p className="text-caption text-text-muted">
-          Imported from darkroom&apos;s <span className="font-mono">{DARKROOM.branch}</span> branch, not hand-copied; a scheduled check opens a pull request when it moves on. The services darkroom calls have their own guides:{" "}
-          {SERVICES.map(([name, href], index) => (
+          Imported from darkroom&apos;s <span className="font-mono">{DARKROOM.branch}</span> branch, not hand-copied; a scheduled check opens a pull request when it moves on. The services darkroom calls have setup guides in the suite handbook:{" "}
+          {Object.entries(SERVICE_SETUP).map(([name, href], index) => (
             <span key={name}>
               {index > 0 ? ", " : ""}
               <ExternalLink href={href}>{name}</ExternalLink>

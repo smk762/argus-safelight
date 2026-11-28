@@ -26,6 +26,30 @@ export function notTheDemo(health: Pick<Health, "demo" | "mock"> | null): string
   return "that darkroom does not report `demo: true` on /health, so it may render on a GPU, and every accepted case here is a generation. Run darkroom's `make demo` on another port.";
 }
 
+/**
+ * A refusal's body for the mismatch list: its JSON, compacted, or the raw text when it is not JSON (a framework's
+ * plain `Internal Server Error` on an unhandled 500), so one bad case is recorded rather than ending the sweep.
+ */
+export async function errorDetail(response: Pick<Response, "ok" | "text">): Promise<string> {
+  if (response.ok) return "";
+  const text = await response.text();
+  try {
+    return JSON.stringify(JSON.parse(text));
+  } catch {
+    return text;
+  }
+}
+
+// Audit pack-argus-safelight-0a40593723: a non-JSON error body is a mismatch to record, not a crash.
+describe("the contract test's error detail", () => {
+  const reply = (ok: boolean, body: string) => ({ ok, text: async () => body });
+  it("keeps a JSON body compact and a plain-text one as it came", async () => {
+    expect(await errorDetail(reply(false, '{ "detail": "no slot" }'))).toBe('{"detail":"no slot"}');
+    expect(await errorDetail(reply(false, "Internal Server Error"))).toBe("Internal Server Error");
+    expect(await errorDetail(reply(true, "ignored"))).toBe("");
+  });
+});
+
 describe("the contract test's guard", () => {
   it("runs only against a darkroom that says it is the demo", () => {
     expect(notTheDemo({ demo: true })).toBeNull();
@@ -87,7 +111,7 @@ describe.skipIf(!BASE)("the form against a live darkroom", () => {
     await idle();
     const abort = new AbortController();
     const response = await fetch(`${BASE}/generate/stream`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(toRequest(state, false, models)), signal: abort.signal });
-    const detail = response.ok ? "" : JSON.stringify(await response.json());
+    const detail = await errorDetail(response);
     abort.abort();
     return { status: response.status, detail };
   };
